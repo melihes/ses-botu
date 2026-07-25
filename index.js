@@ -8,7 +8,7 @@ const {
 const http = require('http');
 const path = require('path');
 
-// UptimeRobot web sunucusu
+// UptimeRobot web sunucusu (Botun uyumaması için)
 http.createServer((req, res) => {
     res.write("Bot 7/24 Aktif!");
     res.end();
@@ -37,14 +37,14 @@ client.once('clientReady', () => {
         const player = createAudioPlayer();
 
         function playAudio() {
-            // Yüklediğin dosya adının GitHub'dakiyle birebir aynı olduğundan emin ol (örn: ses.mp3)
+            // Ses dosyasının GitHub'daki ismiyle (örn: ses.mp3) aynı olmalı
             const filePath = path.join(__dirname, 'ses.mp3'); 
             const resource = createAudioResource(filePath);
             player.play(resource);
         }
 
         player.on(AudioPlayerStatus.Idle, () => {
-            console.log('Ses bitti, tekrar başlatılıyor...');
+            console.log('Ses bitti, tekrar oynatılıyor...');
             playAudio();
         });
 
