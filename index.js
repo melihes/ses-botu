@@ -45,7 +45,7 @@ client.on('clientReady', async () => {
         const player = createAudioPlayer();
 
         function play() {
-            const filePath = path.join(__dirname, 'ses.wav');
+            const filePath = path.join(__dirname, 'ses.mp3');
             
             const resource = createAudioResource(filePath, {
                 inputType: StreamType.Arbitrary,
