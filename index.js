@@ -38,7 +38,7 @@ client.once('clientReady', () => {
         // Ses oynatma fonksiyonu
         function playAudio() {
             // "ses.mp3" dosyasının adını GitHub'a yükleyeceğin dosya adı ile aynı yapmalısın
-            const resource = createAudioResource(path.join(__dirname, 'ses.mp3'));
+            const resource = createAudioResource(path.join(__dirname, 'ses.ogg'));
             player.play(resource);
         }
 
