@@ -4,15 +4,14 @@ const {
     createAudioPlayer, 
     createAudioResource, 
     AudioPlayerStatus,
-    StreamType,
-    VoiceConnectionStatus,
-    entersState
+    StreamType
 } = require('@discordjs/voice');
 const http = require('http');
 const path = require('path');
 const ffmpegPath = require('ffmpeg-static');
+const { spawn } = require('child_process');
 
-// Uptime için sunucu
+// Uptime Sunucusu
 http.createServer((req, res) => {
     res.write("Bot 7/24 Aktif!");
     res.end();
@@ -34,8 +33,6 @@ client.on('ready', async () => {
         const channel = await client.channels.fetch(channelId);
         if (!channel) return console.log("HATA: Kanal bulunamadı!");
 
-        console.log(`>>> KANALA BAĞLANILIYOR: ${channel.name}`);
-
         const connection = joinVoiceChannel({
             channelId: channel.id,
             guildId: channel.guild.id,
@@ -44,39 +41,48 @@ client.on('ready', async () => {
             selfMute: false
         });
 
-        // Bağlantının kurulmasını zorla bekle
-        try {
-            await entersState(connection, VoiceConnectionStatus.Ready, 20_000);
-            console.log(">>> SES BAĞLANTISI HAZIR!");
-        } catch (e) {
-            console.log(">>> Bağlantı zaman aşımına uğradı ama oynatma zorlanıyor...");
-        }
-
         const player = createAudioPlayer();
+        connection.subscribe(player);
 
         function play() {
             const filePath = path.join(__dirname, 'ses.wav');
-            const resource = createAudioResource(filePath, {
-                inputType: StreamType.Arbitrary,
-                ffmpegPath: ffmpegPath
+            
+            // FFmpeg ile ses dosyasını Discord'un istediği PCM / 48kHz formatına zorlayarak çeviriyoruz
+            const ffmpegProcess = spawn(ffmpegPath, [
+                '-re',
+                '-i', filePath,
+                '-f', 's16le',
+                '-ar', '48000',
+                '-ac', '2',
+                'pipe:1'
+            ], { stdio: ['ignore', 'pipe', 'ignore'] });
+
+            const resource = createAudioResource(ffmpegProcess.stdout, {
+                inputType: StreamType.Raw,
+                inlineVolume: true
             });
 
+            if (resource.volume) {
+                resource.volume.setVolume(1.0);
+            }
+
             player.play(resource);
+            console.log(">>> SES ZORLANARAK KANALA BASILDI!");
         }
 
-        connection.subscribe(player);
         play();
 
         player.on(AudioPlayerStatus.Playing, () => {
-            console.log(">>> [BAŞARILI] SES ŞU AN KANALDA ÇALIYOR!");
+            console.log(">>> [BAŞARILI] BOT ŞU AN KANALDA SES ÇALIYOR!");
         });
 
         player.on(AudioPlayerStatus.Idle, () => {
+            console.log(">>> Ses bitti, tekrar çalınıyor...");
             play();
         });
 
         player.on('error', err => {
-            console.error("Oynatma hatası:", err);
+            console.error(">>> Oynatma hatası:", err.message);
             setTimeout(play, 1000);
         });
 
