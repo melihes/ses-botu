@@ -4,7 +4,6 @@ const {
     createAudioPlayer, 
     createAudioResource, 
     AudioPlayerStatus,
-    VoiceConnectionStatus,
     StreamType,
     NoSubscriberBehavior
 } = require('@discordjs/voice');
@@ -39,15 +38,19 @@ client.on('clientReady', async () => {
             filePath = path.join(__dirname, 'ses.wav');
         }
 
-        console.log(`>>> Oynatılacak Dosya Bulundu: ${filePath}`);
+        const stats = fs.statSync(filePath);
+        console.log(`>>> Dosya Yolu: ${filePath} | Boyut: ${stats.size} bayt`);
+
+        if (stats.size === 0) {
+            return console.error("CRITICAL HATA: Yüklediğin ses dosyası 0 bayt (BOŞ)! Lütfen sağlam bir mp3 yükle.");
+        }
 
         const connection = joinVoiceChannel({
             channelId: channel.id,
             guildId: channel.guild.id,
             adapterCreator: channel.guild.voiceAdapterCreator,
             selfDeaf: false,
-            selfMute: false,
-            group: client.user.id
+            selfMute: false
         });
 
         const player = createAudioPlayer({
@@ -57,38 +60,30 @@ client.on('clientReady', async () => {
         });
 
         function play() {
-            // Volume modunu false yaparak işlemci karmakarışık ses işleme katmanını atlayıp doğrudan FFmpeg akışı basıyoruz
             const resource = createAudioResource(filePath, {
                 inputType: StreamType.Arbitrary,
                 ffmpegPath: ffmpegPath,
-                inlineVolume: false 
+                inlineVolume: false
             });
 
             player.play(resource);
         }
 
         connection.subscribe(player);
-
-        // Bağlantı koparsa veya kurulursa dinle
-        connection.on(VoiceConnectionStatus.Ready, () => {
-            console.log(">>> [BAĞLANTI BAŞARILI] Discord UDP Bağlantısı Kuruldu!");
-        });
-
-        // Oynatmayı doğrudan başlat
         play();
 
         player.on(AudioPlayerStatus.Playing, () => {
-            console.log(">>> [BAŞARILI] Sinyal gönderiliyor, ses çalıyor!");
+            console.log(">>> SES ÇALINIYOR...");
         });
 
         player.on(AudioPlayerStatus.Idle, () => {
-            console.log(">>> Ses bitti, başa sarılıyor...");
-            play();
+            console.log(">>> Ses bitti, 3 saniye sonra tekrar çalacak...");
+            setTimeout(play, 3000);
         });
 
         player.on('error', err => {
-            console.error(">>> Oynatma hatası:", err.message);
-            setTimeout(play, 1000);
+            console.error(">>> FFmpeg/Oynatma Hatası:", err.message);
+            setTimeout(play, 3000);
         });
 
     } catch (err) {
