@@ -4,7 +4,9 @@ const {
     createAudioPlayer, 
     createAudioResource, 
     AudioPlayerStatus,
-    StreamType
+    StreamType,
+    VoiceConnectionStatus,
+    entersState
 } = require('@discordjs/voice');
 const http = require('http');
 const path = require('path');
@@ -51,7 +53,6 @@ client.on('clientReady', async () => {
         const player = createAudioPlayer();
 
         function play() {
-            // OggOpus biçimine zorlayarak Discord'un dönüştürme yükünü ortadan kaldırıyoruz
             const resource = createAudioResource(filePath, {
                 inputType: StreamType.Arbitrary,
                 ffmpegPath: ffmpegPath,
@@ -62,23 +63,26 @@ client.on('clientReady', async () => {
         }
 
         connection.subscribe(player);
-        
-        setTimeout(() => {
-            play();
-            console.log(">>> SES AKIŞI BAŞLATILDI!");
-        }, 2000);
+
+        // Discord UDP Soketine Zorlama Pingi İletiyoruz
+        connection.on(VoiceConnectionStatus.Ready, () => {
+            console.log(">>> UDP SOKETİ TAM KİLİTLENDİ!");
+        });
+
+        // 1.5 saniye arayla kanala paket basmayı dene (Soket açma hamlesi)
+        setTimeout(play, 1000);
+        setTimeout(play, 2500);
 
         player.on(AudioPlayerStatus.Playing, () => {
-            console.log(">>> [BAŞARILI] MÜZİK KANALDA ÇALINIYOR!");
+            console.log(">>> [SON DÜZELTME] SES YAYINDA!");
         });
 
         player.on(AudioPlayerStatus.Idle, () => {
-            console.log(">>> Müzik bitti, tekrar çalınıyor...");
             play();
         });
 
         player.on('error', err => {
-            console.error(">>> Oynatma hatası:", err.message);
+            console.error("Oynatma hatası:", err.message);
             play();
         });
 
