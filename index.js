@@ -4,13 +4,14 @@ const {
     createAudioPlayer, 
     createAudioResource, 
     AudioPlayerStatus,
-    StreamType
+    StreamType,
+    generateDependencyReport
 } = require('@discordjs/voice');
 const http = require('http');
 const path = require('path');
 const ffmpegPath = require('ffmpeg-static');
+const fs = require('fs');
 
-// Uptime Sunucusu
 http.createServer((req, res) => {
     res.write("Bot 7/24 Aktif!");
     res.end();
@@ -25,14 +26,21 @@ const client = new Client({
 
 client.on('clientReady', async () => {
     console.log(`>>> BOT AKTİF: ${client.user.tag}`);
-    
+    console.log(generateDependencyReport());
+
     const channelId = process.env.KANAL_ID;
     
     try {
         const channel = await client.channels.fetch(channelId);
         if (!channel) return console.log("HATA: Kanal bulunamadı!");
 
-        console.log(`>>> KANALA BAĞLANILIYOR: ${channel.name}`);
+        // Dosya kontrolü (mp3 veya wav)
+        let filePath = path.join(__dirname, 'ses.mp3');
+        if (!fs.existsSync(filePath)) {
+            filePath = path.join(__dirname, 'ses.wav');
+        }
+
+        console.log(`>>> Oynatılacak Dosya: ${filePath}`);
 
         const connection = joinVoiceChannel({
             channelId: channel.id,
@@ -45,8 +53,6 @@ client.on('clientReady', async () => {
         const player = createAudioPlayer();
 
         function play() {
-            const filePath = path.join(__dirname, 'ses.mp3');
-            
             const resource = createAudioResource(filePath, {
                 inputType: StreamType.Arbitrary,
                 ffmpegPath: ffmpegPath,
@@ -58,14 +64,19 @@ client.on('clientReady', async () => {
             }
 
             player.play(resource);
-            console.log(">>> SES OYNATICIYA VERİLDİ!");
         }
 
+        // UDP bağlantısı kilitlenmesini aşmak için bağlantıyı abonesine zorla bağla
         connection.subscribe(player);
-        play();
+
+        // 1 saniye bekletip akışı başlat ki UDP soketi el sıkışmasını tamamlasın
+        setTimeout(() => {
+            play();
+            console.log(">>> SES AKIŞI ZORLANARAK BAŞLATILDI!");
+        }, 1500);
 
         player.on(AudioPlayerStatus.Playing, () => {
-            console.log(">>> [BAŞARILI] BOT ŞU AN KANALDA SES ÇALIYOR!");
+            console.log(">>> [SONUÇ] YEŞİL HALKA YANMALI - SES İLETİLİYOR!");
         });
 
         player.on(AudioPlayerStatus.Idle, () => {
