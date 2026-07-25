@@ -3,12 +3,10 @@ const {
     joinVoiceChannel, 
     createAudioPlayer, 
     createAudioResource, 
-    AudioPlayerStatus,
-    NoSubscriberBehavior
+    AudioPlayerStatus 
 } = require('@discordjs/voice');
 const http = require('http');
 const path = require('path');
-const ffmpeg = require('ffmpeg-static');
 
 // UptimeRobot web sunucusu
 http.createServer((req, res) => {
@@ -36,21 +34,12 @@ client.once('clientReady', () => {
             selfMute: false
         });
 
-        const player = createAudioPlayer({
-            behaviors: {
-                noSubscriber: NoSubscriberBehavior.Play
-            }
-        });
+        const player = createAudioPlayer();
 
         function playAudio() {
-            // Yüklediğin ses dosyasının adı
-            const filePath = path.join(__dirname, 'ses.mp3');
-            
-            const resource = createAudioResource(filePath, {
-                inputType: require('@discordjs/voice').StreamType.Arbitrary,
-                ffmpegPath: ffmpeg
-            });
-
+            // Yüklediğin dosya adının GitHub'dakiyle birebir aynı olduğundan emin ol (örn: ses.mp3)
+            const filePath = path.join(__dirname, 'ses.mp3'); 
+            const resource = createAudioResource(filePath);
             player.play(resource);
         }
 
@@ -61,7 +50,7 @@ client.once('clientReady', () => {
 
         player.on('error', error => {
             console.error('Ses hatası:', error.message);
-            setTimeout(playAudio, 2000);
+            setTimeout(playAudio, 1000);
         });
 
         connection.subscribe(player);
