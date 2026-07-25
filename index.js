@@ -38,7 +38,7 @@ client.once('clientReady', () => {
 
         function playAudio() {
             // Ses dosyasının GitHub'daki ismiyle (örn: ses.mp3) aynı olmalı
-            const filePath = path.join(__dirname, 'ses.mp3'); 
+            const filePath = path.join(__dirname, 'ses.wav'); 
             const resource = createAudioResource(filePath);
             player.play(resource);
         }
