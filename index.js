@@ -3,12 +3,14 @@ const {
     joinVoiceChannel, 
     createAudioPlayer, 
     createAudioResource, 
-    AudioPlayerStatus 
+    AudioPlayerStatus,
+    StreamType 
 } = require('@discordjs/voice');
 const http = require('http');
 const path = require('path');
+const ffmpegPath = require('ffmpeg-static');
 
-// UptimeRobot web sunucusu (Botun uyumaması için)
+// Web sunucusu (UptimeRobot uykuyu engellesin diye)
 http.createServer((req, res) => {
     res.write("Bot 7/24 Aktif!");
     res.end();
@@ -37,14 +39,19 @@ client.once('clientReady', () => {
         const player = createAudioPlayer();
 
         function playAudio() {
-            // Ses dosyasının GitHub'daki ismiyle (örn: ses.mp3) aynı olmalı
+            // Yüklediğin dosyanın tam adını yaz (ses.wav, ses.mp3 vb.)
             const filePath = path.join(__dirname, 'ses.wav'); 
-            const resource = createAudioResource(filePath);
+            
+            const resource = createAudioResource(filePath, {
+                inputType: StreamType.Arbitrary,
+                ffmpegPath: ffmpegPath
+            });
+
             player.play(resource);
         }
 
         player.on(AudioPlayerStatus.Idle, () => {
-            console.log('Ses bitti, tekrar oynatılıyor...');
+            console.log('Ses bitti, tekrar başlatılıyor...');
             playAudio();
         });
 
