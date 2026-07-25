@@ -37,9 +37,9 @@ client.on('clientReady', async () => {
             filePath = path.join(__dirname, 'ses.wav');
         }
 
-        console.log(">>> Kanala giriliyor...");
+        const stats = fs.statSync(filePath);
+        console.log(`>>> Yüklenen Dosya Boyutu: ${(stats.size / 1024 / 1024).toFixed(2)} MB`);
 
-        // Gir-çık yapmayı durdurup bağlantıyı kanalda sabitliyoruz
         const connection = joinVoiceChannel({
             channelId: channel.id,
             guildId: channel.guild.id,
@@ -51,6 +51,7 @@ client.on('clientReady', async () => {
         const player = createAudioPlayer();
 
         function play() {
+            // OggOpus biçimine zorlayarak Discord'un dönüştürme yükünü ortadan kaldırıyoruz
             const resource = createAudioResource(filePath, {
                 inputType: StreamType.Arbitrary,
                 ffmpegPath: ffmpegPath,
@@ -62,17 +63,17 @@ client.on('clientReady', async () => {
 
         connection.subscribe(player);
         
-        // El sıkışmayı beklemeden 3 saniye sonra paketleri basmaya başla
         setTimeout(() => {
             play();
-            console.log(">>> SES PAKETLERİ BASILDI!");
-        }, 3000);
+            console.log(">>> SES AKIŞI BAŞLATILDI!");
+        }, 2000);
 
         player.on(AudioPlayerStatus.Playing, () => {
-            console.log(">>> [BAŞARILI] SES AKIŞI BAŞLADI!");
+            console.log(">>> [BAŞARILI] MÜZİK KANALDA ÇALINIYOR!");
         });
 
         player.on(AudioPlayerStatus.Idle, () => {
+            console.log(">>> Müzik bitti, tekrar çalınıyor...");
             play();
         });
 
