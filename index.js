@@ -4,14 +4,17 @@ const {
     createAudioPlayer, 
     createAudioResource, 
     AudioPlayerStatus,
+    VoiceConnectionStatus,
     StreamType,
-    generateDependencyReport
+    entersState
 } = require('@discordjs/voice');
 const http = require('http');
 const path = require('path');
 const ffmpegPath = require('ffmpeg-static');
 const fs = require('fs');
+const sodium = require('libsodium-wrappers');
 
+// Web Sunucusu (Uptime için)
 http.createServer((req, res) => {
     res.write("Bot 7/24 Aktif!");
     res.end();
@@ -26,8 +29,10 @@ const client = new Client({
 
 client.on('clientReady', async () => {
     console.log(`>>> BOT AKTİF: ${client.user.tag}`);
-    console.log("--- BĞIMLILIK RAPORU ---");
-    console.log(generateDependencyReport());
+
+    // Sodium şifreleme kütüphanesinin hazır olmasını bekliyoruz
+    await sodium.ready;
+    console.log(">>> SHİFRELEME (SODIUM) HAZIR!");
 
     const channelId = process.env.KANAL_ID;
     
@@ -40,6 +45,8 @@ client.on('clientReady', async () => {
             filePath = path.join(__dirname, 'ses.wav');
         }
 
+        console.log(`>>> Oynatılacak Dosya: ${filePath}`);
+
         const connection = joinVoiceChannel({
             channelId: channel.id,
             guildId: channel.guild.id,
@@ -47,6 +54,14 @@ client.on('clientReady', async () => {
             selfDeaf: false,
             selfMute: false
         });
+
+        // UDP Bağlantısının TAM olarak kurulmasını bekliyoruz (Maksimum 15 sn)
+        try {
+            await entersState(connection, VoiceConnectionStatus.Ready, 15_000);
+            console.log(">>> SES KANALI UDP BAĞLANTISI TAMAMLANDI!");
+        } catch (e) {
+            console.log(">>> Uyarı: VoiceConnectionStatus.Ready beklemesi zaman aşımına uğradı, oynatma deneniyor...");
+        }
 
         const player = createAudioPlayer();
 
@@ -65,14 +80,10 @@ client.on('clientReady', async () => {
         }
 
         connection.subscribe(player);
-
-        setTimeout(() => {
-            play();
-            console.log(">>> SES BAŞLATIILDI!");
-        }, 1500);
+        play();
 
         player.on(AudioPlayerStatus.Playing, () => {
-            console.log(">>> [BAŞARILI] SES ŞU AN KANALDA ÇALINIYOR!");
+            console.log(">>> [SONUÇ] SES AKIŞI AKTİF - KANALDA DUYULMALI!");
         });
 
         player.on(AudioPlayerStatus.Idle, () => {
