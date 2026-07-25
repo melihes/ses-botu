@@ -4,14 +4,14 @@ const {
     createAudioPlayer, 
     createAudioResource, 
     AudioPlayerStatus,
-    StreamType,
-    VoiceConnectionStatus
+    VoiceConnectionStatus,
+    StreamType
 } = require('@discordjs/voice');
 const http = require('http');
 const path = require('path');
 const ffmpegPath = require('ffmpeg-static');
 
-// Web sunucusu (UptimeRobot aktif tutsun diye)
+// Uptime için Web Sunucusu
 http.createServer((req, res) => {
     res.write("Bot 7/24 Aktif!");
     res.end();
@@ -24,12 +24,14 @@ const client = new Client({
     ]
 });
 
-client.once('clientReady', () => {
-    console.log(`${client.user.tag} başarıyla giriş yaptı!`);
-    
-    const channel = client.channels.cache.get(process.env.KANAL_ID);
+client.once('clientReady', async () => {
+    console.log(`[LOG] ${client.user.tag} başarıyla giriş yaptı.`);
+
+    const channelId = process.env.KANAL_ID;
+    const channel = client.channels.cache.get(channelId);
+
     if (!channel) {
-        return console.error("HATA: KANAL_ID yanlış veya bot o kanalı göremiyor!");
+        return console.error("[HATA] KANAL_ID bulunamadı!");
     }
 
     const connection = joinVoiceChannel({
@@ -42,36 +44,40 @@ client.once('clientReady', () => {
 
     const player = createAudioPlayer();
 
-    function playAudio() {
+    function startPlayback() {
         const filePath = path.join(__dirname, 'ses.wav');
         
         const resource = createAudioResource(filePath, {
             inputType: StreamType.Arbitrary,
-            ffmpegPath: ffmpegPath
+            ffmpegPath: ffmpegPath,
+            inlineVolume: true
         });
+
+        if (resource.volume) {
+            resource.volume.setVolume(1.0);
+        }
 
         player.play(resource);
     }
 
-    // Bağlantı durumlarını loglayalım
     connection.on(VoiceConnectionStatus.Ready, () => {
-        console.log("Ses kanalına bağlantı tamamlandı, ses başlatılıyor!");
+        console.log('[LOG] Ses kanalına bağlantı kuruldu, ses başlatılıyor...');
         connection.subscribe(player);
-        playAudio();
+        startPlayback();
     });
 
-    connection.on(VoiceConnectionStatus.Disconnected, () => {
-        console.log("Sesten koptu, tekrar bağlanmaya çalışıyor...");
+    player.on(AudioPlayerStatus.Playing, () => {
+        console.log('[BAŞARILI] Bot şu an kanalda ses çalıyor!');
     });
 
     player.on(AudioPlayerStatus.Idle, () => {
-        console.log("Ses bitti, döngü gereği tekrar çalınıyor...");
-        playAudio();
+        console.log('[LOG] Ses bitti, tekrar başlatılıyor...');
+        startPlayback();
     });
 
-    player.on('error', error => {
-        console.error("Oynatma Hatası:", error.message);
-        setTimeout(playAudio, 1000);
+    player.on('error', (err) => {
+        console.error('[HATA] Oynatma hatası:', err.message);
+        setTimeout(startPlayback, 1000);
     });
 });
 
