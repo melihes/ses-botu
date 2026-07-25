@@ -3,57 +3,67 @@ const {
     joinVoiceChannel, 
     createAudioPlayer, 
     createAudioResource, 
-    AudioPlayerStatus 
+    AudioPlayerStatus,
+    NoSubscriberBehavior
 } = require('@discordjs/voice');
 const http = require('http');
 const path = require('path');
+const ffmpeg = require('ffmpeg-static');
 
-// UptimeRobot / Web sunucusu ayarı (Uykuyu engellemek için)
+// UptimeRobot web sunucusu
 http.createServer((req, res) => {
     res.write("Bot 7/24 Aktif!");
     res.end();
 }).listen(process.env.PORT || 3000);
 
 const client = new Client({
-    intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildVoiceStates]
+    intents: [
+        GatewayIntentBits.Guilds, 
+        GatewayIntentBits.GuildVoiceStates
+    ]
 });
 
-// ready yerine güncel clientReady olayı kullanıldı
 client.once('clientReady', () => {
     console.log(`${client.user.tag} sese bağlandı!`);
     
     const channel = client.channels.cache.get(process.env.KANAL_ID);
     if (channel) {
-        // Ses kanalına bağlan
         const connection = joinVoiceChannel({
             channelId: channel.id,
             guildId: channel.guild.id,
             adapterCreator: channel.guild.voiceAdapterCreator,
-            selfDeaf: false
+            selfDeaf: false,
+            selfMute: false
         });
 
-        // Ses çalıcıyı oluştur
-        const player = createAudioPlayer();
+        const player = createAudioPlayer({
+            behaviors: {
+                noSubscriber: NoSubscriberBehavior.Play
+            }
+        });
 
-        // Ses oynatma fonksiyonu
         function playAudio() {
-            // "ses.mp3" dosyasının adını GitHub'a yükleyeceğin dosya adı ile aynı yapmalısın
-            const resource = createAudioResource(path.join(__dirname, 'ses.ogg'));
+            // Yüklediğin ses dosyasının adı
+            const filePath = path.join(__dirname, 'ses.mp3');
+            
+            const resource = createAudioResource(filePath, {
+                inputType: require('@discordjs/voice').StreamType.Arbitrary,
+                ffmpegPath: ffmpeg
+            });
+
             player.play(resource);
         }
 
-        // Ses bittiğinde tekrar başlat (Sonsuz Döngü)
         player.on(AudioPlayerStatus.Idle, () => {
+            console.log('Ses bitti, tekrar başlatılıyor...');
             playAudio();
         });
 
-        // Olası ses hatalarında botun çökmemesi ve tekrar denemesi için
         player.on('error', error => {
-            console.error('Ses oynatılırken bir hata oluştu:', error);
-            playAudio();
+            console.error('Ses hatası:', error.message);
+            setTimeout(playAudio, 2000);
         });
 
-        // Çalıcıyı kanala bağla ve ilk sesi başlat
         connection.subscribe(player);
         playAudio();
     }
