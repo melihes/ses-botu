@@ -5,14 +5,13 @@ const {
     createAudioResource, 
     AudioPlayerStatus,
     StreamType,
-    VoiceConnectionStatus,
-    entersState
+    VoiceConnectionStatus
 } = require('@discordjs/voice');
 const http = require('http');
 const path = require('path');
 const ffmpegPath = require('ffmpeg-static');
 
-// UptimeRobot web sunucusu
+// Web sunucusu (UptimeRobot aktif tutsun diye)
 http.createServer((req, res) => {
     res.write("Bot 7/24 Aktif!");
     res.end();
@@ -25,11 +24,13 @@ const client = new Client({
     ]
 });
 
-client.once('clientReady', async () => {
-    console.log(`${client.user.tag} sese bağlandı!`);
+client.once('clientReady', () => {
+    console.log(`${client.user.tag} başarıyla giriş yaptı!`);
     
     const channel = client.channels.cache.get(process.env.KANAL_ID);
-    if (!channel) return console.log("Kanal bulunamadı!");
+    if (!channel) {
+        return console.error("HATA: KANAL_ID yanlış veya bot o kanalı göremiyor!");
+    }
 
     const connection = joinVoiceChannel({
         channelId: channel.id,
@@ -39,47 +40,39 @@ client.once('clientReady', async () => {
         selfMute: false
     });
 
-    try {
-        // Ses kanalına bağlantının tamamen kurulmasını bekle
-        await entersState(connection, VoiceConnectionStatus.Ready, 20_000);
+    const player = createAudioPlayer();
+
+    function playAudio() {
+        const filePath = path.join(__dirname, 'ses.wav');
         
-        const player = createAudioPlayer();
-
-        function playAudio() {
-            // Yüklediğin ses dosyasının tam adı (ses.wav / ses.mp3)
-            const filePath = path.join(__dirname, 'ses.wav'); 
-            
-            const resource = createAudioResource(filePath, {
-                inputType: StreamType.Arbitrary,
-                ffmpegPath: ffmpegPath,
-                inlineVolume: true
-            });
-
-            // Ses seviyesini garantiye al
-            if (resource.volume) {
-                resource.volume.setVolume(1.0);
-            }
-
-            player.play(resource);
-        }
-
-        player.on(AudioPlayerStatus.Idle, () => {
-            console.log('Ses bitti, tekrar oynatılıyor...');
-            playAudio();
+        const resource = createAudioResource(filePath, {
+            inputType: StreamType.Arbitrary,
+            ffmpegPath: ffmpegPath
         });
 
-        player.on('error', error => {
-            console.error('Ses hatası:', error.message);
-            setTimeout(playAudio, 1000);
-        });
+        player.play(resource);
+    }
 
+    // Bağlantı durumlarını loglayalım
+    connection.on(VoiceConnectionStatus.Ready, () => {
+        console.log("Ses kanalına bağlantı tamamlandı, ses başlatılıyor!");
         connection.subscribe(player);
         playAudio();
-        console.log("Ses oynatılmaya başladı!");
+    });
 
-    } catch (error) {
-        console.error("Sese bağlanırken hata oluştu:", error);
-    }
+    connection.on(VoiceConnectionStatus.Disconnected, () => {
+        console.log("Sesten koptu, tekrar bağlanmaya çalışıyor...");
+    });
+
+    player.on(AudioPlayerStatus.Idle, () => {
+        console.log("Ses bitti, döngü gereği tekrar çalınıyor...");
+        playAudio();
+    });
+
+    player.on('error', error => {
+        console.error("Oynatma Hatası:", error.message);
+        setTimeout(playAudio, 1000);
+    });
 });
 
 client.login(process.env.TOKEN);
