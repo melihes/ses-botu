@@ -9,7 +9,6 @@ const {
 const http = require('http');
 const path = require('path');
 const ffmpegPath = require('ffmpeg-static');
-const { spawn } = require('child_process');
 
 // Uptime Sunucusu
 http.createServer((req, res) => {
@@ -24,7 +23,7 @@ const client = new Client({
     ]
 });
 
-client.on('ready', async () => {
+client.on('clientReady', async () => {
     console.log(`>>> BOT AKTİF: ${client.user.tag}`);
     
     const channelId = process.env.KANAL_ID;
@@ -32,6 +31,8 @@ client.on('ready', async () => {
     try {
         const channel = await client.channels.fetch(channelId);
         if (!channel) return console.log("HATA: Kanal bulunamadı!");
+
+        console.log(`>>> KANALA BAĞLANILIYOR: ${channel.name}`);
 
         const connection = joinVoiceChannel({
             channelId: channel.id,
@@ -42,23 +43,13 @@ client.on('ready', async () => {
         });
 
         const player = createAudioPlayer();
-        connection.subscribe(player);
 
         function play() {
             const filePath = path.join(__dirname, 'ses.wav');
             
-            // FFmpeg ile ses dosyasını Discord'un istediği PCM / 48kHz formatına zorlayarak çeviriyoruz
-            const ffmpegProcess = spawn(ffmpegPath, [
-                '-re',
-                '-i', filePath,
-                '-f', 's16le',
-                '-ar', '48000',
-                '-ac', '2',
-                'pipe:1'
-            ], { stdio: ['ignore', 'pipe', 'ignore'] });
-
-            const resource = createAudioResource(ffmpegProcess.stdout, {
-                inputType: StreamType.Raw,
+            const resource = createAudioResource(filePath, {
+                inputType: StreamType.Arbitrary,
+                ffmpegPath: ffmpegPath,
                 inlineVolume: true
             });
 
@@ -67,9 +58,10 @@ client.on('ready', async () => {
             }
 
             player.play(resource);
-            console.log(">>> SES ZORLANARAK KANALA BASILDI!");
+            console.log(">>> SES OYNATICIYA VERİLDİ!");
         }
 
+        connection.subscribe(player);
         play();
 
         player.on(AudioPlayerStatus.Playing, () => {
