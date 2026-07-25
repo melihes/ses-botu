@@ -26,6 +26,7 @@ const client = new Client({
 
 client.on('clientReady', async () => {
     console.log(`>>> BOT AKTİF: ${client.user.tag}`);
+    console.log("--- BĞIMLILIK RAPORU ---");
     console.log(generateDependencyReport());
 
     const channelId = process.env.KANAL_ID;
@@ -34,13 +35,10 @@ client.on('clientReady', async () => {
         const channel = await client.channels.fetch(channelId);
         if (!channel) return console.log("HATA: Kanal bulunamadı!");
 
-        // Dosya kontrolü (mp3 veya wav)
         let filePath = path.join(__dirname, 'ses.mp3');
         if (!fs.existsSync(filePath)) {
             filePath = path.join(__dirname, 'ses.wav');
         }
-
-        console.log(`>>> Oynatılacak Dosya: ${filePath}`);
 
         const connection = joinVoiceChannel({
             channelId: channel.id,
@@ -66,17 +64,15 @@ client.on('clientReady', async () => {
             player.play(resource);
         }
 
-        // UDP bağlantısı kilitlenmesini aşmak için bağlantıyı abonesine zorla bağla
         connection.subscribe(player);
 
-        // 1 saniye bekletip akışı başlat ki UDP soketi el sıkışmasını tamamlasın
         setTimeout(() => {
             play();
-            console.log(">>> SES AKIŞI ZORLANARAK BAŞLATILDI!");
+            console.log(">>> SES BAŞLATIILDI!");
         }, 1500);
 
         player.on(AudioPlayerStatus.Playing, () => {
-            console.log(">>> [SONUÇ] YEŞİL HALKA YANMALI - SES İLETİLİYOR!");
+            console.log(">>> [BAŞARILI] SES ŞU AN KANALDA ÇALINIYOR!");
         });
 
         player.on(AudioPlayerStatus.Idle, () => {
