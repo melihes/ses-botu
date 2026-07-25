@@ -4,14 +4,15 @@ const {
     createAudioPlayer, 
     createAudioResource, 
     AudioPlayerStatus,
+    StreamType,
     VoiceConnectionStatus,
-    StreamType
+    entersState
 } = require('@discordjs/voice');
 const http = require('http');
 const path = require('path');
 const ffmpegPath = require('ffmpeg-static');
 
-// Uptime için Web Sunucusu
+// Uptime için sunucu
 http.createServer((req, res) => {
     res.write("Bot 7/24 Aktif!");
     res.end();
@@ -19,66 +20,69 @@ http.createServer((req, res) => {
 
 const client = new Client({
     intents: [
-        GatewayIntentBits.Guilds, 
+        GatewayIntentBits.Guilds,
         GatewayIntentBits.GuildVoiceStates
     ]
 });
 
-client.once('clientReady', async () => {
-    console.log(`[LOG] ${client.user.tag} başarıyla giriş yaptı.`);
-
+client.on('ready', async () => {
+    console.log(`>>> BOT AKTİF: ${client.user.tag}`);
+    
     const channelId = process.env.KANAL_ID;
-    const channel = client.channels.cache.get(channelId);
+    
+    try {
+        const channel = await client.channels.fetch(channelId);
+        if (!channel) return console.log("HATA: Kanal bulunamadı!");
 
-    if (!channel) {
-        return console.error("[HATA] KANAL_ID bulunamadı!");
-    }
+        console.log(`>>> KANALA BAĞLANILIYOR: ${channel.name}`);
 
-    const connection = joinVoiceChannel({
-        channelId: channel.id,
-        guildId: channel.guild.id,
-        adapterCreator: channel.guild.voiceAdapterCreator,
-        selfDeaf: false,
-        selfMute: false
-    });
-
-    const player = createAudioPlayer();
-
-    function startPlayback() {
-        const filePath = path.join(__dirname, 'ses.wav');
-        
-        const resource = createAudioResource(filePath, {
-            inputType: StreamType.Arbitrary,
-            ffmpegPath: ffmpegPath,
-            inlineVolume: true
+        const connection = joinVoiceChannel({
+            channelId: channel.id,
+            guildId: channel.guild.id,
+            adapterCreator: channel.guild.voiceAdapterCreator,
+            selfDeaf: false,
+            selfMute: false
         });
 
-        if (resource.volume) {
-            resource.volume.setVolume(1.0);
+        // Bağlantının kurulmasını zorla bekle
+        try {
+            await entersState(connection, VoiceConnectionStatus.Ready, 20_000);
+            console.log(">>> SES BAĞLANTISI HAZIR!");
+        } catch (e) {
+            console.log(">>> Bağlantı zaman aşımına uğradı ama oynatma zorlanıyor...");
         }
 
-        player.play(resource);
-    }
+        const player = createAudioPlayer();
 
-    connection.on(VoiceConnectionStatus.Ready, () => {
-        console.log('[LOG] Ses kanalına bağlantı kuruldu, ses başlatılıyor...');
+        function play() {
+            const filePath = path.join(__dirname, 'ses.wav');
+            const resource = createAudioResource(filePath, {
+                inputType: StreamType.Arbitrary,
+                ffmpegPath: ffmpegPath
+            });
+
+            player.play(resource);
+        }
+
         connection.subscribe(player);
-        startPlayback();
-    });
+        play();
 
-    player.on(AudioPlayerStatus.Playing, () => {
-        console.log('[BAŞARILI] Bot şu an kanalda ses çalıyor!');
-    });
+        player.on(AudioPlayerStatus.Playing, () => {
+            console.log(">>> [BAŞARILI] SES ŞU AN KANALDA ÇALIYOR!");
+        });
 
-    player.on(AudioPlayerStatus.Idle, () => {
-        console.log('[LOG] Ses bitti, tekrar başlatılıyor...');
-        startPlayback();
-    });
+        player.on(AudioPlayerStatus.Idle, () => {
+            play();
+        });
 
-    player.on('error', (err) => {
-        console.error('[HATA] Oynatma hatası:', err.message);
-        setTimeout(startPlayback, 1000);
-    });
+        player.on('error', err => {
+            console.error("Oynatma hatası:", err);
+            setTimeout(play, 1000);
+        });
+
+    } catch (err) {
+        console.error("HATA OLUŞTU:", err);
+    }
 });
 
 client.login(process.env.TOKEN);
