@@ -1,4 +1,5 @@
 // ---- ffmpeg-static'i kütüphaneye tanıt (bazı iç yollar bunu kullanır) ----
+console.log('>>> voice surumu:', require('@discordjs/voice/package.json').version);
 require('dotenv').config();
 process.env.FFMPEG_PATH = require('ffmpeg-static');
 
