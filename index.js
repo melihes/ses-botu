@@ -1,4 +1,5 @@
 // ---- ffmpeg-static'i kütüphaneye tanıt (bazı iç yollar bunu kullanır) ----
+require('dotenv').config();
 process.env.FFMPEG_PATH = require('ffmpeg-static');
 
 const fs = require('fs');
