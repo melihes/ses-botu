@@ -160,7 +160,7 @@ class _TradeState extends State<_Trade> {
     final own = game.holdings[t] ?? 0;
     final maxQ = _buy ? game.maxBuyable(t) : own;
     final qty = (maxQ * _pct).floorToDouble();
-    final total = qty * price * (_buy ? 1.003 : 0.997);
+    final total = qty < 1 ? 0.0 : (_buy ? game.buyQuote(t, qty) : game.sellQuote(t, qty));
     final ch = _change(game, t);
     final avg = own > 0 ? (game.costBasis[t] ?? 0) / own : 0.0;
     return ConstrainedBox(

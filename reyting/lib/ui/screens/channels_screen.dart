@@ -172,7 +172,7 @@ class _ChannelCard extends StatelessWidget {
                       compact: true,
                       color: AppColors.textDim, onTap: () async {
                     final ok = await confirm(context, '${c.name} satılsın mı?',
-                        'Alış fiyatının %80\'i kasana girer.',
+                        'Liste fiyatının %65\'i kasana girer.',
                         ok: 'Sat');
                     if (ok) game.sellChannel(c);
                   }),

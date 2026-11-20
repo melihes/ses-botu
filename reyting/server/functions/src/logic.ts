@@ -52,8 +52,8 @@ export function serverWorth(s: SaveSummary): number {
   let v = s.cash - s.debt;
   for (let i = 1; i <= s.studioLevel; i++) v += studioCosts[i] * 0.7;
   for (const id of new Set(s.ownedLuxury)) v += (luxuryPrices[id] ?? 0) * 0.7;
-  for (const id of new Set(s.ownedChannels)) v += (channelPrices[id] ?? 0) * 0.8;
-  for (const id of new Set(s.ownedPlatforms)) v += (platformPrices[id] ?? 0) * 0.8;
+  for (const id of new Set(s.ownedChannels)) v += (channelPrices[id] ?? 0) * 0.65;
+  for (const id of new Set(s.ownedPlatforms)) v += (platformPrices[id] ?? 0) * 0.65;
   v += portfolioWorth(s);
   return v;
 }

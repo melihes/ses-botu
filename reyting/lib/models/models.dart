@@ -60,11 +60,13 @@ class Show {
   double seasonRevenue;
   double buff; // olaylardan gelen geçici reyting çarpanı
   int buffDays;
+  int lastAiredDay; // en son yayında olduğu gün (ödüller için)
   String? sponsor; // ürün yerleştirme markası
   double sponsorPerDay;
   int sponsorDays;
 
   Show({
+    this.lastAiredDay = 0,
     this.sponsor,
     this.sponsorPerDay = 0,
     this.sponsorDays = 0,
@@ -109,6 +111,7 @@ class Show {
         'seasonRevenue': seasonRevenue,
         'buff': buff,
         'buffDays': buffDays,
+        'lastAiredDay': lastAiredDay,
         'sponsor': sponsor,
         'sponsorPerDay': sponsorPerDay,
         'sponsorDays': sponsorDays,
@@ -134,6 +137,7 @@ class Show {
         seasonRevenue: (j['seasonRevenue'] as num? ?? 0).toDouble(),
         buff: (j['buff'] as num? ?? 1).toDouble(),
         buffDays: j['buffDays'] ?? 0,
+        lastAiredDay: j['lastAiredDay'] ?? 0,
         sponsor: j['sponsor'],
         sponsorPerDay: (j['sponsorPerDay'] as num? ?? 0).toDouble(),
         sponsorDays: j['sponsorDays'] ?? 0,
@@ -297,6 +301,7 @@ class Film {
   double soldFor;
   int licensesSold; // toplam satılan lisans sayısı (değer düşer)
   bool onOwnPlatform;
+  int finishedDay; // çekimin bittiği gün (ödüller için)
   final List<FilmLicense> licenses;
 
   Film({
@@ -316,6 +321,7 @@ class Film {
     this.soldFor = 0,
     this.licensesSold = 0,
     this.onOwnPlatform = false,
+    this.finishedDay = 0,
     List<FilmLicense>? licenses,
   }) : licenses = licenses ?? [];
 
@@ -340,6 +346,7 @@ class Film {
         'soldFor': soldFor,
         'licensesSold': licensesSold,
         'onOwnPlatform': onOwnPlatform,
+        'finishedDay': finishedDay,
         'licenses': licenses.map((e) => e.toJson()).toList(),
       };
 
@@ -360,6 +367,7 @@ class Film {
         soldFor: (j['soldFor'] as num).toDouble(),
         licensesSold: j['licensesSold'],
         onOwnPlatform: j['onOwnPlatform'] ?? false,
+        finishedDay: j['finishedDay'] ?? 0,
         licenses: (j['licenses'] as List)
             .map((e) => FilmLicense.fromJson(e))
             .toList(),

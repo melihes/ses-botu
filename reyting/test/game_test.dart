@@ -569,4 +569,75 @@ void main() {
       g.dispose();
     });
   });
+
+  group('Para basma açıkları kapalı', () {
+    test('HATA #4: kanalı en ucuza alıp satmak kâr ettirmez', () async {
+      final g = Game();
+      await g.start();
+      g.cash = 1e10;
+      for (final c in channelDefs) {
+        final c0 = g.cash;
+        g.completePurchase(c.id, c.price * 0.74); // pazarlıkta inilebilecek en düşük
+        g.sellChannel(c);
+        expect(g.cash, lessThan(c0), reason: c.name);
+      }
+      g.dispose();
+    });
+
+    test('HATA #5: borsada büyük al-sat döngüsü kâr ettirmez', () async {
+      final g = Game();
+      await g.start();
+      g.cash = 1e15;
+      for (final d in stockDefs) {
+        final c0 = g.cash;
+        final q = (d.shares * 0.25).floorToDouble();
+        expect(g.buyStock(d.ticker, q), isNull);
+        expect(g.sellStock(d.ticker, q), isNull);
+        expect(g.cash, lessThan(c0), reason: d.ticker);
+      }
+      g.dispose();
+    });
+
+    test('lüksü alıp satmak kâr ettirmez', () async {
+      final g = Game();
+      await g.start();
+      g.cash = 1e12;
+      for (final d in luxuryDefs) {
+        final c0 = g.cash;
+        g.completePurchase(d.id, d.price * 0.74);
+        g.sellLuxury(d);
+        expect(g.cash, lessThan(c0), reason: d.name);
+      }
+      g.dispose();
+    });
+
+    test('HATA #6: ödülü sadece son 30 günde yayında olanlar alır', () async {
+      final g = await gameWithShowOnAir();
+      g.cash = 1e9;
+      final s = g.shows.first;
+      s.ratingHistory.addAll(List.filled(10, 50.0)); // efsane bir sezon
+      g.takeOffAir(s.slot!);
+      g.debugAdvanceDays(60.5); // iki tören geçer
+      final names = g.trophies.map((t) => t.winner).toList();
+      expect(names.where((n) => n == s.name).length, lessThanOrEqualTo(1),
+          reason: 'bitmiş program her törende ödül almamalı');
+      g.dispose();
+    });
+
+    test('kısa ayrılık sessizce işlenir (zaman kaybolmaz)', () async {
+      final g = Game();
+      await g.start();
+      await g.save();
+      g.dispose();
+      final prefs = await SharedPreferences.getInstance();
+      final j = jsonDecode(prefs.getString('reyting_save_v1')!);
+      j['savedAt'] = DateTime.now().subtract(const Duration(seconds: 40)).millisecondsSinceEpoch;
+      await prefs.setString('reyting_save_v1', jsonEncode(j));
+      final g2 = Game();
+      await g2.start();
+      expect(g2.pendingOffline, isNull, reason: 'özet penceresi çıkmamalı');
+      expect(g2.dayProgress, greaterThan(0.5), reason: '40 sn = ~0,67 gün işlenmeli');
+      g2.dispose();
+    });
+  });
 }

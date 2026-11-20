@@ -39,3 +39,16 @@ Varsayım: ciddi oyuncu gerçek günde ~180-200 oyun günü ilerler (aktif oyun 
 zenginler listesinde ~9. sıra. Birincilik için borsa al-satı gerekir.
 Uzun simülasyonun yakaladığı hatalar: sınırsız katlanan YouTuber takipçisi (doyma tavanı
 eklendi) ve üst üste binen zamlar (maaş tavanı = piyasa maaşının 2 katı).
+
+## Genel denetim (v0.8.2)
+`test/chaos_test.dart`: 12 senaryoda 6000'er rastgele hareket; her adımda oyunun
+tutarlılığı (kasa, kadro-program bağları, kuşaklar, hisse sınırları, kaydet/yükle) denetlenir.
+Bulunan ve kapatılan açıklar:
+- Kanal al-sat ile para basma (satış %80 > pazarlık tabanı %74) → satış %65.
+- Borsada büyük al-sat ile para basma (fiyat etkisi) → işlem ortalama fiyattan.
+- Bitmiş program/film her törende tekrar ödül alıyordu → sadece son 30 gün.
+- Sezon bitince sponsor programda kalıyordu → temizleniyor.
+- 1 dakikadan kısa ayrılıklarda zaman kayboluyordu → sessizce işleniyor.
+- Satın alınan kanal oyuncuya transfer teklifi yapabiliyordu → engellendi.
+Bilinen sınır: telefon saatiyle oynanarak çevrimdışı ilerleme tekrarlanabilir; online
+sıralamada sunucu bunu reddeder (oyun zamanı gerçek zamandan hızlı akamaz).

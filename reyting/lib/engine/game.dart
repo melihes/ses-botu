@@ -218,7 +218,14 @@ class Game extends ChangeNotifier {
   void _catchUp(Duration away) {
     // Telefon saati geri alındıysa (negatif süre) hiçbir şey işlenmez.
     final minutes = away.inSeconds / 60.0;
-    if (minutes < 1) return; // 1 dakikadan kısa ayrılıklar sessizce geçer
+    if (minutes <= 0) return;
+    if (minutes < 1) {
+      // kısa ayrılık (ör. başka uygulamaya bakıp dönme): özet göstermeden işle
+      _offlineMode = true;
+      _advance(minutes * 60 / secondsPerDay);
+      _offlineMode = false;
+      return;
+    }
     final counted = min(minutes, offlineCapMinutes);
     final sum = PeriodSummary()
       ..minutesAway = minutes
@@ -526,6 +533,7 @@ class Game extends ChangeNotifier {
   void _finishFilm(Film f) {
     f.prodLeft = 0;
     f.status = FilmStatus.ready;
+    f.finishedDay = day;
     f.score = filmScore(f.quality, 0.8 + _rng.nextDouble() * 0.4);
     for (final st in staff) {
       if (st.showId == f.id) st.showId = null;
@@ -567,6 +575,7 @@ class Game extends ChangeNotifier {
     for (final s in shows) {
       if (s.status != ShowStatus.onAir || s.slot == null) continue;
       final r = currentRating(s);
+      s.lastAiredDay = day;
       s.ratingHistory.add(r);
       if (s.ratingHistory.length > 30) s.ratingHistory.removeAt(0);
       _acc?.ratingSum += r;
@@ -641,6 +650,9 @@ class Game extends ChangeNotifier {
     s.status = ShowStatus.ended;
     s.buff = 1;
     s.buffDays = 0;
+    s.sponsor = null;
+    s.sponsorPerDay = 0;
+    s.sponsorDays = 0;
     for (final st in staff) {
       if (st.showId == s.id) st.showId = null;
     }
@@ -798,10 +810,10 @@ class Game extends ChangeNotifier {
       v += (equipById(id)?.price ?? 0) * 0.5;
     }
     for (final c in channelDefs) {
-      if (ownedChannels.contains(c.id)) v += c.price * 0.8;
+      if (ownedChannels.contains(c.id)) v += c.price * 0.65;
     }
     for (final p in platformDefs) {
-      if (ownedPlatforms.contains(p.id)) v += p.price * 0.8;
+      if (ownedPlatforms.contains(p.id)) v += p.price * 0.65;
     }
     for (final d in luxuryDefs) {
       if (ownedLuxury.contains(d.id)) v += d.price * 0.7;
@@ -1258,7 +1270,9 @@ class Game extends ChangeNotifier {
     _changed();
   }
 
-  double sellValueChannel(ChannelDef c) => c.price * 0.8;
+  /// Satış değeri, pazarlıkta inilebilecek en düşük fiyatın (%74) altında
+  /// tutulur; böylece "ucuza al, pahalıya sat" döngüsüyle para basılamaz.
+  double sellValueChannel(ChannelDef c) => c.price * 0.65;
 
   void sellChannel(ChannelDef c) {
     if (!ownedChannels.remove(c.id)) return;
@@ -1700,7 +1714,13 @@ class Game extends ChangeNotifier {
           targetId: p.id,
         ));
       } else {
-        final rival = rivalDefs[_rng.nextInt(rivalDefs.length)].name;
+        // sahip olduğun kanallar sana transfer teklifi yapmaz
+        final rivals = rivalDefs
+            .where((r) => !channelDefs.any(
+                (c) => c.name == r.name && ownedChannels.contains(c.id)))
+            .toList();
+        if (rivals.isEmpty) return;
+        final rival = rivals[_rng.nextInt(rivals.length)].name;
         _setDecision(Decision(
           kind: 'poach',
           title: '📞 $rival transfer teklifi',
@@ -1887,8 +1907,12 @@ class Game extends ChangeNotifier {
     final results = <AwardResult>[];
     final bar = 3.0 + day / 60;
     for (final g in Genre.values) {
+      // sadece son 30 günde yayında olan programlar aday olur
       final cands = shows
-          .where((s) => s.genre == g && s.ratingHistory.isNotEmpty)
+          .where((s) =>
+              s.genre == g &&
+              s.ratingHistory.isNotEmpty &&
+              s.lastAiredDay > day - 30)
           .toList();
       if (cands.isEmpty) continue;
       double avg(Show s) =>
@@ -1899,7 +1923,9 @@ class Game extends ChangeNotifier {
       results.add(AwardResult('Yılın ${genreDefs[g]!.label} Programı',
           best.name, avg(best) >= need));
     }
-    final recentFilms = films.where((f) => f.score > 0).toList()
+    final recentFilms = films
+        .where((f) => f.score > 0 && f.finishedDay > day - 30)
+        .toList()
       ..sort((a, b) => b.score.compareTo(a.score));
     if (recentFilms.isNotEmpty) {
       results.add(AwardResult('En İyi Film', recentFilms.first.name,
@@ -2009,11 +2035,23 @@ class Game extends ChangeNotifier {
 
   StockDef stockDef(String t) => stockDefs.firstWhere((d) => d.ticker == t);
 
+  /// [qty] lot almanın toplam maliyeti (fiyat etkisi + %0,3 komisyon)
+  double buyQuote(String t, double qty) {
+    final impact = qty / stockDef(t).shares * 0.5;
+    return priceOf(t) * (1 + impact / 2) * qty * 1.003;
+  }
+
+  /// [qty] lot satmanın getirisi (fiyat etkisi + %0,3 komisyon)
+  double sellQuote(String t, double qty) {
+    final impact = qty / stockDef(t).shares * 0.5;
+    return priceOf(t) * (1 - impact / 2) * qty * 0.997;
+  }
+
   /// En fazla şirketin %25'i alınabilir.
   double maxBuyable(String t) {
     final d = stockDef(t);
     final room = d.shares * 0.25 - (holdings[t] ?? 0);
-    final afford = cash / (priceOf(t) * 1.003);
+    final afford = cash / (priceOf(t) * 1.003 * 1.07);
     return max(0, min(room, afford)).floorToDouble();
   }
 
@@ -2024,13 +2062,15 @@ class Game extends ChangeNotifier {
     if ((holdings[t] ?? 0) + qty > d.shares * 0.25) {
       return 'Bir şirketin en fazla %25\'ine sahip olabilirsin.';
     }
-    final cost = priceOf(t) * qty * 1.003; // %0,3 komisyon
+    // Büyük alımlar fiyatı yukarı iter; işlem bu hareketin ORTALAMA
+    // fiyatından gerçekleşir (aksi hâlde al-sat döngüsü para basardı).
+    final impact = qty / d.shares * 0.5;
+    final cost = buyQuote(t, qty);
     if (cash < cost) return 'Kasada yeterli para yok.';
     cash -= cost;
     holdings[t] = (holdings[t] ?? 0) + qty;
     costBasis[t] = (costBasis[t] ?? 0) + cost;
-    // büyük alımlar fiyatı yukarı iter
-    stockPrices[t] = priceOf(t) * (1 + qty / d.shares * 0.5);
+    stockPrices[t] = priceOf(t) * (1 + impact);
     _changed();
     return null;
   }
@@ -2040,7 +2080,7 @@ class Game extends ChangeNotifier {
     if (qty < 1) return 'Satacak hissen yok.';
     final d = stockDef(t);
     final have = holdings[t]!;
-    final proceeds = priceOf(t) * qty * 0.997;
+    final proceeds = sellQuote(t, qty);
     final basis = (costBasis[t] ?? 0) * qty / have;
     tradingProfit += proceeds - basis;
     _gain(proceeds);
@@ -2051,7 +2091,7 @@ class Game extends ChangeNotifier {
       costBasis.remove(t);
     }
     // büyük satışlar fiyatı aşağı iter
-    stockPrices[t] = priceOf(t) * (1 - qty / d.shares * 0.5);
+    stockPrices[t] = max(0.05, priceOf(t) * (1 - qty / d.shares * 0.5));
     _changed();
     return null;
   }
