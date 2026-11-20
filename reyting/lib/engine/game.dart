@@ -1557,7 +1557,7 @@ class Game extends ChangeNotifier {
         title: '⚖️ Yayın Kurulu uyarısı',
         body: '"${s.name}" için şikâyet geldi. Ceza ${fmtShort(fine)} olabilir.',
         options: ['Cezayı öde', 'Programı düzenle', 'İtiraz et'],
-        hints: ['${fmtShort(fine)}', '${fmtShort(fine * 0.4)} + 2 gün reyting -%10', '%60 ceza yok, %40 ceza ×1,5'],
+        hints: [fmtShort(fine), '${fmtShort(fine * 0.4)} + 2 gün reyting -%10', '%60 ceza yok, %40 ceza ×1,5'],
         targetId: s.id,
         amount: fine,
       );
