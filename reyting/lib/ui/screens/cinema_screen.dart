@@ -10,6 +10,7 @@ import '../../engine/game.dart';
 import '../../models/models.dart';
 import '../widgets/common.dart';
 import '../widgets/scene.dart';
+import 'production_screen.dart' show showQuickHire;
 
 class CinemaScreen extends StatelessWidget {
   const CinemaScreen({super.key});
@@ -420,10 +421,17 @@ class _NewFilmWizardState extends State<NewFilmWizard> {
                 color: AppColors.cyan)),
       ]),
       const SizedBox(height: 10),
-      AccentButton('Çekimlere başla',
+      AccentButton(
+          complete
+              ? (game.cash >= cost ? 'Çekimlere başla' : 'Kasada yeterli para yok')
+              : 'Eksik: ${[
+                  for (final e in def.needs.entries)
+                    if (crew.where((c) => c.role == e.key).length < e.value)
+                      '${e.value - crew.where((c) => c.role == e.key).length} ${e.key.label}'
+                ].join(', ')}',
           expand: true,
-          icon: Icons.videocam_rounded,
-          onTap: complete
+          icon: complete ? Icons.videocam_rounded : Icons.info_outline_rounded,
+          onTap: complete && game.cash >= cost
               ? () {
                   final err = game.createFilm(_name.text, _genre, _tier, crew);
                   report(context, err);
@@ -508,10 +516,22 @@ class _NewFilmWizardState extends State<NewFilmWizard> {
                 fontWeight: FontWeight.w800,
                 fontSize: 13)),
         const SizedBox(height: 4),
-        if (free.isEmpty)
-          Text('Boşta ${role.label.toLowerCase()} yok. Kadro\'dan işe al.',
-              style: const TextStyle(color: AppColors.textFaint, fontSize: 12))
-        else
+        if (free.length < count)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 4),
+            child: GhostButton(
+                free.isEmpty
+                    ? 'Boşta ${role.label.toLowerCase()} yok · İşe al'
+                    : '${count - free.length} ${role.label.toLowerCase()} daha gerekli · İşe al',
+                compact: true,
+                color: AppColors.orange,
+                icon: Icons.person_add_alt_1_rounded,
+                onTap: () async {
+                  final hired = await showQuickHire(context, role);
+                  if (hired != null) setState(() => _crew.add(hired.id));
+                }),
+          ),
+        if (free.isNotEmpty)
           Wrap(spacing: 6, runSpacing: 6, children: [
             for (final p in free)
               FilterChip(

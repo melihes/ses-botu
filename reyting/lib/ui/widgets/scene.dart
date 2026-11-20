@@ -207,7 +207,15 @@ class Draw {
     final hairC = hairColors[hair % hairColors.length];
     final hip = fy - ph * 0.46;
     final shoulder = fy - ph * 0.79;
-    if (!legsHidden) {
+    if (legsHidden) {
+      // oturan / masa arkasındaki figür: alt gövde ayaklara kadar uzanır,
+      // böylece önündeki masa veya koltuk kısa kalsa bile havada durmaz
+      c.drawRRect(
+          RRect.fromRectAndRadius(
+              Rect.fromLTRB(px - ph * 0.12, hip - ph * 0.02, px + ph * 0.12, fy),
+              Radius.circular(ph * 0.04)),
+          p(pants));
+    } else {
       final lp = Paint()
         ..color = pants
         ..strokeWidth = ph * 0.1

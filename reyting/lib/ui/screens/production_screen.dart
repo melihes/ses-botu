@@ -290,6 +290,19 @@ class _NewShowWizardState extends State<NewShowWizard> {
     _suggest();
   }
 
+  bool _filled = false;
+
+  /// Her rol için boştaki en yetenekli kişileri seçer.
+  void _autoFill(Game game) {
+    _crew.clear();
+    genreDefs[_genre]!.needs.forEach((role, count) {
+      final free = game.freeStaff(role)..sort((a, b) => b.skill.compareTo(a.skill));
+      for (final p in free.take(count)) {
+        _crew.add(p.id);
+      }
+    });
+  }
+
   void _suggest() {
     final ideas = showNameIdeas[_genre]!;
     _name.text = ideas[_rng.nextInt(ideas.length)];
@@ -304,6 +317,10 @@ class _NewShowWizardState extends State<NewShowWizard> {
   @override
   Widget build(BuildContext context) {
     final game = GameScope.of(context);
+    if (!_filled) {
+      _filled = true;
+      _autoFill(game);
+    }
     final def = genreDefs[_genre]!;
     final fmt = formatOf(_genre, _tier);
     final cost = productionCost(_genre, _tier);
@@ -316,6 +333,11 @@ class _NewShowWizardState extends State<NewShowWizard> {
       }
     }
     final formats = genreFormats[_genre]!;
+    final missing = <String>[
+      for (final e in def.needs.entries)
+        if (crewList.where((c) => c.role == e.key).length < e.value)
+          '${e.value - crewList.where((c) => c.role == e.key).length} ${e.key.label}',
+    ];
 
     // 1) Tür listesi
     final genres = SizedBox(
@@ -379,6 +401,21 @@ class _NewShowWizardState extends State<NewShowWizard> {
             icon: const Icon(Icons.casino_rounded, color: AppColors.accent),
           ),
         ]),
+        // Gerekli roller: tek bakışta ne eksik görünsün
+        Wrap(spacing: 4, runSpacing: 4, children: [
+          for (final e in def.needs.entries)
+            Builder(builder: (_) {
+              final n = crewList.where((c) => c.role == e.key).length;
+              final ok = n >= e.value;
+              return Tag('${ok ? '✓' : '!'} ${e.key.label} $n/${e.value}',
+                  color: ok ? AppColors.green : AppColors.orange);
+            }),
+          GestureDetector(
+            onTap: () => setState(() => _autoFill(game)),
+            child: const Tag('⚡ Otomatik seç', color: AppColors.cyan),
+          ),
+        ]),
+        const SizedBox(height: 4),
         Expanded(
           child: ListView(children: [
             for (final e in def.needs.entries) _roleRow(game, e.key, e.value),
@@ -397,10 +434,14 @@ class _NewShowWizardState extends State<NewShowWizard> {
         ]),
         const SizedBox(height: 8),
         AccentButton(
-          'Çekimlere başla',
+          complete
+              ? (game.cash >= cost ? 'Çekimlere başla' : 'Kasada yeterli para yok')
+              : !game.formatUnlocked(_genre, _tier)
+                  ? 'Bu format kilitli'
+                  : 'Eksik: ${missing.join(', ')}',
           expand: true,
-          icon: Icons.videocam_rounded,
-          onTap: complete
+          icon: complete ? Icons.videocam_rounded : Icons.info_outline_rounded,
+          onTap: complete && game.cash >= cost
               ? () {
                   final err =
                       game.createShow(_name.text, _genre, _tier, crewList);
@@ -535,8 +576,8 @@ class _NewShowWizardState extends State<NewShowWizard> {
           setState(() {
             _genre = g;
             _tier = 0;
-            _crew.clear();
             _suggest();
+            _autoFill(game);
           });
         },
         child: Container(
@@ -577,11 +618,28 @@ class _NewShowWizardState extends State<NewShowWizard> {
                   fontWeight: FontWeight.w800,
                   fontSize: 12)),
           const SizedBox(height: 3),
-          if (free.isEmpty)
-            Text('Boşta ${role.label.toLowerCase()} yok. Kadro\'dan işe al.',
-                style:
-                    const TextStyle(color: AppColors.textFaint, fontSize: 11))
-          else
+          if (free.length < count)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 4),
+              child: GhostButton(
+                  free.isEmpty
+                      ? 'Boşta ${role.label.toLowerCase()} yok · İşe al'
+                      : '${count - free.length} ${role.label.toLowerCase()} daha gerekli · İşe al',
+                  compact: true,
+                  color: AppColors.orange,
+                  icon: Icons.person_add_alt_1_rounded,
+                  onTap: () async {
+                    final hired = await showQuickHire(context, role);
+                    if (hired != null) {
+                      setState(() {
+                        final mine = _crew.where((id) => game.staffById(id)?.role == role).toList();
+                        if (mine.length >= count) _crew.remove(mine.first);
+                        _crew.add(hired.id);
+                      });
+                    }
+                  }),
+            ),
+          if (free.isNotEmpty)
             Wrap(spacing: 5, runSpacing: 5, children: [
               for (final p in free)
                 GestureDetector(
@@ -618,4 +676,54 @@ class _NewShowWizardState extends State<NewShowWizard> {
       ),
     );
   }
+}
+
+
+/// Yapım penceresinden çıkmadan belirli bir rol için işe alma
+Future<Staff?> showQuickHire(BuildContext context, Role role) {
+  return showDialog<Staff>(
+    context: context,
+    builder: (c) {
+      final game = GameScope.of(c);
+      final cands = game.market.where((p) => p.role == role).toList()
+        ..sort((a, b) => b.skill.compareTo(a.skill));
+      return AlertDialog(
+        title: Text('${role.label} işe al'),
+        content: SizedBox(
+          width: 460,
+          child: cands.isEmpty
+              ? Text('Şu an iş ilanlarında ${role.label.toLowerCase()} yok. '
+                  'Kadro ekranından "Yeni adaylar" ile listeyi yenileyebilirsin.')
+              : SingleChildScrollView(
+                  child: Column(mainAxisSize: MainAxisSize.min, children: [
+                    for (final p in cands)
+                      Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 4),
+                        child: Row(children: [
+                          PersonAvatar(seed: p.id.hashCode, color: role.color, size: 36),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                              Text('${p.name} · yetenek ${p.skill}',
+                                  style: const TextStyle(fontWeight: FontWeight.w800)),
+                              Text('Maaş ${fmtShort(p.salary)}/gün',
+                                  style: const TextStyle(color: AppColors.textDim, fontSize: 12)),
+                            ]),
+                          ),
+                          AccentButton('İşe al · ${fmtShort(p.signingFee)}',
+                              compact: true,
+                              onTap: () {
+                                final err = game.hire(p);
+                                report(c, err);
+                                if (err == null) Navigator.pop(c, p);
+                              }),
+                        ]),
+                      ),
+                  ]),
+                ),
+        ),
+        actions: [TextButton(onPressed: () => Navigator.pop(c), child: const Text('Kapat'))],
+      );
+    },
+  );
 }
