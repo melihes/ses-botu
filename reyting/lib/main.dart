@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 
 import 'core/theme.dart';
 import 'engine/game.dart';
 import 'ui/shell.dart';
+import 'ui/splash.dart';
 import 'ui/widgets/common.dart';
 
 Future<void> main() async {
@@ -14,24 +16,58 @@ Future<void> main() async {
     DeviceOrientation.landscapeRight,
   ]);
   await SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
-
-  final game = Game();
-  await game.start();
-  runApp(ReytingApp(game: game));
+  runApp(const ReytingApp());
 }
 
 class ReytingApp extends StatefulWidget {
-  final Game game;
-  const ReytingApp({super.key, required this.game});
+  const ReytingApp({super.key});
   @override
   State<ReytingApp> createState() => _ReytingAppState();
 }
 
 class _ReytingAppState extends State<ReytingApp> with WidgetsBindingObserver {
+  Game? _game;
+  double _progress = 0;
+  String _status = 'Stüdyo ışıkları yanıyor…';
+  String _version = '';
+
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    _boot();
+  }
+
+  /// Açılış adımları: yükleme çubuğu gerçek adımlarla dolar.
+  Future<void> _boot() async {
+    final sw = Stopwatch()..start();
+    void step(double p, String s) {
+      if (mounted) {
+        setState(() {
+          _progress = p;
+          _status = s;
+        });
+      }
+    }
+
+    try {
+      final info = await PackageInfo.fromPlatform();
+      _version = '${info.version} (${info.buildNumber})';
+    } catch (_) {
+      _version = '0.8.0';
+    }
+    step(0.25, 'Kayıtların okunuyor…');
+    final game = Game();
+    await game.start();
+    step(0.6, 'Yayın akışı hazırlanıyor…');
+    await Future<void>.delayed(const Duration(milliseconds: 350));
+    step(0.85, 'Reytingler hesaplanıyor…');
+    // Logo en az ~1,8 sn görünsün
+    final rest = 1800 - sw.elapsedMilliseconds;
+    if (rest > 0) await Future<void>.delayed(Duration(milliseconds: rest));
+    step(1.0, 'Yayındasın!');
+    await Future<void>.delayed(const Duration(milliseconds: 300));
+    if (mounted) setState(() => _game = game);
   }
 
   @override
@@ -42,27 +78,31 @@ class _ReytingAppState extends State<ReytingApp> with WidgetsBindingObserver {
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
+    final g = _game;
+    if (g == null) return;
     if (state == AppLifecycleState.paused) {
-      widget.game.onPause();
+      g.onPause();
     } else if (state == AppLifecycleState.inactive ||
         state == AppLifecycleState.hidden ||
         state == AppLifecycleState.detached) {
-      widget.game.save();
+      g.save();
     } else if (state == AppLifecycleState.resumed) {
-      widget.game.onResume();
+      g.onResume();
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    return GameScope(
-      game: widget.game,
-      child: MaterialApp(
-        title: 'Reyting',
-        debugShowCheckedModeBanner: false,
-        theme: buildTheme(),
-        home: const Shell(),
-      ),
+    final g = _game;
+    final app = MaterialApp(
+      title: 'Reyting',
+      debugShowCheckedModeBanner: false,
+      theme: buildTheme(),
+      home: g == null
+          ? SplashScreen(progress: _progress, status: _status, version: _version)
+          : const Shell(),
     );
+    if (g == null) return app;
+    return GameScope(game: g, child: app);
   }
 }

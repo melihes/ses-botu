@@ -1,4 +1,4 @@
-package com.reyting.reyting
+package com.esmgames.reyting
 
 import io.flutter.embedding.android.FlutterActivity
 
