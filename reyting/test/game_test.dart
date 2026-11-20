@@ -777,4 +777,87 @@ void main() {
       g.dispose();
     });
   });
+
+  group('Devlet ihaleleri', () {
+    Future<(Game, Tender)> setup() async {
+      final g = Game();
+      await g.start();
+      g.cash = 1e9;
+      for (final r in [Role.senarist, Role.yonetmen, Role.sunucu, Role.oyuncu]) {
+        for (int i = 0; i < 2; i++) {
+          g.staff.add(Staff(id: 'x${r.name}$i', name: 'Test', role: r, skill: 90, salary: 1000));
+        }
+      }
+      final t = g.tenders.firstWhere((t) => t.status == TenderStatus.open && g.tenderEligible(t) == null,
+          orElse: () {
+        final nt = Tender(id: 'tt', defId: 'spot', budget: 600000, closesDay: g.day + 3);
+        g.tenders.add(nt);
+        return nt;
+      });
+      return (g, t);
+    }
+
+    List<Staff> crewFor(Game g, Tender t) => [
+          for (final e in t.def.crew.entries) ...g.freeStaff(e.key).take(e.value),
+        ];
+
+    test('her zaman açık ihale bulunur', () async {
+      final g = Game();
+      await g.start();
+      expect(g.tenders.where((t) => t.status == TenderStatus.open).length, 3);
+      g.dispose();
+    });
+
+    test('çok düşük teklif kazanır, çekilir, teslimde para ve prestij gelir', () async {
+      final (g, t) = await setup();
+      final c0 = g.cash;
+      final crew = crewFor(g, t);
+      expect(g.bidTender(t, t.budget * 0.5, crew), isNull);
+      expect(crew.every((c) => c.showId == t.id), isTrue, reason: 'ekip rezerve');
+      g.debugAdvanceDays((t.closesDay - g.day).toDouble() + 0.01);
+      expect(t.status, TenderStatus.producing);
+      g.debugAdvanceDays(t.def.days + 0.5);
+      expect(t.status, TenderStatus.delivered);
+      expect(t.paid, greaterThanOrEqualTo(t.myBid!));
+      expect(g.tendersWon, 1);
+      expect(crew.every((c) => c.showId == null), isTrue, reason: 'ekip serbest');
+      expect(g.cash, isNot(c0));
+      g.dispose();
+    });
+
+    test('çok yüksek teklif kaybeder, teminat iade edilir, ekip serbest kalır', () async {
+      final (g, t) = await setup();
+      final crew = crewFor(g, t);
+      expect(g.bidTender(t, t.budget * 1.2, crew), isNull);
+      final afterBid = g.cash;
+      g.debugAdvanceDays((t.closesDay - g.day).toDouble() + 0.01);
+      expect(t.status, TenderStatus.lost);
+      expect(crew.every((c) => c.showId == null), isTrue);
+      expect(g.history.isNotEmpty, isTrue);
+      expect(g.cash, greaterThan(afterBid - 1e7), reason: 'teminat iade');
+      g.dispose();
+    });
+
+    test('ekipman yoksa teklif verilemez', () async {
+      final g = Game();
+      await g.start();
+      final t = Tender(id: 'tx', defId: 'miras', budget: 1e7, closesDay: g.day + 3);
+      g.tenders.add(t);
+      expect(g.tenderEligible(t), isNotNull);
+      expect(g.bidTender(t, 9e6, []), isNotNull);
+      g.dispose();
+    });
+
+    test('yeni ekipman format kilidi açar', () async {
+      final g = Game();
+      await g.start();
+      g.cash = 1e12;
+      g.studioLevel = 3;
+      final ocean = genreFormats[Genre.belgesel]!.indexWhere((f) => f.prop == Prop.ocean);
+      expect(g.formatUnlocked(Genre.belgesel, ocean), isFalse);
+      g.buyEquip(equipById('underwater')!);
+      expect(g.formatUnlocked(Genre.belgesel, ocean), isTrue);
+      g.dispose();
+    });
+  });
 }

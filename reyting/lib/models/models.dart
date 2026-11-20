@@ -516,3 +516,53 @@ class Mission {
   factory Mission.fromJson(Map<String, dynamic> j) =>
       Mission(j['k'], j['t'], j['n'], j['g'], progress: j['p'], claimed: j['c']);
 }
+
+enum TenderStatus { open, producing, delivered, lost, expired }
+
+/// Bir devlet ihalesi (açık, kazanılmış ya da kaybedilmiş)
+class Tender {
+  final String id;
+  final String defId;
+  final double budget; // tahmini bedel
+  final int closesDay;
+  TenderStatus status;
+  double? myBid;
+  List<String> crewIds;
+  double prodLeft;
+  double qualityFactor;
+  String? winner;
+  double? winningBid;
+  double paid; // teslimde alınan
+
+  Tender({
+    required this.id,
+    required this.defId,
+    required this.budget,
+    required this.closesDay,
+    this.status = TenderStatus.open,
+    this.myBid,
+    List<String>? crewIds,
+    this.prodLeft = 0,
+    this.qualityFactor = 1,
+    this.winner,
+    this.winningBid,
+    this.paid = 0,
+  }) : crewIds = crewIds ?? [];
+
+  TenderDef get def => tenderDefs.firstWhere((d) => d.id == defId);
+  double get deposit => (myBid ?? 0) * 0.05; // teminat
+  double get productionCost => budget * 0.45;
+
+  Map<String, dynamic> toJson() => {
+        'id': id, 'd': defId, 'b': budget, 'c': closesDay, 's': status.index,
+        'm': myBid, 'cr': crewIds, 'p': prodLeft, 'q': qualityFactor,
+        'w': winner, 'wb': winningBid, 'pd': paid,
+      };
+  factory Tender.fromJson(Map<String, dynamic> j) => Tender(
+        id: j['id'], defId: j['d'], budget: (j['b'] as num).toDouble(),
+        closesDay: j['c'], status: TenderStatus.values[j['s']],
+        myBid: (j['m'] as num?)?.toDouble(), crewIds: List<String>.from(j['cr'] ?? []),
+        prodLeft: (j['p'] as num? ?? 0).toDouble(), qualityFactor: (j['q'] as num? ?? 1).toDouble(),
+        winner: j['w'], winningBid: (j['wb'] as num?)?.toDouble(), paid: (j['pd'] as num? ?? 0).toDouble(),
+      );
+}

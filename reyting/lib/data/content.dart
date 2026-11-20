@@ -493,19 +493,26 @@ class EquipDef {
   final double qualityBonus; // ör. 0.06 = %6
   final double prodSpeed; // üretim süresi çarpanı (0.75 = %25 hızlı)
   final double reachBonus; // erişime eklenen
+  final double filmBonus; // film kalitesine eklenen
+  final double boxOfficeBonus; // sinema gişesine eklenen
   const EquipDef(this.id, this.name, this.desc, this.icon, this.price,
       this.reqLevel,
       {this.boosts = const {},
       this.qualityBonus = 0,
       this.prodSpeed = 1,
-      this.reachBonus = 0});
+      this.reachBonus = 0,
+      this.filmBonus = 0,
+      this.boxOfficeBonus = 0});
   double get upkeepPerDay => price * 0.002;
 }
 
 const equipDefs = [
   EquipDef('cam', 'Sinema Kamerası', 'Dizi ve belgesele sinema kalitesi.',
       Icons.camera_alt_rounded, 1500000, 1,
-      boosts: {Genre.dizi, Genre.belgesel}, qualityBonus: 0.06),
+      boosts: {Genre.dizi, Genre.belgesel}, qualityBonus: 0.06, filmBonus: 0.06),
+  EquipDef('steadicam', 'Steadicam Ekibi', 'Titremeyen akıcı takip çekimleri.',
+      Icons.videocam_rounded, 800000, 1,
+      boosts: {Genre.dizi, Genre.yarisma, Genre.cocuk}, qualityBonus: 0.03, filmBonus: 0.03),
   EquipDef('edit', 'Kurgu Odası', 'Tüm yapımlar %25 daha hızlı biter.',
       Icons.content_cut_rounded, 2500000, 1,
       prodSpeed: 0.75),
@@ -530,6 +537,30 @@ const equipDefs = [
       'Bilim kurgu ve animasyon filmlerini açar.',
       Icons.auto_fix_high_rounded, 20000000, 3,
       qualityBonus: 0.0),
+  EquipDef('k8', '8K Kamera Seti', 'Ultra yüksek çözünürlük: her yapım daha net.',
+      Icons.hd_rounded, 18000000, 3,
+      qualityBonus: 0.03, filmBonus: 0.03),
+  EquipDef('underwater', 'Su Altı Kamera Ekibi', 'Okyanus belgeselini açar; dalgıç kameramanlar.',
+      Icons.scuba_diving_rounded, 10000000, 3,
+      boosts: {Genre.belgesel}, qualityBonus: 0.05),
+  EquipDef('spidercam', 'Örümcek Kamera', 'Stadyumun üstünde kablolarla uçan kamera. Derbiyi açar.',
+      Icons.sports_soccer_rounded, 12000000, 3,
+      boosts: {Genre.spor}, qualityBonus: 0.08),
+  EquipDef('heli', 'Helikopter Çekim Ekibi', 'Havadan sinematik planlar. Süper yapımı açar.',
+      Icons.flight_rounded, 50000000, 4,
+      boosts: {Genre.dizi, Genre.belgesel}, qualityBonus: 0.05, filmBonus: 0.05),
+  EquipDef('imax', 'IMAX Kamera', 'Dev perde kalitesi: filmler IMAX salonlarında oynar, uzay belgeselini açar.',
+      Icons.theaters_rounded, 80000000, 4,
+      boosts: {Genre.belgesel}, qualityBonus: 0.06, filmBonus: 0.08, boxOfficeBonus: 0.25),
+  EquipDef('atmos', 'Dolby Atmos Ses', 'Sinema salonunu titreten çok kanallı ses.',
+      Icons.surround_sound_rounded, 40000000, 4,
+      filmBonus: 0.04, boxOfficeBonus: 0.10),
+  EquipDef('uplink', 'Uydu Uplink Aracı', 'Dünyanın her yerinden canlı yayın. Turnuvaları açar.',
+      Icons.settings_input_antenna_rounded, 35000000, 4,
+      boosts: {Genre.haber, Genre.spor}, qualityBonus: 0.05),
+  EquipDef('mocap', 'Hareket Yakalama Stüdyosu', 'Oyuncu hareketlerini dijital karaktere aktarır.',
+      Icons.accessibility_new_rounded, 120000000, 5,
+      filmBonus: 0.10),
   EquipDef('tower', 'Verici Kulesi', 'Yayın erişimini %8 artırır.',
       Icons.cell_tower_rounded, 60000000, 4,
       reachBonus: 0.08),
@@ -830,7 +861,7 @@ const genreFormats = <Genre, List<FormatDef>>{
     FormatDef('Komedi dizisi', 'Seyircili çekilen, kahkahalı aile komedisi.', Prop.sitcom, 1.5, 1.1, 2),
     FormatDef('Polisiye', 'Gece çekimleri, sirenler, kovalamacalar.', Prop.police, 2.5, 1.22, 3),
     FormatDef('Dönem dizisi', 'Saraylar, kostümler, görkemli dekorlar.', Prop.palace, 4, 1.35, 4),
-    FormatDef('Süper yapım', 'Dünyaya satılacak dev bütçeli epik yapım.', Prop.epic, 7, 1.5, 5),
+    FormatDef('Süper yapım', 'Dünyaya satılacak dev bütçeli epik yapım.', Prop.epic, 7, 1.5, 5, reqEquip: 'heli'),
   ],
   Genre.yarisma: [
     FormatDef('Bilgi yarışması', 'Klasik soru-cevap. Ucuz, sevimli, sadık izleyici.', Prop.quiz, 0.5, 0.85, 1),
@@ -862,16 +893,16 @@ const genreFormats = <Genre, List<FormatDef>>{
   ],
   Genre.belgesel: [
     FormatDef('Doğa belgeseli', 'Dağlar, ormanlar, vahşi yaşam.', Prop.nature, 1, 1.0, 1),
-    FormatDef('Okyanus belgeseli', 'Mercanlar ve derin deniz canlıları.', Prop.ocean, 1.6, 1.15, 2),
+    FormatDef('Okyanus belgeseli', 'Mercanlar ve derin deniz canlıları.', Prop.ocean, 1.6, 1.15, 3, reqEquip: 'underwater'),
     FormatDef('Tarih belgeseli', 'Antik kentlerin sırları.', Prop.history, 2.4, 1.25, 3),
-    FormatDef('Uzay belgeseli', 'Gezegenler, roketler, sonsuz evren.', Prop.space, 4, 1.4, 4),
+    FormatDef('Uzay belgeseli', 'Gezegenler, roketler, sonsuz evren.', Prop.space, 4, 1.4, 4, reqEquip: 'imax'),
   ],
   Genre.spor: [
     FormatDef('Spor bülteni', 'Günün skorları ve yorumları.', Prop.sportsDesk, 0.5, 0.85, 1),
     FormatDef('Futbol maçı', 'Canlı lig maçı yayını.', Prop.football, 1, 1.0, 1),
     FormatDef('Basketbol maçı', 'Parkede heyecan, son saniye basketleri.', Prop.basketball, 1.6, 1.12, 2),
-    FormatDef('Derbi gecesi', 'Meşaleler, dev tribün, yılın maçı.', Prop.derby, 3, 1.3, 3),
-    FormatDef('Uluslararası turnuva', 'Kıtalar arası kupa yayın hakları.', Prop.tournament, 5, 1.45, 5),
+    FormatDef('Derbi gecesi', 'Meşaleler, dev tribün, yılın maçı.', Prop.derby, 3, 1.3, 3, reqEquip: 'spidercam'),
+    FormatDef('Uluslararası turnuva', 'Kıtalar arası kupa yayın hakları.', Prop.tournament, 5, 1.45, 5, reqEquip: 'uplink'),
   ],
   Genre.cocuk: [
     FormatDef('Çizgi film kuşağı', 'Sevimli karakterler, ucuz ve sürekli.', Prop.cartoon, 0.5, 0.85, 1),
@@ -981,4 +1012,68 @@ const stockDefs = [
 /// Zenginler listesindeki kurgusal patronlar (online'da gerçek oyuncular gelecek)
 const tycoonFirms = [
   'Holding', 'Medya Grubu', 'Yatırım', 'Yapım', 'Grup', 'Global', 'Medya',
+];
+
+
+// =====================================================================
+// DEVLET İHALELERİ (kurgusal kamu projeleri)
+// =====================================================================
+class TenderDef {
+  final String id;
+  final String title;
+  final String agency; // ihaleyi açan kurum (kurgusal)
+  final String desc;
+  final Prop prop;
+  final int minLevel; // stüdyo seviyesi
+  final Set<String> equip; // gereken ekipman
+  final Map<Role, int> crew;
+  final double budget; // tahmini bedel (seviye 1 için; seviyeyle büyür)
+  final int days; // çekim süresi
+  final int prestige;
+  const TenderDef(this.id, this.title, this.agency, this.desc, this.prop,
+      this.minLevel, this.equip, this.crew, this.budget, this.days, this.prestige);
+}
+
+const tenderDefs = [
+  TenderDef('spot', 'Trafik Güvenliği Kamu Spotu', 'Ulaştırma Kurulu',
+      'Emniyet kemeri ve hız kuralları için 30 saniyelik kamu spotu.', Prop.neighborhood,
+      1, {}, {Role.senarist: 1, Role.yonetmen: 1}, 600000, 2, 10),
+  TenderDef('deprem', 'Deprem Bilinci Kampanyası', 'Afet Hazırlık Kurulu',
+      'Okullarda ve televizyonda yayınlanacak bilinçlendirme filmleri.', Prop.field,
+      1, {}, {Role.senarist: 1, Role.yonetmen: 1, Role.sunucu: 1}, 900000, 3, 15),
+  TenderDef('egitim', 'Bakanlık Çocuk Eğitim Dizisi', 'Eğitim Kurulu',
+      'İlkokul çocukları için bilim ve doğa anlatan eğlenceli dizi.', Prop.lab,
+      2, {'steadicam'}, {Role.senarist: 1, Role.yonetmen: 1, Role.oyuncu: 1}, 1500000, 4, 20),
+  TenderDef('mars', 'Milli Takım Marşı Klibi', 'Spor Federasyonu',
+      'Turnuva öncesi taraftarları coşturacak resmi marşın klip çekimi.', Prop.voice,
+      2, {'sound'}, {Role.yonetmen: 1, Role.sunucu: 1, Role.oyuncu: 1}, 2500000, 3, 35),
+  TenderDef('bayram', 'Cumhuriyet Bayramı Özel Yayını', 'Kamu Yayın Kurulu',
+      'Tören alanından canlı bağlantılı, konserli bayram gecesi yayını.', Prop.newYear,
+      3, {'ob'}, {Role.yonetmen: 1, Role.sunucu: 2}, 5000000, 2, 40),
+  TenderDef('milli', 'Milli Takım Tanıtım Filmi', 'Spor Federasyonu',
+      'Oyuncuların hikâyeleriyle turnuva öncesi tanıtım filmi.', Prop.tournament,
+      3, {'drone', 'cam'}, {Role.senarist: 1, Role.yonetmen: 1, Role.oyuncu: 2}, 6000000, 4, 50),
+  TenderDef('turizm', 'Turizm Tanıtım Filmi', 'Turizm Kurulu',
+      'Koylardan dağlara ülkenin güzelliklerini dünyaya tanıtan film.', Prop.island,
+      3, {'drone'}, {Role.senarist: 1, Role.yonetmen: 1, Role.oyuncu: 1}, 8000000, 5, 45),
+  TenderDef('miras', 'Kültür Mirası Belgeseli', 'Kültür Kurulu',
+      'Antik kentler ve batık gemiler: su altı ve havadan çekimli belgesel.', Prop.history,
+      4, {'drone', 'underwater'}, {Role.senarist: 1, Role.yonetmen: 1}, 15000000, 6, 60),
+  TenderDef('olimpiyat', 'Olimpiyat Hazırlık Belgeseli', 'Gençlik ve Spor Kurulu',
+      'Sporcuların olimpiyata giden yolculuğu, 8K kalitede.', Prop.basketball,
+      4, {'k8', 'drone'}, {Role.senarist: 1, Role.yonetmen: 1, Role.sunucu: 1}, 25000000, 6, 70),
+  TenderDef('mac', 'Milli Maç Yayın Hakkı', 'Spor Federasyonu',
+      'Milli takımın eleme maçlarının canlı yayın prodüksiyonu.', Prop.derby,
+      4, {'ob', 'spidercam'}, {Role.yonetmen: 1, Role.sunucu: 2}, 40000000, 3, 90),
+  TenderDef('festival', 'Uluslararası Film Festivali Açılışı', 'Kültür Kurulu',
+      'Kırmızı halıdan IMAX perdeye, dünya basınına canlı açılış töreni.', Prop.awards,
+      5, {'imax', 'uplink'}, {Role.yonetmen: 1, Role.sunucu: 1, Role.oyuncu: 2}, 90000000, 4, 120),
+  TenderDef('uzay', 'Ulusal Uzay Ajansı Belgeseli', 'Uzay Ajansı',
+      'Uydu fırlatma görevinin IMAX ve hareket yakalama destekli belgeseli.', Prop.space,
+      6, {'imax', 'mocap'}, {Role.senarist: 1, Role.yonetmen: 1, Role.oyuncu: 1}, 300000000, 7, 200),
+];
+
+const tenderRivals = [
+  'Anadolu Yapım', 'Boğaz Film', 'Kuzey Medya', 'Ege Prodüksiyon',
+  'Kapadokya Stüdyoları', 'Marmara Yapım', 'Toros Film',
 ];

@@ -123,6 +123,13 @@ class _EquipCard extends StatelessWidget {
       if (e.prodSpeed < 1)
         'Çekim süresi -${fmtPct((1 - e.prodSpeed) * 100, 0)}',
       if (e.reachBonus > 0) 'Erişim +${fmtPct(e.reachBonus * 100, 0)}',
+      if (e.filmBonus > 0) 'Film kalitesi +${fmtPct(e.filmBonus * 100, 0)}',
+      if (e.boxOfficeBonus > 0) 'Gişe +${fmtPct(e.boxOfficeBonus * 100, 0)}',
+      for (final g in genreDefs.entries)
+        for (final f in genreFormats[g.key]!)
+          if (f.reqEquip == e.id) '"${f.name}" formatını açar',
+      for (final t in tenderDefs)
+        if (t.equip.contains(e.id)) '"${t.title}" ihalesine sokar',
       if (unlocksGenre.isNotEmpty) '${unlocksGenre.join(', ')} türünü açar',
     ];
     return Panel(

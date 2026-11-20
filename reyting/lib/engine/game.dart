@@ -60,6 +60,8 @@ class Game extends ChangeNotifier {
   final List<Trophy> trophies = [];
   final Set<String> achievements = {};
   Decision? pendingDecision;
+  final List<Tender> tenders = [];
+  int tendersWon = 0;
   final Map<String, double> stockPrices = {};
   final Map<String, List<double>> stockHist = {};
   final Map<String, double> holdings = {};
@@ -151,6 +153,8 @@ class Game extends ChangeNotifier {
     pendingDecision = null;
     pendingAwards = null;
     _initStocks();
+    tenders.clear();
+    tendersWon = 0;
     holdings.clear();
     costBasis.clear();
     tradingProfit = 0;
@@ -164,6 +168,7 @@ class Game extends ChangeNotifier {
     todayIncome = 0;
     yesterdayIncome = 0;
     _refreshMarket();
+    _tendersDaily();
     _log('Kanal kuruldu', '$channelName yayın hayatına başladı. Bol reytingler!',
         true);
   }
@@ -341,6 +346,8 @@ class Game extends ChangeNotifier {
         'decisionsMade': decisionsMade,
         'trophies': trophies.map((e) => e.toJson()).toList(),
         'achievements': achievements.toList(),
+        'tenders': tenders.map((e) => e.toJson()).toList(),
+        'tendersWon': tendersWon,
         'stockPrices': stockPrices,
         'stockHist': stockHist,
         'holdings': holdings,
@@ -456,6 +463,11 @@ class Game extends ChangeNotifier {
     achievements
       ..clear()
       ..addAll(List<String>.from(j['achievements'] ?? []));
+    tenders
+      ..clear()
+      ..addAll((j['tenders'] as List? ?? []).map((e) => Tender.fromJson(e)));
+    tendersWon = j['tendersWon'] ?? 0;
+    if (!tenders.any((t) => t.status == TenderStatus.open)) _tendersDaily();
     stockPrices.clear();
     stockHist.clear();
     if (j['stockPrices'] == null) {
@@ -576,6 +588,12 @@ class Game extends ChangeNotifier {
         _acc?.boxOffice += inc;
       }
     }
+    for (final t in tenders) {
+      if (t.status == TenderStatus.producing) {
+        t.prodLeft -= step;
+        if (t.prodLeft <= 0) _deliverTender(t);
+      }
+    }
     final pf = platformIncomePerDay * step;
     cash += pf;
     todayIncome += pf;
@@ -663,6 +681,7 @@ class Game extends ChangeNotifier {
       }
       if (s.episodesAired >= s.seasonDays) _endSeason(s);
     }
+    _tendersDaily();
     _buildReport();
     _stockNews();
     _maybeDecision();
@@ -954,7 +973,9 @@ class Game extends ChangeNotifier {
 
   /// Sosyal medya etkisi: takipçiler TV reytingini artırır (en fazla %10)
   double get digitalBoost => min(totalFollowers / 20e6, 0.10);
-  double get boxOfficeBonus => bizEffect(BizEffect.boxOffice);
+  double get boxOfficeBonus =>
+      bizEffect(BizEffect.boxOffice) +
+      ownedEquip.fold(0.0, (a, id) => a + (equipById(id)?.boxOfficeBonus ?? 0));
   double get licenseBonus => bizEffect(BizEffect.licenseFee);
   double get musicQualityBonus => bizEffect(BizEffect.quality);
 
@@ -1056,6 +1077,9 @@ class Game extends ChangeNotifier {
     if (s != null) return s.name;
     for (final f in films) {
       if (f.id == p.showId) return '🎬 ${f.name}';
+    }
+    for (final t in tenders) {
+      if (t.id == p.showId) return '🏛️ ${t.def.title}';
     }
     return null;
   }
@@ -1487,7 +1511,9 @@ class Game extends ChangeNotifier {
     final avg =
         crew.map((s) => s.skill).reduce((a, b) => a + b) / crew.length / 100;
     var bonus = musicQualityBonus;
-    if (ownedEquip.contains('cam')) bonus += 0.06;
+    for (final id in ownedEquip) {
+      bonus += equipById(id)?.filmBonus ?? 0;
+    }
     if (ownedEquip.contains('sound')) bonus += 0.04;
     return (avg * budgetTiers[tier].qualityMult * (1 + bonus)).clamp(0.0, 1.3);
   }
@@ -2229,6 +2255,155 @@ class Game extends ChangeNotifier {
   }
 
   // =================================================================
+  // Devlet ihaleleri
+  // =================================================================
+
+  /// Açık ihale sayısını 3'te tutar; süresi dolanları sonuçlandırır.
+  void _tendersDaily() {
+    for (final t in tenders.where((t) => t.status == TenderStatus.open).toList()) {
+      if (day >= t.closesDay) _resolveTender(t);
+    }
+    // eski kayıtları temizle (son 12 kapanmış ihale kalsın)
+    final closed = tenders.where((t) =>
+        t.status == TenderStatus.delivered || t.status == TenderStatus.lost || t.status == TenderStatus.expired).toList();
+    if (closed.length > 12) {
+      for (final t in closed.take(closed.length - 12)) {
+        tenders.remove(t);
+      }
+    }
+    while (tenders.where((t) => t.status == TenderStatus.open).length < 3) {
+      if (!_spawnTender()) break;
+    }
+  }
+
+  bool _spawnTender() {
+    final lv = studioLevel + 1;
+    final pool = tenderDefs
+        .where((d) => d.minLevel <= lv + 1 &&
+            !tenders.any((t) => t.defId == d.id && t.status == TenderStatus.open))
+        .toList();
+    if (pool.isEmpty) return false;
+    final d = pool[_rng.nextInt(pool.length)];
+    final scale = 1 + 0.4 * max(0, lv - d.minLevel);
+    tenders.insert(
+        0,
+        Tender(
+          id: _newId('t'),
+          defId: d.id,
+          budget: (d.budget * scale * (0.9 + _rng.nextDouble() * 0.25) / 1000).round() * 1000.0,
+          closesDay: day + 3,
+        ));
+    return true;
+  }
+
+  /// Teklif verilebilir mi? (null = evet, aksi hâlde sebep)
+  String? tenderEligible(Tender t) {
+    final d = t.def;
+    if (studioLevel + 1 < d.minLevel) return 'Stüdyo seviyesi ${d.minLevel} gerekli.';
+    final missing = d.equip.where((e) => !ownedEquip.contains(e)).toList();
+    if (missing.isNotEmpty) {
+      return 'Eksik ekipman: ${missing.map((e) => equipById(e)!.name).join(', ')}';
+    }
+    return null;
+  }
+
+  /// Fiyat+kalite puanı için kalite çarpanı: ekip yeteneği ve fazladan ekipman.
+  double tenderQuality(Tender t, List<Staff> crew) {
+    final avg = crew.isEmpty ? 0 : crew.map((c) => c.skill).reduce((a, b) => a + b) / crew.length;
+    final extra = min(0.1, (ownedEquip.length - t.def.equip.length) * 0.01);
+    return 0.85 + avg / 100 * 0.35 + max(0.0, extra);
+  }
+
+  String? bidTender(Tender t, double amount, List<Staff> crew) {
+    if (t.status != TenderStatus.open) return 'İhale kapandı.';
+    if (t.myBid != null) return 'Bu ihaleye zaten teklif verdin.';
+    final why = tenderEligible(t);
+    if (why != null) return why;
+    for (final e in t.def.crew.entries) {
+      final n = crew.where((c) => c.role == e.key && c.showId == null).length;
+      if (n < e.value) return '${e.value} boşta ${e.key.label} gerekli.';
+    }
+    if (amount < t.budget * 0.5 || amount > t.budget * 1.2) {
+      return 'Teklif, tahmini bedelin %50-%120 aralığında olmalı.';
+    }
+    final deposit = amount * 0.05;
+    if (cash < deposit + t.productionCost) {
+      return 'Teminat ve yapım maliyeti için ${fmtShort(deposit + t.productionCost)} gerekli.';
+    }
+    cash -= deposit;
+    t.myBid = amount;
+    t.crewIds = crew.map((c) => c.id).toList();
+    t.qualityFactor = tenderQuality(t, crew);
+    for (final c in crew) {
+      c.showId = t.id;
+    }
+    _count('tender');
+    _notify('📨 "${t.def.title}" için ${fmtShort(amount)} teklif verildi. Zarflar ${t.closesDay}. gün açılacak.');
+    _changed();
+    return null;
+  }
+
+  void _freeCrew(Tender t) {
+    for (final st in staff) {
+      if (st.showId == t.id) st.showId = null;
+    }
+  }
+
+  /// Kapalı zarf: en düşük (fiyat / kalite) puanı kazanır.
+  void _resolveTender(Tender t) {
+    final n = 2 + _rng.nextInt(3);
+    String? bestName;
+    var bestScore = double.infinity, bestBid = 0.0;
+    final names = tenderRivals.toList()..shuffle(_rng);
+    for (int i = 0; i < n; i++) {
+      final bid = t.budget * (0.78 + _rng.nextDouble() * 0.22);
+      final q = 0.95 + _rng.nextDouble() * 0.2;
+      if (bid / q < bestScore) {
+        bestScore = bid / q;
+        bestBid = bid;
+        bestName = names[i];
+      }
+    }
+    if (t.myBid == null) {
+      t.status = TenderStatus.expired;
+      t.winner = bestName;
+      t.winningBid = bestBid;
+      return;
+    }
+    _gain(t.deposit); // teminat iadesi
+    final myScore = t.myBid! / t.qualityFactor;
+    if (myScore < bestScore) {
+      t.status = TenderStatus.producing;
+      t.prodLeft = t.def.days.toDouble();
+      t.winner = channelName;
+      t.winningBid = t.myBid;
+      cash -= t.productionCost;
+      _log('🏛️ İhale kazanıldı', '"${t.def.title}" ${fmtShort(t.myBid!)} ile senin! Çekimler başladı.', true);
+      _notify('🏆 İhaleyi kazandın: "${t.def.title}"! Çekimler başladı.');
+    } else {
+      t.status = TenderStatus.lost;
+      t.winner = bestName;
+      t.winningBid = bestBid;
+      _freeCrew(t);
+      _notify('📭 "${t.def.title}" ihalesini $bestName ${fmtShort(bestBid)} ile kazandı.');
+    }
+  }
+
+  void _deliverTender(Tender t) {
+    t.prodLeft = 0;
+    t.status = TenderStatus.delivered;
+    // kaliteli iş için %0-15 başarı primi
+    final bonus = t.myBid! * max(0.0, min(0.15, (t.qualityFactor - 1) * 0.6));
+    t.paid = t.myBid! + bonus;
+    _gain(t.paid);
+    bonusPrestige += t.def.prestige;
+    tendersWon++;
+    _freeCrew(t);
+    _log('🏛️ Proje teslim edildi', '"${t.def.title}" teslim edildi: +${fmtShort(t.paid)}, +${t.def.prestige} prestij', true);
+    _notify('✅ "${t.def.title}" teslim edildi! +${fmtShort(t.paid)}, +${t.def.prestige} prestij');
+  }
+
+  // =================================================================
   // Kadro eğitimi
   // =================================================================
 
@@ -2301,6 +2476,7 @@ class Game extends ChangeNotifier {
     ('ads', 'Reklam süresini 3 kez ayarla', 3),
     ('license', '1 filmi platforma sat', 1),
     ('campaign', '1 YouTuber kampanyası yap', 1),
+    ('tender', '1 devlet ihalesine teklif ver', 1),
   ];
 
   /// Görev oyuncunun şu anki durumunda yapılabilir mi?
@@ -2308,6 +2484,7 @@ class Game extends ChangeNotifier {
         'license' => films.any((f) => f.rightsOwned && f.status != FilmStatus.producing),
         'campaign' => creators.isNotEmpty,
         'train' => staff.length >= 2,
+        'tender' => tenders.any((t) => t.status == TenderStatus.open && tenderEligible(t) == null),
         _ => true,
       };
 

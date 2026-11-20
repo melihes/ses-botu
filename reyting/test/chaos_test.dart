@@ -23,7 +23,11 @@ List<String> invariants(Game g) {
     if (s.showId != null) {
       final show = g.showById(s.showId);
       final film = g.films.where((f) => f.id == s.showId).firstOrNull;
-      if (show == null && film == null) e.add('${s.name} olmayan bir işe bağlı');
+      final tender = g.tenders.where((t) => t.id == s.showId).firstOrNull;
+      if (show == null && film == null && tender == null) e.add('${s.name} olmayan bir işe bağlı');
+      if (tender != null && !(tender.status == TenderStatus.open || tender.status == TenderStatus.producing)) {
+        e.add('${s.name} bitmiş ihaleye bağlı (${tender.status})');
+      }
       if (show != null &&
           !(show.status == ShowStatus.producing || show.status == ShowStatus.ready || show.status == ShowStatus.onAir)) {
         e.add('${s.name} bitmiş programa bağlı (${show.status})');
@@ -82,7 +86,7 @@ Future<void> chaos(int seed, int steps) async {
   T pick<T>(List<T> l) => l[r.nextInt(l.length)];
   final log = <String>[];
   for (int i = 0; i < steps; i++) {
-    final a = r.nextInt(31);
+    final a = r.nextInt(32);
     String act = 'a$a';
     try {
       switch (a) {
@@ -182,6 +186,15 @@ Future<void> chaos(int seed, int steps) async {
           expect(g.staff.length, staff);
           expect(g.shows.length, shows);
           expect(jsonEncode(invariants(g)), before);
+        case 31:
+          final open = g.tenders.where((t) => t.status == TenderStatus.open && t.myBid == null).toList();
+          if (open.isNotEmpty) {
+            act = 'ihale';
+            final t = pick(open);
+            final crew = <Staff>[];
+            t.def.crew.forEach((role, n) => crew.addAll(g.freeStaff(role).take(n)));
+            g.bidTender(t, t.budget * (0.5 + r.nextDouble() * 0.7), crew);
+          }
         case 30:
           act = 'uzaklaş';
           g.debugAway(Duration(minutes: r.nextInt(600)));

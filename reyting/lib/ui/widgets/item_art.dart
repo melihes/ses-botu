@@ -557,6 +557,123 @@ class _ItemPainter extends CustomPainter {
           d.poly([0.2 + k * 0.2, 0.53, 0.25 + k * 0.2, 0.48, 0.3 + k * 0.2, 0.53], [AppColors.accent, AppColors.cyan][k]);
         }
 
+      case 'steadicam':
+        d.rect(0, 0.85, 1, 0.15, Colors.black26);
+        final bob = sin(w * 2) * 0.02;
+        d.person(0.42, 0.97, 0.75, shirt: const Color(0xFF333344), hair: 1, armR: 1.4, armL: 1.2);
+        d.rect(0.47, 0.42 + bob, 0.28, 0.05, const Color(0xFF555555));
+        d.line(0.6, 0.45 + bob, 0.6, 0.7 + bob, const Color(0xFF777777), 3);
+        d.rrect(0.66, 0.32 + bob, 0.16, 0.12, 3, const Color(0xFF1A1A1A));
+        d.circle(0.84, 0.38 + bob, 0.04, const Color(0xFF3A6AB0));
+        d.circle(0.6, 0.72 + bob, 0.05, const Color(0xFF444444));
+      case 'k8':
+        d.rect(0, 0, 1, 1, const Color(0xFF101018));
+        d.rrect(0.1, 0.15, 0.8, 0.55, 6, const Color(0xFF222230));
+        for (int y = 0; y < 6; y++) {
+          for (int x = 0; x < 12; x++) {
+            final v = (sin(w + x * 0.5 + y * 0.7) + 1) / 2;
+            d.rect(0.13 + x * 0.062, 0.18 + y * 0.083, 0.058, 0.078,
+                Color.lerp(const Color(0xFF1E6FB0), const Color(0xFFFFD166), v)!.withValues(alpha: 0.9));
+          }
+        }
+        d.text('8K', 0.5, 0.74, 0.16, AppColors.yellow, center: true);
+      case 'underwater':
+        d.vgrad(0, 1, const Color(0xFF1C8CB0), const Color(0xFF062A45));
+        for (int k = 0; k < 6; k++) {
+          final y = 0.9 - ((t * 1.5 + k / 6) % 1) * 0.9;
+          d.circle(0.65 + sin(w * 3 + k) * 0.03, y, 0.015, Colors.white54);
+        }
+        final dx = 0.35 + sin(w) * 0.05;
+        d.oval(dx, 0.55, 0.42, 0.16, const Color(0xFF222233));
+        d.circle(dx + 0.18, 0.5, 0.06, const Color(0xFFF2C9A0));
+        d.circle(dx + 0.19, 0.5, 0.045, const Color(0xFF9FD3F5));
+        d.rrect(dx - 0.08, 0.43, 0.1, 0.05, 3, AppColors.yellow);
+        d.poly([dx - 0.2, 0.55, dx - 0.32, 0.48 + sin(w * 6) * 0.03, dx - 0.32, 0.62], const Color(0xFF111122));
+        d.rrect(dx + 0.26, 0.5, 0.14, 0.1, 3, const Color(0xFF111111));
+        d.circle(dx + 0.41, 0.55, 0.035, const Color(0xFF3A6AB0));
+      case 'spidercam':
+        d.vgrad(0, 0.55, const Color(0xFF0A1530), const Color(0xFF1A2550));
+        d.rect(0, 0.55, 1, 0.45, const Color(0xFF2E8B57));
+        d.line(0.5, 0.55, 0.5, 1, Colors.white54, 1);
+        d.c.drawCircle(Offset(0.5 * d.W, 0.8 * d.H), d.H * 0.1, d.p(Colors.white54)..style = PaintingStyle.stroke);
+        final cx = 0.5 + sin(w) * 0.3, cy = 0.35 + cos(w * 2) * 0.08;
+        for (final corner in [[0.0, 0.05], [1.0, 0.05], [0.0, 0.5], [1.0, 0.5]]) {
+          d.line(corner[0], corner[1], cx, cy, Colors.white38, 1);
+        }
+        d.rrect(cx - 0.05, cy - 0.04, 0.1, 0.08, 3, const Color(0xFF222222));
+        d.circle(cx, cy + 0.05, 0.03, const Color(0xFF3A6AB0));
+        d.circle(cx + 0.04, cy - 0.03, 0.012, sin(w * 8) > 0 ? AppColors.red : const Color(0xFF551111));
+      case 'heli':
+        d.vgrad(0, 1, const Color(0xFF6EA8E0), const Color(0xFFF2B27A));
+        d.poly([0, 1, 0.25, 0.7, 0.5, 0.85, 0.75, 0.65, 1, 0.8, 1, 1], const Color(0xFF3E7A4A));
+        final hy = 0.38 + sin(w * 2) * 0.04;
+        d.oval(0.45, hy, 0.36, 0.2, const Color(0xFF1E3A8A));
+        d.oval(0.53, hy - 0.01, 0.14, 0.12, const Color(0xFF9FD3F5));
+        d.rect(0.12, hy - 0.015, 0.2, 0.03, const Color(0xFF1E3A8A));
+        d.circle(0.12, hy, 0.035, const Color(0xFF555555));
+        final blade = cos(w * 40).abs();
+        d.line(0.45 - 0.35 * blade, hy - 0.12, 0.45 + 0.35 * blade, hy - 0.12, Colors.black54, 2);
+        d.line(0.45, hy - 0.1, 0.45, hy - 0.13, Colors.black, 2);
+        d.line(0.4, hy + 0.1, 0.4, hy + 0.14, Colors.black54, 1.5);
+        d.line(0.3, hy + 0.14, 0.58, hy + 0.14, Colors.black54, 2);
+        d.rrect(0.5, hy + 0.08, 0.08, 0.05, 2, Colors.black);
+      case 'imax':
+        d.rect(0, 0, 1, 1, const Color(0xFF07060F));
+        final scr = Rect.fromLTWH(0.06 * d.W, 0.06 * d.H, 0.88 * d.W, 0.52 * d.H);
+        d.c.drawRect(scr, Paint()..shader = LinearGradient(colors: [
+          const Color(0xFF1E3A8A), Color.lerp(const Color(0xFF6C9BFF), Colors.white, (sin(w) + 1) / 4)!,
+        ]).createShader(scr));
+        d.circle(0.7, 0.3, 0.12, const Color(0xFFE07A4F));
+        d.text('IMAX', 0.5, 0.62, 0.14, Colors.white, center: true);
+        for (int row = 0; row < 2; row++) {
+          for (double x = 0.04; x < 1; x += 0.08) {
+            d.rrect(x, 0.8 + row * 0.09, 0.06, 0.07, 3, const Color(0xFF2A1A3A));
+          }
+        }
+      case 'atmos':
+        d.rect(0, 0, 1, 1, const Color(0xFF0E0A1A));
+        for (final pos in [[0.15, 0.3], [0.85, 0.3], [0.15, 0.75], [0.85, 0.75], [0.5, 0.12]]) {
+          d.rrect(pos[0] - 0.06, pos[1] - 0.08, 0.12, 0.16, 3, const Color(0xFF333344));
+          d.circle(pos[0], pos[1], 0.04, const Color(0xFF111111));
+        }
+        for (int k = 0; k < 3; k++) {
+          final r = ((t * 2 + k / 3) % 1) * 0.4;
+          d.c.drawCircle(Offset(0.5 * d.W, 0.55 * d.H), r * d.H,
+              Paint()..color = AppColors.purple.withValues(alpha: 1 - r / 0.4)..style = PaintingStyle.stroke..strokeWidth = 2);
+        }
+        d.text('ATMOS', 0.5, 0.5, 0.09, Colors.white, center: true);
+      case 'uplink':
+        d.vgrad(0, 0.75, const Color(0xFF0F1B3D), const Color(0xFF3A4A7A));
+        d.rect(0, 0.78, 1, 0.22, const Color(0xFF444450));
+        d.rrect(0.1, 0.5, 0.65, 0.3, 4, Colors.white);
+        d.rect(0.1, 0.62, 0.65, 0.04, AppColors.cyan);
+        d.circle(0.22, 0.82, 0.07, Colors.black);
+        d.circle(0.65, 0.82, 0.07, Colors.black);
+        d.c.drawArc(Rect.fromCenter(center: Offset(0.45 * d.W, 0.38 * d.H), width: 0.36 * d.W, height: 0.3 * d.H),
+            pi + 0.3 + sin(w) * 0.15, pi, true, d.p(const Color(0xFFDDDDDD)));
+        d.line(0.45, 0.5, 0.45, 0.4, Colors.grey, 3);
+        for (int k = 0; k < 3; k++) {
+          final r = ((t * 2 + k / 3) % 1) * 0.35;
+          d.c.drawArc(Rect.fromCircle(center: Offset(0.55 * d.W, 0.25 * d.H), radius: r * d.H), -pi * 0.6, pi * 0.5, false,
+              Paint()..color = AppColors.yellow.withValues(alpha: 1 - r / 0.35)..style = PaintingStyle.stroke..strokeWidth = 2);
+        }
+      case 'mocap':
+        d.rect(0, 0, 1, 1, const Color(0xFF101418));
+        for (double x = 0; x < 1; x += 0.08) {
+          d.line(x, 0, x, 1, const Color(0xFF1EB85A).withValues(alpha: 0.15), 1);
+        }
+        final ar = 1.5 + sin(w * 3) * 0.8;
+        d.person(0.3, 0.95, 0.75, shirt: const Color(0xFF111111), pants: const Color(0xFF111111), armR: ar, armL: 1.0);
+        for (final pt in [[0.3, 0.3], [0.25, 0.55], [0.35, 0.55], [0.27, 0.8], [0.33, 0.8]]) {
+          d.circle(pt[0], pt[1], 0.02, Colors.white);
+        }
+        final skel = AppColors.cyan;
+        d.circle(0.72, 0.3, 0.06, skel);
+        d.line(0.72, 0.36, 0.72, 0.62, skel, 3);
+        d.line(0.72, 0.42, 0.72 + sin(ar) * 0.12, 0.42 + cos(ar) * 0.12, skel, 3);
+        d.line(0.72, 0.42, 0.62, 0.54, skel, 3);
+        d.line(0.72, 0.62, 0.66, 0.85, skel, 3);
+        d.line(0.72, 0.62, 0.78, 0.85, skel, 3);
       case 'videom':
         d.vgrad(0, 1, const Color(0xFF3A0F2A), const Color(0xFF1A0A20));
         d.rrect(0.3, 0.08, 0.4, 0.84, 10, const Color(0xFF111111));

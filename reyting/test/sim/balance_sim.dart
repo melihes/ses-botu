@@ -145,6 +145,15 @@ void botDay(Game g) {
   }
   // Genel Müdür
   if (!naive && !g.autoManager && g.cash > g.managerSigningFee * 4) g.hireManager();
+  // devlet ihaleleri: uygunsa bedelin %88'iyle teklif
+  if (!naive) {
+    for (final t in g.tenders.where((t) => t.status == TenderStatus.open && t.myBid == null).toList()) {
+      if (g.tenderEligible(t) != null) continue;
+      final crew = <Staff>[];
+      t.def.crew.forEach((role, n) => crew.addAll(g.freeStaff(role).take(n)));
+      if (g.cash > t.productionCost * 3) g.bidTender(t, t.budget * 0.88, crew);
+    }
+  }
   // günlük görev ödülleri
   for (final m in g.missions) {
     if (m.done && !m.claimed) g.claimMission(m);

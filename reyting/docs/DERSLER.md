@@ -69,3 +69,10 @@ ile ölçülür (~1 dk). Ölçülen: 1. gün 5. seviye, ~9. gün 7. seviye, ~1. 
   yere geri koyuyordu → "Kuşak değiştir" (taşı/yer değiştir) ve "⭐ Önerilen" etiketi.
 - Genel Müdür maaşlı çalışan; maaşı günlük net hesabına dahil (hata düzeltildi).
 - Günlük görevler sadece oyuncunun yapabileceği türden seçilir.
+
+## v0.11: Gerçek ekipmanlar ve devlet ihaleleri
+- 9 yeni ekipman (steadicam, 8K, su altı, örümcek kamera, helikopter, IMAX, Dolby Atmos,
+  uplink, motion capture). Bazı formatlar ve ihaleler bunları şart koşar; IMAX/Atmos gişeyi artırır.
+- Devlet ihaleleri: kapalı zarf, "fiyat ÷ kalite" puanı, %5 teminat (kaybedince iade),
+  yapım maliyeti kazanınca ödenir, teslimde ödeme + kalite primi + prestij.
+  Online'da rakip şirketlerin yerini gerçek oyuncular alacak (teklifler sunucuda).
