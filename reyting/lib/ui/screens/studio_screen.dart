@@ -4,6 +4,7 @@ import '../../core/format.dart';
 import '../../core/theme.dart';
 import '../../data/content.dart';
 import '../widgets/common.dart';
+import '../widgets/scene.dart';
 
 class StudioScreen extends StatelessWidget {
   const StudioScreen({super.key});
@@ -26,8 +27,12 @@ class StudioScreen extends StatelessWidget {
           gradient: const LinearGradient(
               colors: [Color(0xFF2E1F45), AppColors.panel]),
           child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            const ArtTile(
-                icon: Icons.domain_rounded, color: AppColors.purple, size: 110),
+            StageScene(
+                kind: SceneKind.studio,
+                color: AppColors.purple,
+                tier: (game.studioLevel / 2).floor().clamp(0, 2),
+                width: 150,
+                height: 110),
             const SizedBox(width: 14),
             Expanded(
               child: Column(
@@ -104,10 +109,12 @@ class _EquipCard extends StatelessWidget {
     final game = GameScope.of(context);
     final owned = game.ownedEquip.contains(e.id);
     final locked = game.studioLevel + 1 < e.reqLevel;
-    final unlocksGenre = genreDefs.values
-        .where((g) => g.reqEquip == e.id)
-        .map((g) => g.label)
-        .toList();
+    final unlocksGenre = [
+      ...genreDefs.values.where((g) => g.reqEquip == e.id).map((g) => g.label),
+      ...filmGenreDefs.values
+          .where((g) => g.reqEquip == e.id)
+          .map((g) => '${g.label} filmi'),
+    ];
     final effects = <String>[
       if (e.qualityBonus > 0)
         'Kalite +${fmtPct(e.qualityBonus * 100, 0)}'

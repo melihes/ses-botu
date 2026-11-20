@@ -39,6 +39,9 @@ class Game extends ChangeNotifier {
   final Set<String> ownedLuxury = {};
   final Set<String> ownedChannels = {};
   final Set<String> ownedEquip = {};
+  final List<Film> films = [];
+  final Set<String> ownedPlatforms = {};
+  final Map<String, int> bizLevels = {};
   final Map<String, NegState> negotiations = {};
   final List<double> cashHistory = [];
   final List<GameEvent> eventLog = [];
@@ -100,6 +103,9 @@ class Game extends ChangeNotifier {
     ownedLuxury.clear();
     ownedChannels.clear();
     ownedEquip.clear();
+    films.clear();
+    ownedPlatforms.clear();
+    bizLevels.clear();
     negotiations.clear();
     cashHistory
       ..clear()
@@ -220,6 +226,9 @@ class Game extends ChangeNotifier {
         'ownedLuxury': ownedLuxury.toList(),
         'ownedChannels': ownedChannels.toList(),
         'ownedEquip': ownedEquip.toList(),
+        'films': films.map((e) => e.toJson()).toList(),
+        'ownedPlatforms': ownedPlatforms.toList(),
+        'bizLevels': bizLevels,
         'negotiations': {
           for (final e in negotiations.entries) e.key: e.value.toJson()
         },
@@ -264,6 +273,15 @@ class Game extends ChangeNotifier {
     ownedEquip
       ..clear()
       ..addAll(List<String>.from(j['ownedEquip'] ?? []));
+    films
+      ..clear()
+      ..addAll((j['films'] as List? ?? []).map((e) => Film.fromJson(e)));
+    ownedPlatforms
+      ..clear()
+      ..addAll(List<String>.from(j['ownedPlatforms'] ?? []));
+    bizLevels
+      ..clear()
+      ..addAll(Map<String, int>.from(j['bizLevels'] ?? {}));
     negotiations
       ..clear()
       ..addAll((j['negotiations'] as Map<String, dynamic>)
@@ -282,6 +300,10 @@ class Game extends ChangeNotifier {
   // =================================================================
   // Zaman akışı
   // =================================================================
+
+  /// Testler için zamanı ileri sar.
+  @visibleForTesting
+  void debugAdvanceDays(double days) => _advance(days);
 
   void _advance(double days) {
     var rem = days;
@@ -321,6 +343,40 @@ class Game extends ChangeNotifier {
     cash += ch;
     todayIncome += ch;
     _acc?.channelIncome += ch;
+
+    // Sinema: çekim ve gişe
+    for (final f in films) {
+      if (f.status == FilmStatus.producing) {
+        f.prodLeft -= step;
+        if (f.prodLeft <= 0) _finishFilm(f);
+      } else if (f.status == FilmStatus.inTheaters) {
+        final inc = boxOfficeForDay(f, f.theaterDay, reach, boxOfficeBonus) * step;
+        cash += inc;
+        todayIncome += inc;
+        f.boxOffice += inc;
+        _acc?.boxOffice += inc;
+      }
+    }
+    final pf = platformIncomePerDay * step;
+    cash += pf;
+    todayIncome += pf;
+    _acc?.platformIncome += pf;
+    final bz = bizIncomePerDay * step;
+    cash += bz;
+    todayIncome += bz;
+    _acc?.bizIncome += bz;
+  }
+
+  void _finishFilm(Film f) {
+    f.prodLeft = 0;
+    f.status = FilmStatus.ready;
+    f.score = filmScore(f.quality, 0.8 + _rng.nextDouble() * 0.4);
+    for (final st in staff) {
+      if (st.showId == f.id) st.showId = null;
+    }
+    _acc?.filmsDone++;
+    _notify('🎞️ "${f.name}" tamamlandı! İzleyici puanı ${fmtDec(f.score, 1)}. '
+        'Vizyona sok ya da platformlara sat.');
   }
 
   void _endOfDay() {
@@ -368,6 +424,21 @@ class Game extends ChangeNotifier {
       if (s.episodesAired >= s.seasonDays) _endSeason(s);
     }
 
+    for (final f in films) {
+      if (f.status == FilmStatus.inTheaters) {
+        f.theaterDay++;
+        if (f.theaterDay >= theaterRunDays) {
+          f.status = FilmStatus.library;
+          _notify('🍿 "${f.name}" vizyondan kalktı. Gişe: ${fmtShort(f.boxOffice)}. '
+              'Artık platformlara lisanslayabilirsin.');
+        }
+      }
+      for (final l in f.licenses) {
+        l.daysLeft--;
+      }
+      f.licenses.removeWhere((l) => l.daysLeft <= 0);
+    }
+
     _rollEvent();
 
     if (day % 3 == 0) _refreshMarket();
@@ -400,7 +471,7 @@ class Game extends ChangeNotifier {
   void _rollEvent() {
     if (_rng.nextDouble() > 0.14) return;
     final onAir = shows.where((s) => s.status == ShowStatus.onAir).toList();
-    final pick = _rng.nextInt(9);
+    final pick = _rng.nextInt(10);
     Show? s = onAir.isEmpty ? null : onAir[_rng.nextInt(onAir.length)];
 
     switch (pick) {
@@ -461,6 +532,19 @@ class Game extends ChangeNotifier {
         _event('📺 Rakip hamlesi',
             'Rakip kanal aynı saate dev yapım koydu. "${s.name}" 3 gün -%15.',
             false);
+      case 9:
+        final pool = films
+            .where((f) =>
+                f.status == FilmStatus.inTheaters ||
+                f.status == FilmStatus.library)
+            .toList();
+        if (pool.isEmpty) return;
+        final f = pool[_rng.nextInt(pool.length)];
+        f.score = min(9.9, f.score + 0.5);
+        bonusPrestige += 10;
+        _event('🎖️ Festival ödülü',
+            '"${f.name}" uluslararası festivalde ödül aldı! Puan +0,5, +10 prestij.',
+            true);
       case 8:
         diamonds += 2;
         _event('💎 Sadık izleyici', 'İzleyici kulübü sana 2 elmas hediye etti.',
@@ -501,17 +585,65 @@ class Game extends ChangeNotifier {
   }
 
   int get prestige {
-    var p = bonusPrestige + studioLevel * 50;
+    var p = bonusPrestige +
+        studioLevel * 50 +
+        (bizEffect(BizEffect.prestige)).round();
     for (final d in luxuryDefs) {
       if (ownedLuxury.contains(d.id)) p += d.prestige;
     }
     for (final c in channelDefs) {
       if (ownedChannels.contains(c.id)) p += (c.price / 2e6).round();
     }
+    for (final pf in platformDefs) {
+      if (ownedPlatforms.contains(pf.id)) p += (pf.price / 2e6).round();
+    }
     return p;
   }
 
-  double get adBonus => prestigeAdBonus(prestige);
+  double get adBonus => prestigeAdBonus(prestige) + bizEffect(BizEffect.adRate);
+
+  // ---- Holding etkileri ----
+  int bizLevel(String id) => bizLevels[id] ?? 0;
+
+  /// Belirli etki türündeki tüm işletmelerin toplam etkisi.
+  double bizEffect(BizEffect e, {Genre? genre}) {
+    var v = 0.0;
+    for (final b in bizDefs) {
+      if (b.effect != e) continue;
+      if (genre != null && b.genres.isNotEmpty && !b.genres.contains(genre)) {
+        continue;
+      }
+      if (genre == null && b.genres.isNotEmpty) continue;
+      v += b.perLevel * bizLevel(b.id);
+    }
+    return v;
+  }
+
+  double ratingMultFor(Genre g) => 1 + bizEffect(BizEffect.showRating, genre: g);
+  double get boxOfficeBonus => bizEffect(BizEffect.boxOffice);
+  double get licenseBonus => bizEffect(BizEffect.licenseFee);
+  double get musicQualityBonus => bizEffect(BizEffect.quality);
+
+  double get bizIncomePerDay =>
+      bizDefs.fold(0.0, (a, b) => a + bizIncome(b, bizLevel(b.id)));
+
+  double get platformIncomePerDay {
+    if (ownedPlatforms.isEmpty) return 0;
+    var v = platformDefs
+        .where((p) => ownedPlatforms.contains(p.id))
+        .fold(0.0, (a, p) => a + p.dailyIncome);
+    for (final f in films) {
+      if (f.onOwnPlatform && f.rightsOwned) {
+        v += filmValue(f) * 0.004 * f.def.streaming;
+      }
+    }
+    return v;
+  }
+
+  double get boxOfficePerDay => films
+      .where((f) => f.status == FilmStatus.inTheaters)
+      .fold(0.0,
+          (a, f) => a + boxOfficeForDay(f, f.theaterDay, reach, boxOfficeBonus));
 
   double get dailySalaries => staff.fold(0.0, (a, s) => a + s.salary);
   double get dailyRent => studio.rentPerDay;
@@ -529,19 +661,23 @@ class Game extends ChangeNotifier {
 
   double get netPerDay =>
       adIncomePerDay +
-      channelIncomePerDay -
+      channelIncomePerDay +
+      platformIncomePerDay +
+      bizIncomePerDay +
+      boxOfficePerDay -
       dailySalaries -
       dailyRent -
       dailyUpkeep;
 
   double currentRating(Show s) {
     if (s.slot == null) return 0;
-    return showRating(s, s.slot!, slots[s.slot]!.adMinutes);
+    return showRating(s, s.slot!, slots[s.slot]!.adMinutes) *
+        ratingMultFor(s.genre);
   }
 
   /// Programı belirli bir kuşağa koysak reytingi ne olurdu (önizleme).
   double previewRating(Show s, SlotId slot) =>
-      showRating(s, slot, slots[slot]!.adMinutes);
+      showRating(s, slot, slots[slot]!.adMinutes) * ratingMultFor(s.genre);
 
   double viewers(Show s) =>
       s.slot == null ? 0 : viewersFor(currentRating(s), s.slot!, reach);
@@ -573,6 +709,17 @@ class Game extends ChangeNotifier {
     return null;
   }
 
+  /// Kişinin çalıştığı program veya filmin adı (boştaysa null)
+  String? assignmentOf(Staff p) {
+    if (p.showId == null) return null;
+    final s = showById(p.showId);
+    if (s != null) return s.name;
+    for (final f in films) {
+      if (f.id == p.showId) return '🎬 ${f.name}';
+    }
+    return null;
+  }
+
   List<Staff> freeStaff(Role r) =>
       staff.where((s) => s.role == r && s.showId == null).toList();
 
@@ -582,7 +729,7 @@ class Game extends ChangeNotifier {
   }
 
   double prodSpeedMult() {
-    var m = 1.0;
+    var m = 1 - bizEffect(BizEffect.prodSpeed);
     for (final id in ownedEquip) {
       m *= equipById(id)?.prodSpeed ?? 1;
     }
@@ -596,7 +743,7 @@ class Game extends ChangeNotifier {
   String _newId(String p) => '$p${++_idCounter}';
 
   Staff _randomPerson(Role role) {
-    final base = 30 + studioLevel * 9;
+    final base = 30 + studioLevel * 9 + bizEffect(BizEffect.marketSkill).round();
     // yaklaşık normal dağılım
     final g = (_rng.nextDouble() + _rng.nextDouble() + _rng.nextDouble() - 1.5) *
         2;
@@ -676,7 +823,8 @@ class Game extends ChangeNotifier {
       tier: tier,
       staffIds: crew.map((c) => c.id).toList(),
       prodLeft: def.prodDays * prodSpeedMult(),
-      quality: showQuality(crew, genre, tier, ownedEquip),
+      quality: showQuality(crew, genre, tier, ownedEquip) *
+          (genre == Genre.dizi ? 1 + musicQualityBonus : 1),
     );
     for (final c in crew) {
       c.showId = s.id;
@@ -921,7 +1069,14 @@ class Game extends ChangeNotifier {
     cash -= paid;
     negotiations.remove(id);
     final lux = luxuryDefs.where((d) => d.id == id);
-    if (lux.isNotEmpty) {
+    final plat = platformById(id);
+    if (plat != null) {
+      ownedPlatforms.add(id);
+      _log('Platform satın alındı', '${plat.name} artık $channelName ailesinde!',
+          true);
+      _notify('📲 ${plat.name} artık senin! ${fmtDec(plat.subscribersM, 1)} M abone, '
+          'günlük +${fmtShort(plat.dailyIncome)}');
+    } else if (lux.isNotEmpty) {
       ownedLuxury.add(id);
       _notify('✨ ${lux.first.name} artık senin! +${lux.first.prestige} prestij');
     } else {
@@ -932,6 +1087,167 @@ class Game extends ChangeNotifier {
       _notify('📺 ${ch.name} artık senin! Günlük +${fmtShort(ch.dailyIncome)}');
     }
     _changed();
+  }
+
+  // =================================================================
+  // Sinema
+  // =================================================================
+
+  bool filmGenreUnlocked(FilmGenre g) {
+    final req = filmGenreDefs[g]!.reqEquip;
+    return req == null || ownedEquip.contains(req);
+  }
+
+  double filmQuality(List<Staff> crew, int tier) {
+    if (crew.isEmpty) return 0;
+    final avg =
+        crew.map((s) => s.skill).reduce((a, b) => a + b) / crew.length / 100;
+    var bonus = musicQualityBonus;
+    if (ownedEquip.contains('cam')) bonus += 0.06;
+    if (ownedEquip.contains('sound')) bonus += 0.04;
+    return (avg * budgetTiers[tier].qualityMult * (1 + bonus)).clamp(0.0, 1.3);
+  }
+
+  String? createFilm(String name, FilmGenre genre, int tier, List<Staff> crew) {
+    final def = filmGenreDefs[genre]!;
+    if (!filmGenreUnlocked(genre)) {
+      return '${def.label} için ${equipById(def.reqEquip!)!.name} gerekli.';
+    }
+    for (final e in def.needs.entries) {
+      if (crew.where((c) => c.role == e.key).length < e.value) {
+        return '${e.value} ${e.key.label} seçmelisin.';
+      }
+    }
+    final cost = filmCost(genre, tier);
+    if (cash < cost) return 'Kasada yeterli para yok (${fmtShort(cost)}).';
+    cash -= cost;
+    final f = Film(
+      id: _newId('f'),
+      name: name.trim().isEmpty ? filmNameIdeas[genre]!.first : name.trim(),
+      genre: genre,
+      tier: tier,
+      staffIds: crew.map((c) => c.id).toList(),
+      cost: cost,
+      prodLeft: def.prodDays * prodSpeedMult(),
+      quality: filmQuality(crew, tier),
+    );
+    for (final c in crew) {
+      c.showId = f.id;
+    }
+    films.insert(0, f);
+    _notify('🎬 "${f.name}" filminin çekimleri başladı!');
+    _changed();
+    return null;
+  }
+
+  int filmSpeedUpCost(Film f) => max(1, (f.prodLeft * 2).ceil());
+
+  String? speedUpFilm(Film f) {
+    final c = filmSpeedUpCost(f);
+    if (diamonds < c) return 'Yeterli elmas yok ($c 💎).';
+    diamonds -= c;
+    _finishFilm(f);
+    _changed();
+    return null;
+  }
+
+  String? releaseInTheaters(Film f) {
+    if (f.status != FilmStatus.ready) return 'Film vizyona hazır değil.';
+    f.status = FilmStatus.inTheaters;
+    f.theaterDay = 0;
+    _notify('🍿 "${f.name}" bugün vizyonda! $theaterRunDays gün salonlarda.');
+    _changed();
+    return null;
+  }
+
+  /// Platformun bu filmi alması için gereken en düşük puan.
+  double minScoreFor(PlatformDef p) =>
+      [0.0, 4.0, 5.0, 6.0, 7.0][platformDefs.indexOf(p)];
+
+  double licenseOfferFor(Film f, PlatformDef p) =>
+      licenseOffer(f, p, licenseBonus);
+
+  String? licenseFilm(Film f, PlatformDef p) {
+    if (!f.rightsOwned) return 'Bu filmin hakları artık sende değil.';
+    if (f.status == FilmStatus.producing || f.status == FilmStatus.inTheaters) {
+      return 'Film vizyondayken platforma verilemez.';
+    }
+    if (ownedPlatforms.contains(p.id)) {
+      return '${p.name} zaten senin. "Kendi platformunda yayınla"yı kullan.';
+    }
+    if (f.licenses.any((l) => l.platformId == p.id)) {
+      return '${p.name} ile lisans zaten sürüyor.';
+    }
+    if (f.score < minScoreFor(p)) {
+      return '${p.name} en az ${fmtDec(minScoreFor(p), 0)} puanlı filmleri alır.';
+    }
+    final fee = licenseOfferFor(f, p);
+    cash += fee;
+    todayIncome += fee;
+    f.licenseIncome += fee;
+    f.licensesSold++;
+    f.licenses.add(FilmLicense(p.id, licenseDays, fee));
+    if (f.status == FilmStatus.ready) f.status = FilmStatus.library;
+    _notify('📲 "${f.name}" $licenseDays günlüğüne ${p.name}\'a satıldı: +${fmtShort(fee)}');
+    _changed();
+    return null;
+  }
+
+  String? toggleOwnPlatform(Film f) {
+    if (ownedPlatforms.isEmpty) return 'Önce bir dijital platform satın al.';
+    if (!f.rightsOwned) return 'Bu filmin hakları artık sende değil.';
+    if (f.status == FilmStatus.producing || f.status == FilmStatus.inTheaters) {
+      return 'Film vizyondayken platforma konamaz.';
+    }
+    f.onOwnPlatform = !f.onOwnPlatform;
+    if (f.status == FilmStatus.ready) f.status = FilmStatus.library;
+    _changed();
+    return null;
+  }
+
+  double rightsValueFor(Film f) => rightsSaleValue(f) * (1 + licenseBonus);
+
+  String? sellRights(Film f) {
+    if (!f.rightsOwned) return 'Haklar zaten satıldı.';
+    if (f.status == FilmStatus.producing || f.status == FilmStatus.inTheaters) {
+      return 'Vizyon bitmeden haklar satılamaz.';
+    }
+    final v = rightsValueFor(f);
+    cash += v;
+    todayIncome += v;
+    f.soldFor = v;
+    f.status = FilmStatus.rightsSold;
+    f.onOwnPlatform = false;
+    _notify('💼 "${f.name}" filminin tüm hakları satıldı: +${fmtShort(v)}');
+    _changed();
+    return null;
+  }
+
+  void deleteFilm(Film f) {
+    if (f.status != FilmStatus.rightsSold) return;
+    films.remove(f);
+    _changed();
+  }
+
+  // =================================================================
+  // Holding
+  // =================================================================
+
+  String? upgradeBiz(BizDef b) {
+    final lv = bizLevel(b.id);
+    if (lv >= bizMaxLevel) return 'Zaten en üst seviye.';
+    if (studioLevel + 1 < b.reqLevel) {
+      return 'Stüdyo seviyesi ${b.reqLevel} gerekli.';
+    }
+    final cost = bizUpgradeCost(b, lv);
+    if (cash < cost) return 'Kasada yeterli para yok (${fmtShort(cost)}).';
+    cash -= cost;
+    bizLevels[b.id] = lv + 1;
+    _notify(lv == 0
+        ? '🏢 ${b.name} kuruldu!'
+        : '🏢 ${b.name} seviye ${lv + 1} oldu!');
+    _changed();
+    return null;
   }
 
   // =================================================================

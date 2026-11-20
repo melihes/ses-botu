@@ -7,6 +7,7 @@ import '../../engine/economy.dart';
 import '../../engine/game.dart';
 import '../../models/models.dart';
 import '../widgets/common.dart';
+import '../widgets/scene.dart';
 
 class BroadcastScreen extends StatelessWidget {
   const BroadcastScreen({super.key});
@@ -131,7 +132,13 @@ class _OnAir extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          ArtTile(icon: s.def.icon, color: s.def.color, size: 70),
+          StageScene(
+              kind: sceneForGenre(s.genre),
+              color: s.def.color,
+              tier: s.tier,
+              live: true,
+              width: 120,
+              height: 78),
           const SizedBox(width: 10),
           Expanded(
             child: Column(

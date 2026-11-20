@@ -5,9 +5,16 @@ import '../../core/theme.dart';
 import '../../data/content.dart';
 import '../dialogs/negotiation_dialog.dart';
 import '../widgets/common.dart';
+import 'cinema_screen.dart';
 
-class ChannelsScreen extends StatelessWidget {
+class ChannelsScreen extends StatefulWidget {
   const ChannelsScreen({super.key});
+  @override
+  State<ChannelsScreen> createState() => _ChannelsScreenState();
+}
+
+class _ChannelsScreenState extends State<ChannelsScreen> {
+  int _tab = 0;
 
   @override
   Widget build(BuildContext context) {
@@ -15,14 +22,91 @@ class ChannelsScreen extends StatelessWidget {
     return ListView(
       padding: const EdgeInsets.all(14),
       children: [
-        PageHint(
-            'Rakip kanalları satın al, her gün pasif gelir getirsinler. '
-            'Fiyat pazarlığa açık! Sahip olduğun kanalların günlük geliri: '
-            '${fmtShort(game.channelIncomePerDay)}'),
-        AutoGrid(minItemWidth: 280, spacing: 10, children: [
-          for (final c in channelDefs) _ChannelCard(c: c),
-        ]),
+        PillTabs(
+          labels: [
+            'TV kanalları · ${game.ownedChannels.length}/${channelDefs.length}',
+            'Dijital platformlar · ${game.ownedPlatforms.length}/${platformDefs.length}',
+          ],
+          selected: _tab,
+          onChanged: (i) => setState(() => _tab = i),
+        ),
+        const SizedBox(height: 10),
+        if (_tab == 0) ...[
+          PageHint(
+              'Rakip kanalları satın al, her gün pasif gelir getirsinler. '
+              'Fiyat pazarlığa açık! Kanallarının günlük geliri: '
+              '${fmtShort(game.channelIncomePerDay)}'),
+          AutoGrid(minItemWidth: 280, spacing: 10, children: [
+            for (final c in channelDefs) _ChannelCard(c: c),
+          ]),
+        ] else ...[
+          PageHint(
+              'İsteğe bağlı izleme platformları. Satın aldığın platform her gün abone '
+              'geliri getirir; kendi filmlerini koyarsan gelir artar. '
+              'Platformlarının günlük geliri: ${fmtShort(game.platformIncomePerDay)}'),
+          AutoGrid(minItemWidth: 280, spacing: 10, children: [
+            for (final p in platformDefs) _PlatformCard(p: p),
+          ]),
+        ],
       ],
+    );
+  }
+}
+
+class _PlatformCard extends StatelessWidget {
+  final PlatformDef p;
+  const _PlatformCard({required this.p});
+
+  @override
+  Widget build(BuildContext context) {
+    final game = GameScope.of(context);
+    final owned = game.ownedPlatforms.contains(p.id);
+    final locked = game.studioLevel + 1 < p.reqLevel;
+    final films = game.films.where((f) => f.onOwnPlatform).length;
+    return Panel(
+      padding: const EdgeInsets.all(12),
+      borderColor: owned ? AppColors.green.withValues(alpha: 0.6) : null,
+      child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        platformLogo(p, size: 64),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(p.name,
+                  style: const TextStyle(
+                      fontSize: 16, fontWeight: FontWeight.w800)),
+              Text('${p.tagline} · ${fmtDec(p.subscribersM, 1)} M abone',
+                  style:
+                      const TextStyle(color: AppColors.textDim, fontSize: 12)),
+              const SizedBox(height: 4),
+              Text('Günlük abone geliri +${fmtShort(p.dailyIncome)}',
+                  style: const TextStyle(
+                      color: AppColors.green, fontWeight: FontWeight.w700)),
+              Text('Fiyat ${fmtShort(p.price)} · film alımı ★${fmtDec(game.minScoreFor(p), 0)}+',
+                  style: const TextStyle(fontSize: 12)),
+              const SizedBox(height: 8),
+              if (owned)
+                Tag('SENİN ✓ · $films kendi filmin yayında',
+                    color: AppColors.green)
+              else if (locked)
+                Tag('Stüdyo seviyesi ${p.reqLevel}',
+                    color: AppColors.textDim, icon: Icons.lock_rounded)
+              else
+                AccentButton('Pazarlık yap',
+                    compact: true,
+                    icon: Icons.handshake_rounded,
+                    onTap: () => showNegotiation(context,
+                        id: p.id,
+                        name: p.name,
+                        subtitle: '${p.tagline} · ${fmtDec(p.subscribersM, 1)} M abone',
+                        price: p.price,
+                        icon: Icons.play_circle_fill_rounded,
+                        color: p.color)),
+            ],
+          ),
+        ),
+      ]),
     );
   }
 }

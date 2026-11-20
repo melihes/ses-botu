@@ -226,6 +226,10 @@ class PeriodSummary {
   int finishedProductions = 0;
   int endedSeasons = 0;
   double upkeep = 0;
+  double boxOffice = 0;
+  double platformIncome = 0;
+  double bizIncome = 0;
+  int filmsDone = 0;
   double eventCash = 0;
   int events = 0;
   double ratingSum = 0;
@@ -246,4 +250,104 @@ class GameEvent {
       {'day': day, 'title': title, 'body': body, 'good': good};
   factory GameEvent.fromJson(Map<String, dynamic> j) =>
       GameEvent(j['day'], j['title'], j['body'], j['good']);
+}
+
+enum FilmStatus { producing, ready, inTheaters, library, rightsSold }
+
+/// Bir platforma verilmiş süreli film lisansı
+class FilmLicense {
+  final String platformId;
+  int daysLeft;
+  final double fee;
+  FilmLicense(this.platformId, this.daysLeft, this.fee);
+  Map<String, dynamic> toJson() =>
+      {'p': platformId, 'd': daysLeft, 'f': fee};
+  factory FilmLicense.fromJson(Map<String, dynamic> j) =>
+      FilmLicense(j['p'], j['d'], (j['f'] as num).toDouble());
+}
+
+class Film {
+  final String id;
+  final String name;
+  final FilmGenre genre;
+  final int tier;
+  final List<String> staffIds;
+  final double cost;
+  FilmStatus status;
+  double prodLeft;
+  double quality;
+  double score; // izleyici puanı 1..10
+  int theaterDay; // vizyondaki kaçıncı gün
+  double boxOffice;
+  double licenseIncome;
+  double soldFor;
+  int licensesSold; // toplam satılan lisans sayısı (değer düşer)
+  bool onOwnPlatform;
+  final List<FilmLicense> licenses;
+
+  Film({
+    required this.id,
+    required this.name,
+    required this.genre,
+    required this.tier,
+    required this.staffIds,
+    required this.cost,
+    this.status = FilmStatus.producing,
+    required this.prodLeft,
+    required this.quality,
+    this.score = 0,
+    this.theaterDay = 0,
+    this.boxOffice = 0,
+    this.licenseIncome = 0,
+    this.soldFor = 0,
+    this.licensesSold = 0,
+    this.onOwnPlatform = false,
+    List<FilmLicense>? licenses,
+  }) : licenses = licenses ?? [];
+
+  FilmGenreDef get def => filmGenreDefs[genre]!;
+  bool get rightsOwned => status != FilmStatus.rightsSold;
+  double get totalIncome => boxOffice + licenseIncome + soldFor;
+
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'name': name,
+        'genre': genre.index,
+        'tier': tier,
+        'staffIds': staffIds,
+        'cost': cost,
+        'status': status.index,
+        'prodLeft': prodLeft,
+        'quality': quality,
+        'score': score,
+        'theaterDay': theaterDay,
+        'boxOffice': boxOffice,
+        'licenseIncome': licenseIncome,
+        'soldFor': soldFor,
+        'licensesSold': licensesSold,
+        'onOwnPlatform': onOwnPlatform,
+        'licenses': licenses.map((e) => e.toJson()).toList(),
+      };
+
+  factory Film.fromJson(Map<String, dynamic> j) => Film(
+        id: j['id'],
+        name: j['name'],
+        genre: FilmGenre.values[j['genre']],
+        tier: j['tier'],
+        staffIds: List<String>.from(j['staffIds']),
+        cost: (j['cost'] as num).toDouble(),
+        status: FilmStatus.values[j['status']],
+        prodLeft: (j['prodLeft'] as num).toDouble(),
+        quality: (j['quality'] as num).toDouble(),
+        score: (j['score'] as num).toDouble(),
+        theaterDay: j['theaterDay'],
+        boxOffice: (j['boxOffice'] as num).toDouble(),
+        licenseIncome: (j['licenseIncome'] as num).toDouble(),
+        soldFor: (j['soldFor'] as num).toDouble(),
+        licensesSold: j['licensesSold'],
+        onOwnPlatform: j['onOwnPlatform'] ?? false,
+        licenses: (j['licenses'] as List)
+            .map((e) => FilmLicense.fromJson(e))
+            .toList(),
+      );
 }

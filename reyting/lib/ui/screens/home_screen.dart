@@ -7,6 +7,7 @@ import '../../engine/game.dart';
 import '../../models/models.dart';
 import '../shell.dart';
 import '../widgets/common.dart';
+import '../widgets/scene.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
@@ -44,7 +45,8 @@ class HomeScreen extends StatelessWidget {
   }
 
   static bool _tutorialDone(Game g) =>
-      g.shows.any((s) => s.status == ShowStatus.onAir || s.season > 1) ||
+      g.shows.any((s) => s.totalRevenue > 0) ||
+      g.films.isNotEmpty ||
       g.day > 20;
 }
 
@@ -107,6 +109,13 @@ class _CashCard extends StatelessWidget {
           Row(children: [
             Expanded(
                 child: StatBlock('Reklam/gün', fmtSigned(game.adIncomePerDay),
+                    color: AppColors.green)),
+            Expanded(
+                child: StatBlock('Diğer gelir/gün',
+                    fmtSigned(game.channelIncomePerDay +
+                        game.platformIncomePerDay +
+                        game.bizIncomePerDay +
+                        game.boxOfficePerDay),
                     color: AppColors.green)),
             Expanded(
                 child: StatBlock('Maaş/gün', fmtSigned(-game.dailySalaries),
@@ -188,7 +197,13 @@ class _OnAirStrip extends StatelessWidget {
       child: SizedBox(
         height: 96,
         child: Row(children: [
-          ArtTile(icon: s.def.icon, color: s.def.color, size: 64),
+          StageScene(
+              kind: sceneForGenre(s.genre),
+              color: s.def.color,
+              tier: s.tier,
+              live: true,
+              width: 92,
+              height: 80),
           const SizedBox(width: 10),
           Expanded(
             child: Column(
@@ -322,13 +337,20 @@ class _QuickTiles extends StatelessWidget {
           ready > 0 ? '$ready program hazır!' : '$producing çekimde',
           PageId.production,
           badge: ready > 0),
+      tile(Icons.theaters_rounded, AppColors.purple, 'Sinema',
+          '${game.films.where((f) => f.rightsOwned && f.status != FilmStatus.producing).length} film hakkı',
+          PageId.cinema),
+      tile(Icons.business_center_rounded, AppColors.green, 'Holding',
+          '${bizDefs.where((b) => game.bizLevel(b.id) > 0).length} işletme',
+          PageId.holding),
       tile(Icons.domain_rounded, AppColors.cyan, 'Stüdyo',
           '${game.ownedEquip.length} ekipman', PageId.studio),
       tile(Icons.account_balance_rounded, AppColors.blue, 'Banka',
           game.loans.isEmpty ? 'Kredi yok' : 'Borç ${fmtShort(game.debt)}',
           PageId.bank),
-      tile(Icons.connected_tv_rounded, AppColors.orange, 'Kanallar',
-          '${game.ownedChannels.length} kanal sahibisin', PageId.channels),
+      tile(Icons.connected_tv_rounded, AppColors.orange, 'Pazar',
+          '${game.ownedChannels.length} kanal · ${game.ownedPlatforms.length} platform',
+          PageId.channels),
       tile(Icons.diamond_rounded, AppColors.yellow, 'Lüks',
           '${game.ownedLuxury.length} eşya', PageId.luxury),
     ]);

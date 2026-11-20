@@ -9,6 +9,7 @@ import '../../engine/economy.dart';
 import '../../engine/game.dart';
 import '../../models/models.dart';
 import '../widgets/common.dart';
+import '../widgets/scene.dart';
 
 class ProductionScreen extends StatelessWidget {
   const ProductionScreen({super.key});
@@ -89,10 +90,13 @@ class _ShowCard extends StatelessWidget {
     return Panel(
       padding: const EdgeInsets.all(12),
       child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        ArtTile(
-            icon: s.def.icon,
+        StageScene(
+            kind: sceneForGenre(s.genre),
             color: s.def.color,
-            size: 84,
+            tier: s.tier,
+            live: s.status == ShowStatus.onAir,
+            width: 130,
+            height: 96,
             badge: '${s.season}. SEZON'),
         const SizedBox(width: 12),
         Expanded(
@@ -354,6 +358,14 @@ class _NewShowWizardState extends State<NewShowWizard> {
     final right = Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        StageScene(
+            kind: sceneForGenre(_genre),
+            color: def.color,
+            tier: _tier,
+            height: 110,
+            width: double.infinity,
+            badge: '${def.label} · ${budgetTiers[_tier].label} bütçe'),
+        const SizedBox(height: 10),
         const SectionLabel('4 · Ekip'),
         const SizedBox(height: 4),
         for (final e in def.needs.entries) _roleRow(game, e.key, e.value),

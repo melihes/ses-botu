@@ -97,3 +97,45 @@ List<LoanOffer> loanOffersFor(int level) {
     LoanOffer(4000000 * scale, 12, 0.30),
   ];
 }
+
+// ------------------------------------------------------------------
+// Sinema
+// ------------------------------------------------------------------
+const theaterRunDays = 10;
+const licenseDays = 30;
+
+double filmCost(FilmGenre g, int tier) =>
+    filmGenreDefs[g]!.baseCost * budgetTiers[tier].costMult;
+
+/// Kaliteden izleyici puanı (1..10), biraz şansla.
+double filmScore(double quality, double luck) =>
+    (1.5 + quality * 7.5 * luck).clamp(1.0, 9.9);
+
+/// Filmin pazar değeri: puan yükseldikçe hızla artar.
+double filmValue(Film f) =>
+    f.cost * pow(f.score / 5, 2.2) * 1.2 * pow(0.85, f.licensesSold);
+
+/// Vizyondaki bir günün gişesi: ilk hafta güçlü, sonra düşer.
+double boxOfficeForDay(Film f, int dayIndex, double reach, double bonus) {
+  final total = f.cost * pow(f.score / 5, 1.8) * 1.0 * f.def.boxOffice *
+      (0.5 + reach) * (1 + bonus);
+  // 10 güne yayılan azalan dağılım (toplamı ~1)
+  final w = pow(0.8, dayIndex) * 0.2 / (1 - pow(0.8, theaterRunDays));
+  return total * w;
+}
+
+/// Bir platformun bu film için önerdiği lisans ücreti (30 gün).
+double licenseOffer(Film f, PlatformDef p, double bonus) =>
+    filmValue(f) * 0.35 * p.payMult * f.def.streaming * (1 + bonus);
+
+/// Hakların tamamen satışı.
+double rightsSaleValue(Film f) => filmValue(f) * 1.6;
+
+// ------------------------------------------------------------------
+// Holding
+// ------------------------------------------------------------------
+double bizUpgradeCost(BizDef b, int currentLevel) =>
+    b.baseCost * pow(1.8, currentLevel);
+
+double bizIncome(BizDef b, int level) =>
+    level <= 0 ? 0 : b.baseIncome * level * pow(1.15, level - 1);

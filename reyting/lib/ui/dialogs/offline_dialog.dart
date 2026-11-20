@@ -84,6 +84,9 @@ class _OfflineBody extends StatelessWidget {
     final tiles = <Widget>[
       _tile('Reklam geliri', fmtSigned(s.adIncome), true),
       _tile('Kanal gelirleri', fmtSigned(s.channelIncome), true),
+      _tile('Sinema gişesi', fmtSigned(s.boxOffice), true),
+      _tile('Platform aboneleri', fmtSigned(s.platformIncome), true),
+      _tile('Holding işletmeleri', fmtSigned(s.bizIncome), true),
       _tile('Ödenen maaşlar', fmtSigned(-s.salaries), false),
       _tile('Stüdyo kirası', fmtSigned(-s.rent), false),
       _tile('Ekipman bakımı', fmtSigned(-s.upkeep), false),
@@ -91,6 +94,7 @@ class _OfflineBody extends StatelessWidget {
       _tile('Olaylar (${s.events})', fmtSigned(s.eventCash), s.eventCash >= 0),
       _tile('Ortalama reyting', fmtPct(s.avgRating), true, neutral: true),
       _tile('Biten çekimler', '${s.finishedProductions}', true, neutral: true),
+      _tile('Biten filmler', '${s.filmsDone}', true, neutral: true),
       _tile('Biten sezonlar', '${s.endedSeasons}', true, neutral: true),
     ];
 

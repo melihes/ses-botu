@@ -180,4 +180,106 @@ void main() {
       g.dispose();
     });
   });
+
+  group('Sinema ve holding', () {
+    Future<(Game, Film)> filmReady() async {
+      final g = Game();
+      await g.start();
+      g.cash = 1e9;
+      g.diamonds = 100;
+      Staff mk(Role r, int i) {
+        final p = Staff(id: 't${r.index}$i', name: 'Test $i', role: r, skill: 70, salary: 1000);
+        g.staff.add(p);
+        return p;
+      }
+      final crew = [mk(Role.senarist, 1), mk(Role.yonetmen, 1), mk(Role.oyuncu, 1)];
+      expect(g.createFilm('Test Film', FilmGenre.komedi, 1, crew), isNull);
+      final f = g.films.first;
+      expect(f.status, FilmStatus.producing);
+      expect(g.speedUpFilm(f), isNull);
+      expect(f.status, FilmStatus.ready);
+      expect(f.score, greaterThan(1));
+      expect(crew.every((c) => c.showId == null), isTrue, reason: 'ekip serbest kalmalı');
+      return (g, f);
+    }
+
+    test('vizyon: gişe gelir, 10 gün sonra kütüphaneye geçer', () async {
+      final (g, f) = await filmReady();
+      expect(g.releaseInTheaters(f), isNull);
+      g.debugAdvanceDays(theaterRunDays.toDouble() + 0.5);
+      expect(f.boxOffice, greaterThan(0));
+      expect(f.status, FilmStatus.library);
+      g.dispose();
+    });
+
+    test('lisans: para gelir, haklar bende kalır, aynı platforma iki kez olmaz', () async {
+      final (g, f) = await filmReady();
+      final cash = g.cash;
+      final p = platformDefs.first;
+      expect(g.licenseFilm(f, p), isNull);
+      expect(g.cash, greaterThan(cash));
+      expect(f.rightsOwned, isTrue);
+      expect(g.licenseFilm(f, p), isNotNull);
+      g.debugAdvanceDays(licenseDays + 1.0);
+      expect(f.licenses, isEmpty, reason: 'lisans süresi bitmeli');
+      expect(g.licenseFilm(f, p), isNull, reason: 'süre bitince tekrar satılabilmeli');
+      g.dispose();
+    });
+
+    test('hak satışı: film başkasına geçer, artık lisanslanamaz', () async {
+      final (g, f) = await filmReady();
+      final cash = g.cash;
+      expect(g.sellRights(f), isNull);
+      expect(g.cash, greaterThan(cash));
+      expect(f.rightsOwned, isFalse);
+      expect(g.licenseFilm(f, platformDefs.first), isNotNull);
+      g.dispose();
+    });
+
+    test('kendi platformunda yayın gelir getirir', () async {
+      final (g, f) = await filmReady();
+      g.completePurchase(platformDefs.first.id, 0);
+      final before = g.platformIncomePerDay;
+      expect(g.toggleOwnPlatform(f), isNull);
+      expect(g.platformIncomePerDay, greaterThan(before));
+      g.dispose();
+    });
+
+    test('holding: işletme gelir ve etki verir, kayıtta korunur', () async {
+      final g = Game();
+      await g.start();
+      g.cash = 1e9;
+      final ajans = bizById('ajans')!;
+      final bonus = g.adBonus;
+      expect(g.upgradeBiz(ajans), isNull);
+      expect(g.bizLevel('ajans'), 1);
+      expect(g.adBonus, greaterThan(bonus));
+      expect(g.bizIncomePerDay, greaterThan(0));
+      await g.save();
+      g.dispose();
+      final g2 = Game();
+      await g2.start();
+      expect(g2.bizLevel('ajans'), 1);
+      g2.dispose();
+    });
+
+    test('çevrimdışı: gişe ve işletme gelirleri de işlenir', () async {
+      final (g, f) = await filmReady();
+      g.upgradeBiz(bizById('radyo')!);
+      g.releaseInTheaters(f);
+      await g.save();
+      g.dispose();
+      final prefs = await SharedPreferences.getInstance();
+      final j = jsonDecode(prefs.getString('reyting_save_v1')!);
+      j['savedAt'] = DateTime.now()
+          .subtract(const Duration(minutes: 5))
+          .millisecondsSinceEpoch;
+      await prefs.setString('reyting_save_v1', jsonEncode(j));
+      final g2 = Game();
+      await g2.start();
+      expect(g2.pendingOffline!.boxOffice, greaterThan(0));
+      expect(g2.pendingOffline!.bizIncome, greaterThan(0));
+      g2.dispose();
+    });
+  });
 }

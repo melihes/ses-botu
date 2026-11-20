@@ -9,6 +9,8 @@ import 'dialogs/settings_dialog.dart';
 import 'screens/bank_screen.dart';
 import 'screens/broadcast_screen.dart';
 import 'screens/channels_screen.dart';
+import 'screens/cinema_screen.dart';
+import 'screens/holding_screen.dart';
 import 'screens/home_screen.dart';
 import 'screens/luxury_screen.dart';
 import 'screens/online_screen.dart';
@@ -17,7 +19,19 @@ import 'screens/staff_screen.dart';
 import 'screens/studio_screen.dart';
 import 'widgets/common.dart';
 
-enum PageId { home, staff, production, broadcast, studio, bank, channels, luxury, online }
+enum PageId {
+  home,
+  staff,
+  production,
+  broadcast,
+  cinema,
+  studio,
+  holding,
+  channels,
+  bank,
+  luxury,
+  online,
+}
 
 class _NavItem {
   final PageId id;
@@ -36,12 +50,16 @@ const _nav = [
       Icons.movie_creation_rounded),
   _NavItem(PageId.broadcast, 'Yayın', 'CANLI', 'Yayın akışı',
       Icons.live_tv_rounded),
+  _NavItem(PageId.cinema, 'Sinema', 'FİLM YAPIM', 'Sinema & haklar',
+      Icons.theaters_rounded),
   _NavItem(PageId.studio, 'Stüdyo', 'TESİSLER', 'Stüdyo & ekipman',
       Icons.domain_rounded),
+  _NavItem(PageId.holding, 'Holding', 'YAN İŞLER', 'Holding',
+      Icons.business_center_rounded),
+  _NavItem(PageId.channels, 'Pazar', 'SATIN ALMA', 'Kanal & platform pazarı',
+      Icons.connected_tv_rounded),
   _NavItem(PageId.bank, 'Banka', 'FİNANS', 'Banka',
       Icons.account_balance_rounded),
-  _NavItem(PageId.channels, 'Kanallar', 'SATIN ALMA', 'Kanal pazarı',
-      Icons.connected_tv_rounded),
   _NavItem(PageId.luxury, 'Lüks', 'YAŞAM', 'Lüks yaşam',
       Icons.diamond_rounded),
   _NavItem(PageId.online, 'Online', 'YAKINDA', 'Online arena',
@@ -74,7 +92,9 @@ class _ShellState extends State<Shell> {
         PageId.staff => const StaffScreen(),
         PageId.production => const ProductionScreen(),
         PageId.broadcast => const BroadcastScreen(),
+        PageId.cinema => const CinemaScreen(),
         PageId.studio => const StudioScreen(),
+        PageId.holding => const HoldingScreen(),
         PageId.bank => const BankScreen(),
         PageId.channels => const ChannelsScreen(),
         PageId.luxury => const LuxuryScreen(),

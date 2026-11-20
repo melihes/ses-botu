@@ -483,6 +483,10 @@ const equipDefs = [
       Icons.tv_rounded, 25000000, 3,
       boosts: {Genre.haber, Genre.magazin, Genre.talkShow, Genre.cocuk},
       qualityBonus: 0.08),
+  EquipDef('vfx', 'Görsel Efekt (VFX) Atölyesi',
+      'Bilim kurgu ve animasyon filmlerini açar.',
+      Icons.auto_fix_high_rounded, 20000000, 3,
+      qualityBonus: 0.0),
   EquipDef('tower', 'Verici Kulesi', 'Yayın erişimini %8 artırır.',
       Icons.cell_tower_rounded, 60000000, 4,
       reachBonus: 0.08),
@@ -494,6 +498,245 @@ const equipDefs = [
 EquipDef? equipById(String id) {
   for (final e in equipDefs) {
     if (e.id == id) return e;
+  }
+  return null;
+}
+
+// =====================================================================
+// SİNEMA: film türleri
+// =====================================================================
+enum FilmGenre { aksiyon, komedi, dram, korku, romantik, bilimKurgu, animasyon }
+
+class FilmGenreDef {
+  final String label;
+  final String desc;
+  final IconData icon;
+  final Color color;
+  final Map<Role, int> needs;
+  final int prodDays;
+  final double baseCost;
+  final double boxOffice; // gişe çekiciliği
+  final double streaming; // platformlarda çekicilik
+  final String? reqEquip;
+  const FilmGenreDef({
+    required this.label,
+    required this.desc,
+    required this.icon,
+    required this.color,
+    required this.needs,
+    required this.prodDays,
+    required this.baseCost,
+    required this.boxOffice,
+    required this.streaming,
+    this.reqEquip,
+  });
+}
+
+const filmGenreDefs = <FilmGenre, FilmGenreDef>{
+  FilmGenre.aksiyon: FilmGenreDef(
+    label: 'Aksiyon',
+    desc: 'Pahalı ama gişenin kralı. Patlamalar, kovalamacalar!',
+    icon: Icons.local_fire_department_rounded,
+    color: AppColors.orange,
+    needs: {Role.senarist: 1, Role.yonetmen: 1, Role.oyuncu: 2},
+    prodDays: 5,
+    baseCost: 900000,
+    boxOffice: 1.3,
+    streaming: 0.9,
+  ),
+  FilmGenre.komedi: FilmGenreDef(
+    label: 'Komedi',
+    desc: 'Ucuz çekilir, aileler bayılır. Gişede sürpriz yapar.',
+    icon: Icons.sentiment_very_satisfied_rounded,
+    color: AppColors.yellow,
+    needs: {Role.senarist: 1, Role.yonetmen: 1, Role.oyuncu: 1},
+    prodDays: 3,
+    baseCost: 400000,
+    boxOffice: 1.15,
+    streaming: 1.0,
+  ),
+  FilmGenre.dram: FilmGenreDef(
+    label: 'Dram',
+    desc: 'Festivallerin gözdesi. Platformlarda uzun soluklu izlenir.',
+    icon: Icons.theater_comedy_rounded,
+    color: AppColors.blue,
+    needs: {Role.senarist: 1, Role.yonetmen: 1, Role.oyuncu: 2},
+    prodDays: 4,
+    baseCost: 500000,
+    boxOffice: 0.85,
+    streaming: 1.3,
+  ),
+  FilmGenre.korku: FilmGenreDef(
+    label: 'Korku',
+    desc: 'Düşük bütçe, yüksek kâr. Platformlar korkuya bayılır.',
+    icon: Icons.nightlight_round,
+    color: AppColors.red,
+    needs: {Role.senarist: 1, Role.yonetmen: 1, Role.oyuncu: 1},
+    prodDays: 3,
+    baseCost: 350000,
+    boxOffice: 1.0,
+    streaming: 1.25,
+  ),
+  FilmGenre.romantik: FilmGenreDef(
+    label: 'Romantik',
+    desc: 'İki iyi oyuncu yeter. Sevgililer gününün garantisi.',
+    icon: Icons.favorite_rounded,
+    color: AppColors.pink,
+    needs: {Role.senarist: 1, Role.yonetmen: 1, Role.oyuncu: 2},
+    prodDays: 3,
+    baseCost: 450000,
+    boxOffice: 1.0,
+    streaming: 1.15,
+  ),
+  FilmGenre.bilimKurgu: FilmGenreDef(
+    label: 'Bilim Kurgu',
+    desc: 'VFX atölyesi ister. Dünya çapında platformların gözdesi.',
+    icon: Icons.rocket_launch_rounded,
+    color: AppColors.cyan,
+    needs: {Role.senarist: 1, Role.yonetmen: 1, Role.oyuncu: 2},
+    prodDays: 6,
+    baseCost: 1600000,
+    boxOffice: 1.25,
+    streaming: 1.35,
+    reqEquip: 'vfx',
+  ),
+  FilmGenre.animasyon: FilmGenreDef(
+    label: 'Animasyon',
+    desc: 'VFX atölyesi ister. Oyuncu gerekmez, çocuklar tekrar tekrar izler.',
+    icon: Icons.pets_rounded,
+    color: AppColors.green,
+    needs: {Role.senarist: 1, Role.yonetmen: 1},
+    prodDays: 6,
+    baseCost: 1200000,
+    boxOffice: 1.1,
+    streaming: 1.45,
+    reqEquip: 'vfx',
+  ),
+};
+
+const filmNameIdeas = <FilmGenre, List<String>>{
+  FilmGenre.aksiyon: ['Son Kurşun', 'Köprüdeki Takip', 'Gece Operasyonu', 'Demir Yumruk', 'Kırmızı Alarm'],
+  FilmGenre.komedi: ['Bizim Apartman Karışık', 'Düğün Telaşı', 'Yanlış Valiz', 'Kaynanam Tatilde', 'Şanslı Bilet'],
+  FilmGenre.dram: ['Rüzgârın Ardından', 'Sessiz Liman', 'Babamın Saati', 'Son Mektup', 'Kar Altında'],
+  FilmGenre.korku: ['Bodrum Katı', 'Terk Edilmiş Köy', 'Gece Yarısı Sinyali', 'Kuyu', 'Fısıltılar'],
+  FilmGenre.romantik: ['Vapurda Tanıştık', 'Bir Bahar Akşamı', 'İki Kişilik Şemsiye', 'Yağmurdan Sonra'],
+  FilmGenre.bilimKurgu: ['Yörünge 9', 'Zaman Kapısı', 'Mars Kolonisi', 'Son İstasyon', 'Kuantum Gecesi'],
+  FilmGenre.animasyon: ['Minik Martı', 'Sihirli Kalem', 'Robot ve Kedi', 'Ormanın Bekçileri', 'Uzay Tavşanı'],
+};
+
+// =====================================================================
+// DİJİTAL PLATFORMLAR (kurgusal isteğe bağlı izleme servisleri)
+// =====================================================================
+class PlatformDef {
+  final String id;
+  final String name;
+  final String tagline;
+  final Color color;
+  final double subscribersM;
+  final double dailyIncome;
+  final double price;
+  final int reqLevel;
+  final double payMult; // film lisansı için ödeme gücü
+  const PlatformDef(this.id, this.name, this.tagline, this.color,
+      this.subscribersM, this.dailyIncome, this.price, this.reqLevel,
+      this.payMult);
+}
+
+const platformDefs = [
+  PlatformDef('pf1', 'Seyirlik', 'Yerli dizi ve filmler', AppColors.teal, 0.4,
+      90000, 6000000, 2, 0.6),
+  PlatformDef('pf2', 'Akış+', 'Gençlerin favorisi', AppColors.accent, 1.5,
+      300000, 25000000, 3, 0.9),
+  PlatformDef('pf3', 'Perdeli', 'Sinema severlerin adresi', AppColors.purple,
+      3, 700000, 60000000, 3, 1.1),
+  PlatformDef('pf4', 'Galaksi Play', 'Bölgenin en büyüğü', AppColors.blue, 8,
+      2000000, 180000000, 4, 1.4),
+  PlatformDef('pf5', 'Kutu Global', 'Dünya çapında yayın', AppColors.yellow,
+      25, 6000000, 600000000, 5, 1.8),
+];
+
+PlatformDef? platformById(String id) {
+  for (final p in platformDefs) {
+    if (p.id == id) return p;
+  }
+  return null;
+}
+
+// =====================================================================
+// HOLDİNG: yan işletmeler (gelir + oyuna etkisi)
+// =====================================================================
+enum BizEffect {
+  showRating, // belirli türlerde reyting
+  adRate, // reklam fiyatı
+  marketSkill, // aday yetenekleri
+  quality, // dizi/film kalitesi
+  prodSpeed, // çekim süresi
+  boxOffice, // gişe
+  licenseFee, // platform lisans ücretleri
+  prestige, // prestij
+}
+
+class BizDef {
+  final String id;
+  final String name;
+  final String desc;
+  final IconData icon;
+  final Color color;
+  final double baseCost;
+  final double baseIncome;
+  final BizEffect effect;
+  final double perLevel;
+  final String effectText; // "{v}" yerine değer yazılır
+  final Set<Genre> genres;
+  final int reqLevel;
+  const BizDef(this.id, this.name, this.desc, this.icon, this.color,
+      this.baseCost, this.baseIncome, this.effect, this.perLevel,
+      this.effectText,
+      {this.genres = const {}, this.reqLevel = 1});
+}
+
+const bizMaxLevel = 5;
+
+const bizDefs = [
+  BizDef('radyo', 'Frekans 9 FM', 'Magazin ve talk show programlarını radyoda tanıtır.',
+      Icons.radio_rounded, AppColors.pink, 800000, 15000, BizEffect.showRating,
+      0.03, 'Magazin & talk show reytingi +{v}',
+      genres: {Genre.magazin, Genre.talkShow}),
+  BizDef('gazete', 'Günlük Manşet', 'Kendi gazeten: haberlerin güvenilirliği artar.',
+      Icons.feed_rounded, AppColors.blue, 1500000, 25000, BizEffect.showRating,
+      0.04, 'Haber reytingi +{v}',
+      genres: {Genre.haber}),
+  BizDef('akademi', 'Oyunculuk Akademisi', 'Yeni yetenekler yetiştirir.',
+      Icons.school_rounded, AppColors.purple, 2500000, 10000, BizEffect.marketSkill,
+      3, 'İş ilanlarında yetenek +{v}'),
+  BizDef('ajans', 'Reklam Ajansı', 'Reklam kuşaklarını daha pahalıya satar.',
+      Icons.campaign_rounded, AppColors.accent, 3000000, 40000, BizEffect.adRate,
+      0.03, 'Reklam fiyatı +{v}'),
+  BizDef('muzik', 'Nota Müzik Şirketi', 'Dizi ve film müzikleri besteler.',
+      Icons.music_note_rounded, AppColors.yellow, 5000000, 70000, BizEffect.quality,
+      0.02, 'Dizi ve film kalitesi +{v}',
+      reqLevel: 2),
+  BizDef('plato', 'Plato Kiralama', 'Boş platolarını diğer yapımcılara kiralar.',
+      Icons.warehouse_rounded, AppColors.teal, 8000000, 140000, BizEffect.prodSpeed,
+      0.05, 'Çekim süresi -{v}',
+      reqLevel: 2),
+  BizDef('sinema', 'Beyazperde Salonları', 'Sinema salonları zinciri. Filmlerin kendi salonlarında oynar.',
+      Icons.chair_rounded, AppColors.red, 12000000, 180000, BizEffect.boxOffice,
+      0.10, 'Gişe geliri +{v}',
+      reqLevel: 2),
+  BizDef('dublaj', 'Ses & Dublaj Stüdyosu', 'Filmlerini yabancı dillere çevirir.',
+      Icons.translate_rounded, AppColors.cyan, 10000000, 120000, BizEffect.licenseFee,
+      0.08, 'Platform lisans ücretleri +{v}',
+      reqLevel: 3),
+  BizDef('otel', 'Kıyı Oteli & Film Festivali', 'Her yaz yıldızların akın ettiği festival oteli.',
+      Icons.hotel_rounded, AppColors.green, 30000000, 450000, BizEffect.prestige,
+      20, 'Prestij +{v}',
+      reqLevel: 3),
+];
+
+BizDef? bizById(String id) {
+  for (final b in bizDefs) {
+    if (b.id == id) return b;
   }
   return null;
 }

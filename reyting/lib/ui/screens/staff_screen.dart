@@ -80,7 +80,7 @@ class _PersonCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final game = GameScope.of(context);
     final p = person;
-    final show = game.showById(p.showId);
+    final show = game.assignmentOf(p);
     return Panel(
       padding: const EdgeInsets.all(12),
       borderColor: p.isStar ? AppColors.yellow : null,
@@ -137,7 +137,7 @@ class _PersonCard extends StatelessWidget {
             Row(children: [
               Expanded(
                 child: Text(
-                  show == null ? '● Boşta' : '● ${show.name}',
+                  show == null ? '● Boşta' : '● $show',
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
