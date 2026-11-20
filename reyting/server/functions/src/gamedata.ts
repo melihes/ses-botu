@@ -3,7 +3,7 @@
 
 /** Stüdyo seviyelerinin yükseltme bedelleri (index = seviye - 1) */
 export const studioCosts = [
-  0, 2e6, 8e6, 25e6, 130e6, 500e6, 35e9, 135e9, 420e9, 1e12, 2e12, 3.5e12,
+  0, 2e6, 8e6, 25e6, 130e6, 500e6, 80e9, 310e9, 1e12, 2.3e12, 4.6e12, 8e12,
 ];
 
 /**

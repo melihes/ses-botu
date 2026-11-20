@@ -161,6 +161,7 @@ class _TileGrid extends StatelessWidget {
       _Tile(
         art: onAir.isNotEmpty
             ? StageScene(
+                talk: true,
                 prop: propFor(onAir.first.genre, onAir.first.tier),
                 color: onAir.first.def.color,
                 tier: onAir.first.tier,

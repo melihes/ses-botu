@@ -53,7 +53,8 @@ class _IntroState extends State<_Intro> {
         child: Row(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
           Expanded(
             flex: 5,
-            child: StageScene(prop: p.prop, color: p.color, tier: 3, live: _i == 3, height: 300),
+            child: StageScene(
+                key: ValueKey(_i), talk: true, prop: p.prop, color: p.color, tier: 3, live: _i == 3, height: 300),
           ),
           const SizedBox(width: 16),
           Expanded(

@@ -52,3 +52,10 @@ Bulunan ve kapatılan açıklar:
 - Satın alınan kanal oyuncuya transfer teklifi yapabiliyordu → engellendi.
 Bilinen sınır: telefon saatiyle oynanarak çevrimdışı ilerleme tekrarlanabilir; online
 sıralamada sunucu bunu reddeder (oyun zamanı gerçek zamandan hızlı akamaz).
+
+## Gerçek takvim dengesi (v0.9)
+Hedef oyuncu: günde ~1 saat (3 x 20 dk) oynar; aralarda kanal 8 saate kadar, yarı hızda
+çalışır (Genel Müdür biten sezonları yeniler). `flutter test test/sim/calendar_sim.dart`
+ile ölçülür (~1 dk). Ölçülen: 1. gün 5. seviye, ~9. gün 7. seviye, ~1. ay ilk 100,
+~341. gün son seviye (12), 1 yıl sonunda ~ilk 10-15. 1 numara ekstra emek ister
+(borsa, sinema, kanallar, daha sık oynamak). Online'da sıralamayı gerçek oyuncular belirler.

@@ -332,12 +332,12 @@ const studioLevels = [
   StudioLevel('Medya Kampüsü', 0.85, 130000000, 250000, 45),
   StudioLevel('Medya İmparatorluğu', 1.00, 500000000, 600000, 60),
   // ---- Uluslararası genişleme: uzun soluklu hedefler ----
-  StudioLevel('Balkan Yayın Ağı', 1.30, 35e9, 1500000, 70),
-  StudioLevel('Avrasya Medya Grubu', 1.70, 135e9, 3000000, 80),
-  StudioLevel('Kıtalararası Ağ', 2.20, 420e9, 5000000, 90),
-  StudioLevel('Küresel Yayın Devi', 2.90, 1e12, 8000000, 100),
-  StudioLevel('Dünya Medya İmparatorluğu', 3.80, 2e12, 12000000, 110),
-  StudioLevel('Efsanevi Medya Patronu', 5.00, 3.5e12, 18000000, 120),
+  StudioLevel('Balkan Yayın Ağı', 1.30, 80e9, 1500000, 70),
+  StudioLevel('Avrasya Medya Grubu', 1.70, 310e9, 3000000, 80),
+  StudioLevel('Kıtalararası Ağ', 2.20, 1e12, 5000000, 90),
+  StudioLevel('Küresel Yayın Devi', 2.90, 2.3e12, 8000000, 100),
+  StudioLevel('Dünya Medya İmparatorluğu', 3.80, 4.6e12, 12000000, 110),
+  StudioLevel('Efsanevi Medya Patronu', 5.00, 8e12, 18000000, 120),
 ];
 
 /// Lüks yaşam

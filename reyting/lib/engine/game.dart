@@ -214,6 +214,13 @@ class Game extends ChangeNotifier {
 
   double get offlineCapMinutes =>
       vip ? offlineCapMinutesVip : offlineCapMinutesFree;
+  double get offlineSpeed => vip ? offlineSpeedVip : offlineSpeedFree;
+
+  /// Genel Müdür: biten sezonları otomatik yeniler ve aynı kuşağa koyar.
+  bool autoManager = true;
+
+  @visibleForTesting
+  void debugAway(Duration d) => _catchUp(d);
 
   void _catchUp(Duration away) {
     // Telefon saati geri alındıysa (negatif süre) hiçbir şey işlenmez.
@@ -233,7 +240,7 @@ class Game extends ChangeNotifier {
       ..cashBefore = cash;
     _offlineMode = true;
     _acc = sum;
-    _advance(counted * 60 / secondsPerDay);
+    _advance(counted * 60 / secondsPerDay * offlineSpeed);
     _offlineMode = false;
     _acc = null;
     sum.cashAfter = cash;
@@ -292,6 +299,7 @@ class Game extends ChangeNotifier {
         'todaySamples': todaySamples.map((e) => e.round()).toList(),
         'cashAtDayStart': cashAtDayStart,
         'introSeen': introSeen,
+        'autoManager': autoManager,
         'adTouched': adTouched,
         'claimedGoals': claimedGoals.toList(),
         'lastReport': {
@@ -379,6 +387,7 @@ class Game extends ChangeNotifier {
       ..addAll((j['todaySamples'] as List? ?? []).map((e) => (e as num).toDouble()));
     cashAtDayStart = (j['cashAtDayStart'] as num? ?? cash).toDouble();
     introSeen = j['introSeen'] ?? true;
+    autoManager = j['autoManager'] ?? true;
     adTouched = j['adTouched'] ?? false;
     claimedGoals
       ..clear()
@@ -490,6 +499,13 @@ class Game extends ChangeNotifier {
           s.prodLeft = 0;
           s.status = ShowStatus.ready;
           _acc?.finishedProductions++;
+          final auto = s.autoSlot;
+          if (auto != null && slots[auto]!.showId == null && slotUnlocked(auto)) {
+            slots[auto]!.showId = s.id;
+            s.slot = auto;
+            s.status = ShowStatus.onAir;
+          }
+          s.autoSlot = null;
           _notify('🎬 "${s.name}" hazır! Yayın akışına koyabilirsin.');
         }
       }
@@ -644,7 +660,8 @@ class Game extends ChangeNotifier {
     _acc?.days++;
   }
 
-  void _endSeason(Show s) {
+  void _endSeason(Show s, {bool manual = false}) {
+    final prevSlot = s.slot;
     slots[s.slot]?.showId = null;
     s.slot = null;
     s.status = ShowStatus.ended;
@@ -657,6 +674,16 @@ class Game extends ChangeNotifier {
       if (st.showId == s.id) st.showId = null;
     }
     _acc?.endedSeasons++;
+    if (autoManager && !manual && prevSlot != null) {
+      // Genel Müdür: kasa elveriyorsa yeni sezonu başlatır
+      final cost = productionCost(s.genre, s.tier);
+      if (cash >= cost * 1.5 && renewShow(s) == null) {
+        s.autoSlot = prevSlot;
+        _acc?.autoRenewed++;
+        _notify('🤵 Genel Müdür: "${s.name}" ${s.season}. sezon çekimlerine başladı.');
+        return;
+      }
+    }
     _notify('🏁 "${s.name}" ${s.season}. sezon finali yaptı! '
         'Yeni sezon çekebilirsin.');
   }
@@ -1175,7 +1202,7 @@ class Game extends ChangeNotifier {
 
   void takeOffAir(SlotId slot) {
     final s = showById(slots[slot]!.showId);
-    if (s != null) _endSeason(s);
+    if (s != null) _endSeason(s, manual: true);
     _changed();
   }
 
@@ -2101,7 +2128,9 @@ class Game extends ChangeNotifier {
   // =================================================================
 
   /// Kurgusal patronların servetleri (online'da gerçek oyuncular gelecek)
-  double tycoonWorth(int i) => 5e12 * exp(-i * 0.075) * (1 + day / 60000);
+  /// Takvim simülasyonuna göre ayarlı: günde ~1 saat oynayan oyuncu
+  /// ~1. ayda ilk 100'e, ~1 yılda ilk 10-15'e ulaşır; 1 numara ekstra emek ister.
+  double tycoonWorth(int i) => 2e13 * exp(-i * 0.0408) * (1 + day / 1e6);
 
   String tycoonName(int i) =>
       '${firstNames[(i * 17 + 3) % firstNames.length]} '
@@ -2184,6 +2213,11 @@ class Game extends ChangeNotifier {
   void rename(String name) {
     if (name.trim().isEmpty) return;
     channelName = name.trim();
+    _changed();
+  }
+
+  void setAutoManager(bool v) {
+    autoManager = v;
     _changed();
   }
 

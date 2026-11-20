@@ -7,8 +7,12 @@ import '../models/models.dart';
 const secondsPerDay = 60.0;
 
 /// Çevrimdışı ilerleme üst sınırı (dakika).
-const offlineCapMinutesFree = 30.0;
-const offlineCapMinutesVip = 480.0;
+/// Oyuncu yokken kanal en fazla bu kadar dakika çalışır…
+const offlineCapMinutesFree = 480.0; // 8 saat
+const offlineCapMinutesVip = 960.0; // 16 saat
+/// …ve bu hızla (yarı hız: 8 saat yokluk = 240 oyun günü)
+const offlineSpeedFree = 0.5;
+const offlineSpeedVip = 1.0;
 
 /// Bir izleyicinin bir reklam dakikası başına getirdiği gelir (₺).
 const adRatePerViewerMinute = 0.15;

@@ -253,6 +253,7 @@ class _OnAir extends StatelessWidget {
       children: [
         Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
           StageScene(
+              talk: true,
               prop: propFor(s.genre, s.tier),
               color: s.def.color,
               tier: s.tier,

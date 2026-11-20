@@ -47,7 +47,8 @@ class _OfflineBody extends StatelessWidget {
         const SizedBox(height: 4),
         Text(
           '${fmtDec(s.minutesAway, 0)} dk uzaktaydın'
-          '${capped ? ' · en fazla ${fmtDec(game.offlineCapMinutes, 0)} dk işlenir' : ''}',
+          '${capped ? ' · en fazla ${fmtDec(game.offlineCapMinutes / 60, 0)} saat işlenir' : ''}'
+          ' · kanal ${game.vip ? 'tam' : 'yarı'} hızda çalıştı',
           style: const TextStyle(color: AppColors.textDim),
         ),
         const SizedBox(height: 14),
@@ -78,7 +79,7 @@ class _OfflineBody extends StatelessWidget {
         if (capped) ...[
           const SizedBox(height: 8),
           const Text(
-            'VIP ile 8 saate kadar işlenir (Aşama 5).',
+            'VIP ile 16 saate kadar, tam hızda işlenir (yakında).',
             style: TextStyle(color: AppColors.yellow, fontSize: 12),
           ),
         ],
@@ -105,6 +106,7 @@ class _OfflineBody extends StatelessWidget {
       _tile('Biten çekimler', '${s.finishedProductions}', true, neutral: true),
       _tile('Biten filmler', '${s.filmsDone}', true, neutral: true),
       _tile('Biten sezonlar', '${s.endedSeasons}', true, neutral: true),
+      _tile('Genel Müdür yeniledi', '${s.autoRenewed}', true, neutral: true),
     ];
 
     return LayoutBuilder(builder: (ctx, c) {

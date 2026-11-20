@@ -87,15 +87,15 @@ void main() {
       final g2 = Game();
       await g2.start();
       final s = g2.pendingOffline!;
-      expect(s.days, inInclusiveRange(19, 20));
+      expect(s.days, inInclusiveRange(9, 10), reason: '20 dk yokluk, yarı hız = 10 gün');
       expect(s.adIncome, greaterThan(0), reason: 'gelir işlenmeli');
       expect(s.salaries, greaterThan(0), reason: 'gider işlenmeli');
       expect(s.rent, greaterThan(0));
-      expect(g2.day, greaterThan(15));
+      expect(g2.day, greaterThan(9));
       g2.dispose();
     });
 
-    test('çevrimdışı süre 30 dakika ile sınırlı', () async {
+    test('çevrimdışı süre 8 saat ile sınırlı, yarı hızda', () async {
       final g = Game();
       await g.start();
       await g.save();
@@ -103,12 +103,12 @@ void main() {
       final prefs = await SharedPreferences.getInstance();
       final j = jsonDecode(prefs.getString('reyting_save_v1')!);
       j['savedAt'] = DateTime.now()
-          .subtract(const Duration(hours: 5))
+          .subtract(const Duration(hours: 20))
           .millisecondsSinceEpoch;
       await prefs.setString('reyting_save_v1', jsonEncode(j));
       final g2 = Game();
       await g2.start();
-      expect(g2.pendingOffline!.days, 30);
+      expect(g2.pendingOffline!.days, 240, reason: '8 saat x 60 dk x 0,5');
       g2.dispose();
     });
 
@@ -638,6 +638,42 @@ void main() {
       expect(g2.pendingOffline, isNull, reason: 'özet penceresi çıkmamalı');
       expect(g2.dayProgress, greaterThan(0.5), reason: '40 sn = ~0,67 gün işlenmeli');
       g2.dispose();
+    });
+  });
+
+  group('Genel Müdür', () {
+    test('sezon bitince yenilenir ve hazır olunca aynı kuşağa döner', () async {
+      final g = await gameWithShowOnAir();
+      g.cash = 1e8;
+      final s = g.shows.first;
+      final slot = s.slot!;
+      g.debugAdvanceDays(s.seasonDays + 0.5);
+      expect(s.season, 2, reason: 'yeni sezon başlamalı');
+      g.debugAdvanceDays(5);
+      expect(s.status, ShowStatus.onAir);
+      expect(s.slot, slot);
+      g.dispose();
+    });
+
+    test('kapalıyken yenilemez; elle kaldırılan program yenilenmez', () async {
+      final g = await gameWithShowOnAir();
+      g.cash = 1e8;
+      final s = g.shows.first;
+      g.takeOffAir(s.slot!);
+      expect(s.status, ShowStatus.ended);
+      g.setAutoManager(false);
+      final g2s = g.shows.first;
+      expect(g2s.season, 1);
+      g.dispose();
+    });
+
+    test('8 saatlik yoklukta kanal boş kalmaz', () async {
+      final g = await gameWithShowOnAir();
+      g.cash = 1e8;
+      g.debugAway(const Duration(hours: 8));
+      expect(g.shows.where((s) => s.status == ShowStatus.onAir), isNotEmpty);
+      expect(g.shows.first.season, greaterThan(5));
+      g.dispose();
     });
   });
 }

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../core/sfx.dart';
 import '../../core/theme.dart';
 import '../widgets/common.dart';
 
@@ -61,7 +62,47 @@ class _SettingsState extends State<_Settings> {
               GhostButton('Kaydet',
                   compact: true, onTap: () => game.rename(_name.text)),
             ]),
-            const SizedBox(height: 18),
+            const SizedBox(height: 14),
+            SwitchListTile(
+              contentPadding: EdgeInsets.zero,
+              value: game.autoManager,
+              onChanged: game.setAutoManager,
+              title: const Text('🤵 Genel Müdür',
+                  style: TextStyle(fontWeight: FontWeight.w800)),
+              subtitle: const Text(
+                  'Sezonu biten programları otomatik yeniler ve aynı kuşağa geri koyar '
+                  '(kasada yeterli para varsa).',
+                  style: TextStyle(fontSize: 12, color: AppColors.textDim)),
+            ),
+            SwitchListTile(
+              contentPadding: EdgeInsets.zero,
+              value: Sfx.enabled,
+              onChanged: (v) async {
+                await Sfx.setEnabled(v);
+                setState(() {});
+                if (v) Sfx.voice();
+              },
+              title: const Text('🔊 Sesler',
+                  style: TextStyle(fontWeight: FontWeight.w800)),
+              subtitle: const Text('Karakter konuşmaları, alkış ve tribün sesleri',
+                  style: TextStyle(fontSize: 12, color: AppColors.textDim)),
+            ),
+            if (Sfx.enabled)
+              Row(children: [
+                const Icon(Icons.volume_down_rounded, color: AppColors.textDim),
+                Expanded(
+                  child: Slider(
+                    value: Sfx.volume,
+                    onChanged: (v) => setState(() => Sfx.volume = v),
+                    onChangeEnd: (v) {
+                      Sfx.setVolume(v);
+                      Sfx.voice();
+                    },
+                  ),
+                ),
+                const Icon(Icons.volume_up_rounded, color: AppColors.textDim),
+              ]),
+            const SizedBox(height: 8),
             const SectionLabel('Test modu · zaman hızı', color: AppColors.yellow),
             const SizedBox(height: 4),
             const Text(

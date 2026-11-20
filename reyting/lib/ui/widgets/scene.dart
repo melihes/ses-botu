@@ -1,7 +1,9 @@
+import 'dart:async';
 import 'dart:math';
 
 import 'package:flutter/material.dart';
 
+import '../../core/sfx.dart';
 import '../../core/theme.dart';
 import '../../data/content.dart';
 
@@ -27,8 +29,11 @@ class StageScene extends StatefulWidget {
   final double? width;
   final double height;
   final BorderRadius radius;
+  /// Karakterler konuşsun mu (balon + ses)? Sadece öne çıkan sahnelerde açılır.
+  final bool talk;
   const StageScene({
     super.key,
+    this.talk = false,
     required this.prop,
     required this.color,
     this.tier = 1,
@@ -49,8 +54,61 @@ class _StageSceneState extends State<StageScene>
       AnimationController(vsync: this, duration: const Duration(seconds: 8))
         ..repeat();
 
+  Timer? _talkTimer;
+  String? _bubble;
+  double _bubbleX = 0.4;
+  final _rnd = Random();
+
+  static const _lines = [
+    'Bıdı bıdı!', 'Hıh hıh?', 'Vay be!', 'Ne diyorsun?', 'Aaa!',
+    'Şaka mı bu?', 'Bravo!', 'Hadi ya!', 'Tamam tamam…', 'Lalala ♪',
+    'Bak şimdi…', 'İnanılmaz!', 'Hı hı.', 'Bıdı bıdı bıdı…',
+  ];
+  static const _kidProps = {Prop.cartoon, Prop.puppet, Prop.lab, Prop.kidsStage};
+  static const _laughProps = {Prop.sitcom, Prop.standup, Prop.sketch, Prop.nightShow, Prop.couples, Prop.morning};
+  static const _applauseProps = {
+    Prop.quiz, Prop.wheel, Prop.voice, Prop.talent, Prop.awards, Prop.kidsStage,
+    Prop.newYear, Prop.redCarpet, Prop.gossip,
+  };
+  static const _cheerProps = {Prop.football, Prop.derby, Prop.tournament, Prop.basketball, Prop.island};
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.talk) _scheduleTalk();
+  }
+
+  void _scheduleTalk() {
+    _talkTimer = Timer(Duration(milliseconds: 2200 + _rnd.nextInt(3200)), _speak);
+  }
+
+  void _speak() {
+    if (!mounted) return;
+    final visible = TickerMode.valuesOf(context).enabled;
+    if (visible) {
+      final p = widget.prop;
+      final kid = _kidProps.contains(p);
+      if (Sfx.voice(type: kid ? 'kid' : null)) {
+        setState(() {
+          _bubble = _lines[_rnd.nextInt(_lines.length)];
+          _bubbleX = 0.15 + _rnd.nextDouble() * 0.5;
+        });
+        Timer(const Duration(milliseconds: 1500), () {
+          if (mounted) setState(() => _bubble = null);
+        });
+      }
+      if (_rnd.nextDouble() < 0.3) {
+        if (_laughProps.contains(p)) Sfx.crowd('laugh');
+        if (_applauseProps.contains(p)) Sfx.crowd('applause');
+        if (_cheerProps.contains(p)) Sfx.crowd('cheer');
+      }
+    }
+    _scheduleTalk();
+  }
+
   @override
   void dispose() {
+    _talkTimer?.cancel();
     _c.dispose();
     super.dispose();
   }
@@ -67,6 +125,11 @@ class _StageSceneState extends State<StageScene>
             CustomPaint(
                 painter: ScenePainter(_c, widget.prop, widget.color,
                     widget.tier, widget.live)),
+            if (_bubble != null)
+              Align(
+                alignment: Alignment(_bubbleX * 2 - 1, -0.55),
+                child: _SpeechBubble(text: _bubble!),
+              ),
             if (widget.badge != null)
               Positioned(
                 left: 6,
@@ -1147,4 +1210,48 @@ class ScenePainter extends CustomPainter {
   @override
   bool shouldRepaint(covariant ScenePainter old) =>
       old.prop != prop || old.color != color || old.tier != tier || old.live != live;
+}
+
+
+/// Konuşma balonu (kuyruklu, hafif büyüyerek belirir)
+class _SpeechBubble extends StatelessWidget {
+  final String text;
+  const _SpeechBubble({required this.text});
+  @override
+  Widget build(BuildContext context) => TweenAnimationBuilder<double>(
+        tween: Tween(begin: 0.6, end: 1),
+        duration: const Duration(milliseconds: 180),
+        curve: Curves.easeOutBack,
+        builder: (_, v, child) => Transform.scale(scale: v, child: child),
+        child: Column(mainAxisSize: MainAxisSize.min, children: [
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(10),
+              boxShadow: const [BoxShadow(color: Colors.black38, blurRadius: 4)],
+            ),
+            child: Text(text,
+                style: const TextStyle(
+                    color: Color(0xFF1E182B), fontSize: 11, fontWeight: FontWeight.w900)),
+          ),
+          CustomPaint(size: const Size(10, 6), painter: _TailPainter()),
+        ]),
+      );
+}
+
+class _TailPainter extends CustomPainter {
+  @override
+  void paint(Canvas c, Size s) {
+    c.drawPath(
+        Path()
+          ..moveTo(0, 0)
+          ..lineTo(s.width, 0)
+          ..lineTo(s.width * 0.3, s.height)
+          ..close(),
+        Paint()..color = Colors.white);
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }

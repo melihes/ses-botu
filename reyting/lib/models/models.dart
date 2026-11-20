@@ -61,12 +61,14 @@ class Show {
   double buff; // olaylardan gelen geçici reyting çarpanı
   int buffDays;
   int lastAiredDay; // en son yayında olduğu gün (ödüller için)
+  SlotId? autoSlot; // Genel Müdür yeniledi: hazır olunca bu kuşağa döner
   String? sponsor; // ürün yerleştirme markası
   double sponsorPerDay;
   int sponsorDays;
 
   Show({
     this.lastAiredDay = 0,
+    this.autoSlot,
     this.sponsor,
     this.sponsorPerDay = 0,
     this.sponsorDays = 0,
@@ -112,6 +114,7 @@ class Show {
         'buff': buff,
         'buffDays': buffDays,
         'lastAiredDay': lastAiredDay,
+        'autoSlot': autoSlot?.index,
         'sponsor': sponsor,
         'sponsorPerDay': sponsorPerDay,
         'sponsorDays': sponsorDays,
@@ -138,6 +141,7 @@ class Show {
         buff: (j['buff'] as num? ?? 1).toDouble(),
         buffDays: j['buffDays'] ?? 0,
         lastAiredDay: j['lastAiredDay'] ?? 0,
+        autoSlot: j['autoSlot'] == null ? null : SlotId.values[j['autoSlot']],
         sponsor: j['sponsor'],
         sponsorPerDay: (j['sponsorPerDay'] as num? ?? 0).toDouble(),
         sponsorDays: j['sponsorDays'] ?? 0,
@@ -247,6 +251,7 @@ class PeriodSummary {
   double bizIncome = 0;
   double digitalIncome = 0;
   double sponsorIncome = 0;
+  int autoRenewed = 0;
   int filmsDone = 0;
   double eventCash = 0;
   int events = 0;

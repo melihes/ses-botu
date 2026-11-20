@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 
+import 'core/sfx.dart';
 import 'core/theme.dart';
 import 'engine/game.dart';
 import 'ui/shell.dart';
@@ -56,6 +57,7 @@ class _ReytingAppState extends State<ReytingApp> with WidgetsBindingObserver {
     } catch (_) {
       _version = '0.8.0';
     }
+    await Sfx.init();
     step(0.25, 'Kayıtların okunuyor…');
     final game = Game();
     await game.start();
@@ -80,6 +82,7 @@ class _ReytingAppState extends State<ReytingApp> with WidgetsBindingObserver {
   void didChangeAppLifecycleState(AppLifecycleState state) {
     final g = _game;
     if (g == null) return;
+    Sfx.pause(state != AppLifecycleState.resumed);
     if (state == AppLifecycleState.paused) {
       g.onPause();
     } else if (state == AppLifecycleState.inactive ||
