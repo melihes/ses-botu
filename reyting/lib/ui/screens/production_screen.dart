@@ -9,6 +9,7 @@ import '../../engine/economy.dart';
 import '../../engine/game.dart';
 import '../../models/models.dart';
 import '../widgets/common.dart';
+import '../widgets/item_art.dart';
 import '../widgets/scene.dart';
 
 class ProductionScreen extends StatelessWidget {
@@ -37,12 +38,7 @@ class ProductionScreen extends StatelessWidget {
           const SizedBox(width: 10),
           AccentButton('Yeni program',
               icon: Icons.add_rounded,
-              onTap: () => showDialog(
-                  context: context,
-                  builder: (_) => const Dialog(
-                      insetPadding:
-                          EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                      child: NewShowWizard()))),
+              onTap: () => openNewShowWizard(context)),
         ]),
         const SizedBox(height: 6),
         if (game.shows.isEmpty)
@@ -91,7 +87,7 @@ class _ShowCard extends StatelessWidget {
       padding: const EdgeInsets.all(12),
       child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
         StageScene(
-            kind: sceneForGenre(s.genre),
+            prop: propFor(s.genre, s.tier),
             color: s.def.color,
             tier: s.tier,
             live: s.status == ShowStatus.onAir,
@@ -114,7 +110,7 @@ class _ShowCard extends StatelessWidget {
                 statusTag,
               ]),
               Text(
-                  '${s.def.label} · ${budgetTiers[s.tier].label} bütçe · '
+                  '${s.def.label} · ${formatOf(s.genre, s.tier).name} · '
                   'Kalite ${(s.quality * 100).round()}',
                   style: TextStyle(color: s.def.color, fontSize: 12)),
               Text(crew.isEmpty ? '' : 'Ekip: $crew',
@@ -267,7 +263,14 @@ Widget _slotOption(BuildContext c, Game game, Show s, SlotId id) {
   );
 }
 
-/// Yeni program sihirbazı: tür → bütçe → isim → ekip
+/// Yeni program sihirbazını tam ekran açar
+Future<void> openNewShowWizard(BuildContext context) => showDialog(
+      context: context,
+      builder: (_) => const Dialog.fullscreen(
+          backgroundColor: AppColors.bg, child: NewShowWizard()),
+    );
+
+/// Yeni program sihirbazı: tür → format → ekip, tek ekranda
 class NewShowWizard extends StatefulWidget {
   const NewShowWizard({super.key});
   @override
@@ -276,7 +279,7 @@ class NewShowWizard extends StatefulWidget {
 
 class _NewShowWizardState extends State<NewShowWizard> {
   Genre _genre = Genre.magazin;
-  int _tier = 1;
+  int _tier = 0;
   final _name = TextEditingController();
   final Set<String> _crew = {};
   final _rng = Random();
@@ -302,48 +305,72 @@ class _NewShowWizardState extends State<NewShowWizard> {
   Widget build(BuildContext context) {
     final game = GameScope.of(context);
     final def = genreDefs[_genre]!;
+    final fmt = formatOf(_genre, _tier);
     final cost = productionCost(_genre, _tier);
-    final crewList =
-        _crew.map(game.staffById).whereType<Staff>().toList();
+    final crewList = _crew.map(game.staffById).whereType<Staff>().toList();
     final quality = showQuality(crewList, _genre, _tier, game.ownedEquip);
-    var complete = true;
+    var complete = game.formatUnlocked(_genre, _tier);
     for (final e in def.needs.entries) {
       if (crewList.where((c) => c.role == e.key).length < e.value) {
         complete = false;
       }
     }
+    final formats = genreFormats[_genre]!;
 
-    final left = Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
+    // 1) Tür listesi
+    final genres = SizedBox(
+      width: 128,
+      child: ListView(children: [
         const SectionLabel('1 · Tür'),
         const SizedBox(height: 6),
-        Wrap(spacing: 6, runSpacing: 6, children: [
-          for (final g in Genre.values) _genreChip(game, g),
+        for (final g in Genre.values) _genreItem(game, g),
+      ]),
+    );
+
+    // 2) Format kartları
+    final formatGrid = Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(children: [
+          SectionLabel('2 · ${def.label} formatı', color: def.color),
+          const Spacer(),
+          Text('Seviye arttıkça maliyet ve reyting artar',
+              style: const TextStyle(color: AppColors.textFaint, fontSize: 11)),
         ]),
         const SizedBox(height: 6),
-        Text(def.desc,
-            style: const TextStyle(color: AppColors.textDim, fontSize: 12)),
-        const SizedBox(height: 12),
-        const SectionLabel('2 · Bütçe'),
-        const SizedBox(height: 6),
-        PillTabs(
-          labels: [
-            for (int i = 0; i < budgetTiers.length; i++)
-              '${budgetTiers[i].label} · ${fmtShort(productionCost(_genre, i))}'
-          ],
-          selected: _tier,
-          onChanged: (i) => setState(() => _tier = i),
+        Expanded(
+          child: LayoutBuilder(builder: (ctx, c) {
+            const cols = 3, gap = 6.0;
+            final rows = (formats.length / cols).ceil();
+            final w = (c.maxWidth - gap * (cols - 1)) / cols;
+            final h = max(70.0, (c.maxHeight - gap * (rows - 1)) / rows);
+            return SingleChildScrollView(
+              child: Wrap(spacing: gap, runSpacing: gap, children: [
+                for (int i = 0; i < formats.length; i++)
+                  SizedBox(width: w, height: h, child: _formatCard(game, i)),
+              ]),
+            );
+          }),
         ),
-        const SizedBox(height: 12),
-        const SectionLabel('3 · İsim'),
+        const SizedBox(height: 4),
+        Text(fmt.desc,
+            maxLines: 2,
+            style: const TextStyle(color: AppColors.textDim, fontSize: 12)),
+      ],
+    );
+
+    // 3) İsim, ekip, özet
+    final right = SizedBox(
+      width: 270,
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        const SectionLabel('3 · İsim ve ekip'),
         Row(children: [
           Expanded(
             child: TextField(
               controller: _name,
               maxLength: 28,
-              decoration:
-                  const InputDecoration(counterText: '', isDense: true),
+              style: const TextStyle(fontWeight: FontWeight.w800),
+              decoration: const InputDecoration(counterText: '', isDense: true),
             ),
           ),
           IconButton(
@@ -352,24 +379,11 @@ class _NewShowWizardState extends State<NewShowWizard> {
             icon: const Icon(Icons.casino_rounded, color: AppColors.accent),
           ),
         ]),
-      ],
-    );
-
-    final right = Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        StageScene(
-            kind: sceneForGenre(_genre),
-            color: def.color,
-            tier: _tier,
-            height: 110,
-            width: double.infinity,
-            badge: '${def.label} · ${budgetTiers[_tier].label} bütçe'),
-        const SizedBox(height: 10),
-        const SectionLabel('4 · Ekip'),
-        const SizedBox(height: 4),
-        for (final e in def.needs.entries) _roleRow(game, e.key, e.value),
-        const Divider(color: AppColors.border, height: 20),
+        Expanded(
+          child: ListView(children: [
+            for (final e in def.needs.entries) _roleRow(game, e.key, e.value),
+          ]),
+        ),
         Row(children: [
           Expanded(
               child: StatBlock('Maliyet', fmtShort(cost),
@@ -378,12 +392,10 @@ class _NewShowWizardState extends State<NewShowWizard> {
               child: StatBlock('Çekim',
                   '${fmtDec(def.prodDays * game.prodSpeedMult(), 1)} gün')),
           Expanded(
-              child: StatBlock('Sezon', '${def.seasonDays} bölüm')),
-          Expanded(
               child: StatBlock('Kalite', '${(quality * 100).round()}',
                   color: AppColors.cyan)),
         ]),
-        const SizedBox(height: 12),
+        const SizedBox(height: 8),
         AccentButton(
           'Çekimlere başla',
           expand: true,
@@ -397,77 +409,156 @@ class _NewShowWizardState extends State<NewShowWizard> {
                 }
               : null,
         ),
-      ],
+      ]),
     );
 
-    return ConstrainedBox(
-      constraints: const BoxConstraints(maxWidth: 980),
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.all(18),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(children: [
-              const Text('Yeni program',
-                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900)),
-              const Spacer(),
-              IconButton(
-                  onPressed: () => Navigator.pop(context),
-                  icon: const Icon(Icons.close_rounded)),
+    return SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(14, 8, 14, 10),
+        child: Column(children: [
+          Row(children: [
+            const Text('Yeni program',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900)),
+            const SizedBox(width: 10),
+            Text('Kasa ${fmtShort(game.cash)}',
+                style: const TextStyle(color: AppColors.textDim)),
+            const Spacer(),
+            IconButton(
+                onPressed: () => Navigator.pop(context),
+                icon: const Icon(Icons.close_rounded)),
+          ]),
+          Expanded(
+            child: Row(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+              genres,
+              const SizedBox(width: 12),
+              Expanded(child: formatGrid),
+              const SizedBox(width: 12),
+              right,
             ]),
-            LayoutBuilder(builder: (ctx, c) {
-              if (c.maxWidth < 640) {
-                return Column(
-                    children: [left, const SizedBox(height: 16), right]);
-              }
-              return Row(
+          ),
+        ]),
+      ),
+    );
+  }
+
+  Widget _formatCard(Game game, int i) {
+    final f = genreFormats[_genre]![i];
+    final unlocked = game.formatUnlocked(_genre, i);
+    final sel = i == _tier;
+    final def = genreDefs[_genre]!;
+    return GestureDetector(
+      onTap: () {
+        if (!unlocked) {
+          game.showToast(f.reqEquip != null && !game.ownedEquip.contains(f.reqEquip)
+              ? '🔒 ${f.name} için ${equipById(f.reqEquip!)!.name} gerekli.'
+              : '🔒 ${f.name} stüdyo seviyesi ${f.unlockLevel} ile açılır.');
+          return;
+        }
+        setState(() => _tier = i);
+      },
+      child: Container(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+              color: sel ? AppColors.accent : AppColors.border,
+              width: sel ? 2.5 : 1),
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(11),
+          child: Stack(fit: StackFit.expand, children: [
+            StageScene(prop: f.prop, color: def.color, tier: i, height: 200),
+            const DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  stops: [0.35, 1],
+                  colors: [Colors.transparent, Color(0xEE130F1D)],
+                ),
+              ),
+            ),
+            if (!unlocked) Container(color: Colors.black54),
+            Positioned(
+              left: 6,
+              top: 5,
+              child: Tag('SV ${i + 1}',
+                  color: unlocked ? AppColors.yellow : AppColors.textDim),
+            ),
+            if (!unlocked)
+              const Center(
+                  child: Icon(Icons.lock_rounded, color: Colors.white70, size: 28)),
+            Positioned(
+              left: 6,
+              right: 6,
+              bottom: 4,
+              child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
                 children: [
-                  Expanded(child: left),
-                  const SizedBox(width: 20),
-                  Expanded(child: right),
+                  Text(f.name,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                          fontWeight: FontWeight.w900, fontSize: 12)),
+                  Text(
+                      unlocked
+                          ? '${fmtShort(productionCost(_genre, i))} · kalite ×${fmtDec(f.qualityMult, 2)}'
+                          : (f.reqEquip != null && !game.ownedEquip.contains(f.reqEquip)
+                              ? '${equipById(f.reqEquip!)!.name} gerekli'
+                              : 'Stüdyo seviyesi ${f.unlockLevel}'),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                          fontSize: 10, color: AppColors.textDim)),
                 ],
-              );
-            }),
-          ],
+              ),
+            ),
+          ]),
         ),
       ),
     );
   }
 
-  Widget _genreChip(Game game, Genre g) {
+  Widget _genreItem(Game game, Genre g) {
     final d = genreDefs[g]!;
     final unlocked = game.genreUnlocked(g);
     final sel = g == _genre;
-    return GestureDetector(
-      onTap: () {
-        if (!unlocked) {
-          game.showToast(
-              '🔒 ${d.label} için ${equipById(d.reqEquip!)!.name} gerekli (Stüdyo).');
-          return;
-        }
-        setState(() {
-          _genre = g;
-          _crew.clear();
-          _suggest();
-        });
-      },
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
-        decoration: BoxDecoration(
-          color: sel ? d.color.withValues(alpha: 0.22) : AppColors.panelHi,
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: sel ? d.color : AppColors.border),
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 4),
+      child: GestureDetector(
+        onTap: () {
+          if (!unlocked) {
+            game.showToast(
+                '🔒 ${d.label} için ${equipById(d.reqEquip!)!.name} gerekli (Stüdyo).');
+            return;
+          }
+          setState(() {
+            _genre = g;
+            _tier = 0;
+            _crew.clear();
+            _suggest();
+          });
+        },
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 7),
+          decoration: BoxDecoration(
+            color: sel ? d.color.withValues(alpha: 0.22) : AppColors.panel,
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(color: sel ? d.color : AppColors.border),
+          ),
+          child: Row(children: [
+            Icon(unlocked ? d.icon : Icons.lock_rounded,
+                size: 16, color: unlocked ? d.color : AppColors.textFaint),
+            const SizedBox(width: 6),
+            Expanded(
+              child: Text(d.label,
+                  style: TextStyle(
+                      fontWeight: FontWeight.w800,
+                      fontSize: 13,
+                      color: unlocked ? AppColors.text : AppColors.textFaint)),
+            ),
+          ]),
         ),
-        child: Row(mainAxisSize: MainAxisSize.min, children: [
-          Icon(unlocked ? d.icon : Icons.lock_rounded,
-              size: 16, color: unlocked ? d.color : AppColors.textFaint),
-          const SizedBox(width: 5),
-          Text(d.label,
-              style: TextStyle(
-                  fontWeight: FontWeight.w700,
-                  color: unlocked ? AppColors.text : AppColors.textFaint)),
-        ]),
       ),
     );
   }
@@ -476,7 +567,7 @@ class _NewShowWizardState extends State<NewShowWizard> {
     final free = game.freeStaff(role);
     final picked = free.where((p) => _crew.contains(p.id)).length;
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
+      padding: const EdgeInsets.symmetric(vertical: 3),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -484,39 +575,43 @@ class _NewShowWizardState extends State<NewShowWizard> {
               style: TextStyle(
                   color: picked >= count ? AppColors.green : role.color,
                   fontWeight: FontWeight.w800,
-                  fontSize: 13)),
-          const SizedBox(height: 4),
+                  fontSize: 12)),
+          const SizedBox(height: 3),
           if (free.isEmpty)
             Text('Boşta ${role.label.toLowerCase()} yok. Kadro\'dan işe al.',
                 style:
-                    const TextStyle(color: AppColors.textFaint, fontSize: 12))
+                    const TextStyle(color: AppColors.textFaint, fontSize: 11))
           else
-            Wrap(spacing: 6, runSpacing: 6, children: [
+            Wrap(spacing: 5, runSpacing: 5, children: [
               for (final p in free)
-                FilterChip(
-                  selected: _crew.contains(p.id),
-                  showCheckmark: false,
-                  selectedColor: role.color.withValues(alpha: 0.3),
-                  backgroundColor: AppColors.panelHi,
-                  side: BorderSide(
-                      color: _crew.contains(p.id)
-                          ? role.color
-                          : AppColors.border),
-                  label: Text('${p.name.split(' ').first} · ${p.skill}',
-                      style: const TextStyle(fontSize: 12)),
-                  onSelected: (v) => setState(() {
-                    if (v) {
+                GestureDetector(
+                  onTap: () => setState(() {
+                    if (_crew.contains(p.id)) {
+                      _crew.remove(p.id);
+                    } else {
                       if (picked >= count) {
-                        // en eski seçimi bırak
-                        final drop = free.firstWhere(
-                            (x) => _crew.contains(x.id));
-                        _crew.remove(drop.id);
+                        _crew.remove(free.firstWhere((x) => _crew.contains(x.id)).id);
                       }
                       _crew.add(p.id);
-                    } else {
-                      _crew.remove(p.id);
                     }
                   }),
+                  child: Container(
+                    padding: const EdgeInsets.fromLTRB(3, 3, 8, 3),
+                    decoration: BoxDecoration(
+                      color: _crew.contains(p.id)
+                          ? role.color.withValues(alpha: 0.3)
+                          : AppColors.panelHi,
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(
+                          color: _crew.contains(p.id) ? role.color : AppColors.border),
+                    ),
+                    child: Row(mainAxisSize: MainAxisSize.min, children: [
+                      PersonAvatar(seed: p.id.hashCode, color: role.color, size: 22),
+                      const SizedBox(width: 4),
+                      Text('${p.name.split(' ').first} · ${p.skill}',
+                          style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700)),
+                    ]),
+                  ),
                 ),
             ]),
         ],

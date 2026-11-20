@@ -5,6 +5,7 @@ import '../../core/theme.dart';
 import '../../data/content.dart';
 import '../dialogs/negotiation_dialog.dart';
 import '../widgets/common.dart';
+import '../widgets/item_art.dart';
 
 class LuxuryScreen extends StatefulWidget {
   const LuxuryScreen({super.key});
@@ -57,10 +58,11 @@ class _LuxCard extends StatelessWidget {
       padding: const EdgeInsets.all(12),
       borderColor: owned ? AppColors.green.withValues(alpha: 0.6) : null,
       child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        ArtTile(
-            icon: d.cat.icon,
+        ItemArt(
+            id: d.id,
             color: d.cat.color,
-            size: 84,
+            width: 110,
+            height: 96,
             badge: d.negotiable ? 'PAZARLIK' : null),
         const SizedBox(width: 10),
         Expanded(

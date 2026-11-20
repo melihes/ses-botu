@@ -39,12 +39,7 @@ class CinemaScreen extends StatelessWidget {
           const SizedBox(width: 10),
           AccentButton('Yeni film',
               icon: Icons.movie_rounded,
-              onTap: () => showDialog(
-                  context: context,
-                  builder: (_) => const Dialog(
-                      insetPadding:
-                          EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                      child: NewFilmWizard()))),
+              onTap: () => openNewFilmWizard(context)),
         ]),
         if (game.films.isEmpty)
           const Panel(
@@ -82,7 +77,7 @@ class _FilmCard extends StatelessWidget {
       padding: const EdgeInsets.all(12),
       child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
         StageScene(
-          kind: SceneKind.film,
+          prop: Prop.film,
           color: f.def.color,
           tier: f.tier,
           width: 120,
@@ -312,6 +307,13 @@ class _PlatformLogo extends StatelessWidget {
 Widget platformLogo(PlatformDef p, {double size = 56}) =>
     _PlatformLogo(p: p, size: size);
 
+Future<void> openNewFilmWizard(BuildContext context) => showDialog(
+      context: context,
+      builder: (_) => const Dialog(
+          insetPadding: EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+          child: NewFilmWizard()),
+    );
+
 /// Yeni film sihirbazı
 class NewFilmWizard extends StatefulWidget {
   const NewFilmWizard({super.key});
@@ -395,7 +397,7 @@ class _NewFilmWizardState extends State<NewFilmWizard> {
     ]);
     final right = Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       StageScene(
-          kind: SceneKind.film,
+          prop: Prop.film,
           color: def.color,
           tier: _tier,
           height: 100,

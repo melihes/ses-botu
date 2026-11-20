@@ -42,6 +42,14 @@ class Game extends ChangeNotifier {
   final List<Film> films = [];
   final Set<String> ownedPlatforms = {};
   final Map<String, int> bizLevels = {};
+  final List<Creator> creators = [];
+  final List<Creator> creatorMarket = [];
+  final List<DayStat> history = [];
+  final List<double> todaySamples = [];
+  double cashAtDayStart = startingCash;
+  bool introSeen = false;
+  bool adTouched = false;
+  final Set<int> claimedGoals = {};
   final Map<String, NegState> negotiations = {};
   final List<double> cashHistory = [];
   final List<GameEvent> eventLog = [];
@@ -106,6 +114,15 @@ class Game extends ChangeNotifier {
     films.clear();
     ownedPlatforms.clear();
     bizLevels.clear();
+    creators.clear();
+    creatorMarket.clear();
+    history.clear();
+    todaySamples.clear();
+    cashAtDayStart = cash;
+    introSeen = false;
+    adTouched = false;
+    claimedGoals.clear();
+    _refreshCreators();
     negotiations.clear();
     cashHistory
       ..clear()
@@ -197,6 +214,7 @@ class Game extends ChangeNotifier {
   /// Oyuncu bir işlem yaptı: ekranı yenile ve kısa süre içinde kaydet.
   /// (Uygulama aniden kapansa bile son işlem kaybolmasın.)
   void _changed() {
+    _checkGoals();
     notifyListeners();
     _saveDebounce?.cancel();
     _saveDebounce = Timer(const Duration(milliseconds: 250), save);
@@ -229,6 +247,14 @@ class Game extends ChangeNotifier {
         'films': films.map((e) => e.toJson()).toList(),
         'ownedPlatforms': ownedPlatforms.toList(),
         'bizLevels': bizLevels,
+        'creators': creators.map((e) => e.toJson()).toList(),
+        'creatorMarket': creatorMarket.map((e) => e.toJson()).toList(),
+        'history': history.map((e) => e.toJson()).toList(),
+        'todaySamples': todaySamples.map((e) => e.round()).toList(),
+        'cashAtDayStart': cashAtDayStart,
+        'introSeen': introSeen,
+        'adTouched': adTouched,
+        'claimedGoals': claimedGoals.toList(),
         'negotiations': {
           for (final e in negotiations.entries) e.key: e.value.toJson()
         },
@@ -282,6 +308,25 @@ class Game extends ChangeNotifier {
     bizLevels
       ..clear()
       ..addAll(Map<String, int>.from(j['bizLevels'] ?? {}));
+    creators
+      ..clear()
+      ..addAll((j['creators'] as List? ?? []).map((e) => Creator.fromJson(e)));
+    creatorMarket
+      ..clear()
+      ..addAll((j['creatorMarket'] as List? ?? []).map((e) => Creator.fromJson(e)));
+    if (creatorMarket.isEmpty) _refreshCreators();
+    history
+      ..clear()
+      ..addAll((j['history'] as List? ?? []).map((e) => DayStat.fromJson(e)));
+    todaySamples
+      ..clear()
+      ..addAll((j['todaySamples'] as List? ?? []).map((e) => (e as num).toDouble()));
+    cashAtDayStart = (j['cashAtDayStart'] as num? ?? cash).toDouble();
+    introSeen = j['introSeen'] ?? true;
+    adTouched = j['adTouched'] ?? false;
+    claimedGoals
+      ..clear()
+      ..addAll(List<int>.from(j['claimedGoals'] ?? []));
     negotiations
       ..clear()
       ..addAll((j['negotiations'] as Map<String, dynamic>)
@@ -312,6 +357,10 @@ class Game extends ChangeNotifier {
       _accrue(step);
       dayProgress += step;
       rem -= step;
+      final hour = (dayProgress * 24).floor();
+      while (todaySamples.length <= hour && todaySamples.length < 24) {
+        todaySamples.add(cash);
+      }
       if (dayProgress >= 1 - 1e-9) {
         dayProgress = 0;
         _endOfDay();
@@ -361,6 +410,10 @@ class Game extends ChangeNotifier {
     cash += pf;
     todayIncome += pf;
     _acc?.platformIncome += pf;
+    final dg = creatorIncomePerDay * step;
+    cash += dg;
+    todayIncome += dg;
+    _acc?.digitalIncome += dg;
     final bz = bizIncomePerDay * step;
     cash += bz;
     todayIncome += bz;
@@ -383,7 +436,7 @@ class Game extends ChangeNotifier {
     day++;
 
     // Giderler
-    final sal = dailySalaries;
+    final sal = dailySalaries + creators.fold(0.0, (a, c) => a + c.salary);
     cash -= sal;
     _acc?.salaries += sal;
     final rent = dailyRent;
@@ -439,12 +492,25 @@ class Game extends ChangeNotifier {
       f.licenses.removeWhere((l) => l.daysLeft <= 0);
     }
 
+    for (final c in creators) {
+      c.followers *= 1 + c.growth;
+      c.growth = max(0.002, c.growth * 0.995);
+    }
+    if (day % 5 == 0) _refreshCreators();
+
     _rollEvent();
 
     if (day % 3 == 0) _refreshMarket();
 
     cashHistory.add(cash);
     if (cashHistory.length > 60) cashHistory.removeAt(0);
+    final net = cash - cashAtDayStart;
+    history.add(DayStat(day - 1, cash, todayIncome, todayIncome - net));
+    if (history.length > 5000) history.removeAt(0);
+    cashAtDayStart = cash;
+    todaySamples
+      ..clear()
+      ..add(cash);
     yesterdayIncome = todayIncome;
     todayIncome = 0;
     _acc?.days++;
@@ -619,7 +685,17 @@ class Game extends ChangeNotifier {
     return v;
   }
 
-  double ratingMultFor(Genre g) => 1 + bizEffect(BizEffect.showRating, genre: g);
+  double ratingMultFor(Genre g) =>
+      1 + bizEffect(BizEffect.showRating, genre: g) + digitalBoost;
+
+  // ---- Dijital ----
+  double get totalFollowers => creators.fold(0.0, (a, c) => a + c.followers);
+  double get creatorIncomePerDay =>
+      creators.fold(0.0, (a, c) => a + c.revenuePerDay);
+  double get creatorSalaries => creators.fold(0.0, (a, c) => a + c.salary);
+
+  /// Sosyal medya etkisi: takipçiler TV reytingini artırır (en fazla %10)
+  double get digitalBoost => min(totalFollowers / 20e6, 0.10);
   double get boxOfficeBonus => bizEffect(BizEffect.boxOffice);
   double get licenseBonus => bizEffect(BizEffect.licenseFee);
   double get musicQualityBonus => bizEffect(BizEffect.quality);
@@ -664,6 +740,8 @@ class Game extends ChangeNotifier {
       channelIncomePerDay +
       platformIncomePerDay +
       bizIncomePerDay +
+      creatorIncomePerDay -
+      creatorSalaries +
       boxOfficePerDay -
       dailySalaries -
       dailyRent -
@@ -722,6 +800,12 @@ class Game extends ChangeNotifier {
 
   List<Staff> freeStaff(Role r) =>
       staff.where((s) => s.role == r && s.showId == null).toList();
+
+  bool formatUnlocked(Genre g, int tier) {
+    final f = formatOf(g, tier);
+    return studioLevel + 1 >= f.unlockLevel &&
+        (f.reqEquip == null || ownedEquip.contains(f.reqEquip));
+  }
 
   bool genreUnlocked(Genre g) {
     final req = genreDefs[g]!.reqEquip;
@@ -808,6 +892,12 @@ class Game extends ChangeNotifier {
     final def = genreDefs[genre]!;
     if (!genreUnlocked(genre)) {
       return '${def.label} için ${equipById(def.reqEquip!)!.name} gerekli.';
+    }
+    final fmt = formatOf(genre, tier);
+    if (!formatUnlocked(genre, tier)) {
+      return fmt.reqEquip != null && !ownedEquip.contains(fmt.reqEquip)
+          ? '${fmt.name} için ${equipById(fmt.reqEquip!)!.name} gerekli.'
+          : '${fmt.name} için stüdyo seviyesi ${fmt.unlockLevel} gerekli.';
     }
     for (final e in def.needs.entries) {
       final n = crew.where((c) => c.role == e.key).length;
@@ -907,6 +997,7 @@ class Game extends ChangeNotifier {
 
   void setAdMinutes(SlotId slot, double m) {
     slots[slot]!.adMinutes = m;
+    adTouched = true;
     _changed();
   }
 
@@ -1226,6 +1317,126 @@ class Game extends ChangeNotifier {
   void deleteFilm(Film f) {
     if (f.status != FilmStatus.rightsSold) return;
     films.remove(f);
+    _changed();
+  }
+
+  // =================================================================
+  // Dijital: içerik üreticileri
+  // =================================================================
+
+  static const _ascii = {'ç': 'c', 'ğ': 'g', 'ı': 'i', 'ö': 'o', 'ş': 's', 'ü': 'u', 'â': 'a'};
+
+  Creator _randomCreator() {
+    final niche = Niche.values[_rng.nextInt(Niche.values.length)];
+    final first = firstNames[_rng.nextInt(firstNames.length)];
+    final last = lastNames[_rng.nextInt(lastNames.length)];
+    var h = first.toLowerCase();
+    _ascii.forEach((k, v) => h = h.replaceAll(k, v));
+    final followers = (20000 * pow(2.6, studioLevel) *
+            (0.3 + _rng.nextDouble() * 2.7))
+        .roundToDouble();
+    final engagement = 0.02 + _rng.nextDouble() * 0.06;
+    final rev = followers * engagement * 2;
+    return Creator(
+      id: _newId('c'),
+      name: '$first $last',
+      handle: '@$h.${niche.handleWord}',
+      niche: niche,
+      followers: followers,
+      growth: 0.005 + _rng.nextDouble() * 0.025,
+      engagement: engagement,
+      salary: (rev * (0.35 + _rng.nextDouble() * 0.2) / 100).round() * 100.0,
+      look: _rng.nextInt(1000),
+    );
+  }
+
+  void _refreshCreators() {
+    creatorMarket
+      ..clear()
+      ..addAll(List.generate(6, (_) => _randomCreator()));
+  }
+
+  String? refreshCreatorsPaid() {
+    if (diamonds < 3) return 'Yeterli elmasın yok (3 💎 gerekli).';
+    diamonds -= 3;
+    _refreshCreators();
+    _changed();
+    return null;
+  }
+
+  int get maxCreators => 3 + studioLevel * 2;
+
+  String? signCreator(Creator c) {
+    if (creators.length >= maxCreators) {
+      return 'En fazla $maxCreators içerik üreticin olabilir. Stüdyoyu büyüt.';
+    }
+    if (cash < c.signingFee) return 'İmza ücreti için kasada para yok.';
+    cash -= c.signingFee;
+    creatorMarket.remove(c);
+    creators.add(c);
+    _notify('📱 ${c.handle} artık $channelName ailesinde! '
+        '${fmtShort(c.followers).replaceAll(' ₺', '')} takipçi');
+    _changed();
+    return null;
+  }
+
+  void releaseCreator(Creator c) {
+    creators.remove(c);
+    _notify('${c.handle} ile sözleşme bitti.');
+    _changed();
+  }
+
+  String? runCampaign(Creator c) {
+    if (day < c.campaignReadyDay) {
+      return 'Kampanya ${c.campaignReadyDay - day} gün sonra tekrar yapılabilir.';
+    }
+    final cost = c.campaignCost;
+    if (cash < cost) return 'Kasada yeterli para yok (${fmtShort(cost)}).';
+    cash -= cost;
+    c.followers *= 1.15;
+    c.growth = min(0.04, c.growth + 0.005);
+    c.campaignReadyDay = day + 5;
+    _notify('🚀 ${c.handle} reklam kampanyası: takipçiler +%15!');
+    _changed();
+    return null;
+  }
+
+  // =================================================================
+  // Öğretici görevler
+  // =================================================================
+
+  /// (başlık, açıklama, tamamlandı mı, ödül elmas)
+  List<(String, String, bool, int)> get goals => [
+        ('Kadro kur', 'İş ilanlarından en az 2 kişi işe al.', staff.length >= 2, 3),
+        ('İlk programını üret', 'Yapım ekranından bir format seç ve çekime başla.', shows.isNotEmpty, 3),
+        ('Yayına çık', 'Hazır programı bir yayın kuşağına koy.', shows.any((s) => s.status == ShowStatus.onAir || s.totalRevenue > 0), 3),
+        ('Reklam ayarı', 'Yayın ekranında reklam süresini kaydırıp en iyi noktayı bul.', adTouched, 2),
+        ('YouTuber transfer et', 'Dijital ekranından bir içerik üreticisi al.', creators.isNotEmpty, 3),
+        ('İlk filmini çek', 'Sinema ekranından bir film çek.', films.isNotEmpty, 3),
+        ('Stüdyoyu büyüt', 'Stüdyo ekranından bir üst seviyeye çık.', studioLevel >= 1, 5),
+      ];
+
+  int get currentGoal {
+    final g = goals;
+    for (int i = 0; i < g.length; i++) {
+      if (!claimedGoals.contains(i)) return i;
+    }
+    return -1;
+  }
+
+  void _checkGoals() {
+    final g = goals;
+    for (int i = 0; i < g.length; i++) {
+      if (g[i].$3 && !claimedGoals.contains(i)) {
+        claimedGoals.add(i);
+        diamonds += g[i].$4;
+        _notify('🎯 Görev tamam: ${g[i].$1}! +${g[i].$4} 💎');
+      }
+    }
+  }
+
+  void markIntroSeen() {
+    introSeen = true;
     _changed();
   }
 

@@ -4,6 +4,7 @@ import '../../core/format.dart';
 import '../../core/theme.dart';
 import '../../data/content.dart';
 import '../widgets/common.dart';
+import '../widgets/item_art.dart';
 import '../widgets/scene.dart';
 
 class StudioScreen extends StatelessWidget {
@@ -28,7 +29,7 @@ class StudioScreen extends StatelessWidget {
               colors: [Color(0xFF2E1F45), AppColors.panel]),
           child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
             StageScene(
-                kind: SceneKind.studio,
+                prop: Prop.studio,
                 color: AppColors.purple,
                 tier: (game.studioLevel / 2).floor().clamp(0, 2),
                 width: 150,
@@ -128,10 +129,11 @@ class _EquipCard extends StatelessWidget {
       padding: const EdgeInsets.all(12),
       borderColor: owned ? AppColors.green.withValues(alpha: 0.6) : null,
       child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        ArtTile(
-            icon: e.icon,
+        ItemArt(
+            id: e.id,
             color: owned ? AppColors.green : AppColors.cyan,
-            size: 64),
+            width: 96,
+            height: 84),
         const SizedBox(width: 10),
         Expanded(
           child: Column(

@@ -31,7 +31,8 @@ double showQuality(
     if (e == null || e.qualityBonus == 0) continue;
     if (e.boosts.isEmpty || e.boosts.contains(genre)) bonus += e.qualityBonus;
   }
-  return (avg * budgetTiers[tier].qualityMult * (1 + bonus)).clamp(0.0, 1.3);
+  return (avg * formatOf(genre, tier).qualityMult * (1 + bonus))
+      .clamp(0.0, 1.6);
 }
 
 /// İzleyicinin tahammül ettiği reklam süresi: kaliteli program daha çok
@@ -78,7 +79,7 @@ double adRevenuePerDay(
 double prestigeAdBonus(int prestige) => min(prestige / 5000, 0.30);
 
 double productionCost(Genre g, int tier) =>
-    genreDefs[g]!.baseCost * budgetTiers[tier].costMult;
+    genreDefs[g]!.baseCost * formatOf(g, tier).costMult;
 
 /// Kredi teklifleri (stüdyo seviyesine göre büyür).
 class LoanOffer {

@@ -282,4 +282,68 @@ void main() {
       g2.dispose();
     });
   });
+
+  group('Formatlar, dijital, geçmiş, görevler', () {
+    test('üst format kilitli, stüdyo büyüyünce açılır', () async {
+      final g = Game();
+      await g.start();
+      g.cash = 1e10;
+      expect(g.formatUnlocked(Genre.yarisma, 0), isTrue);
+      expect(g.formatUnlocked(Genre.yarisma, 3), isFalse, reason: 'ses yarışması sv3');
+      g.upgradeStudio();
+      g.upgradeStudio();
+      expect(g.formatUnlocked(Genre.yarisma, 3), isTrue);
+      expect(g.formatUnlocked(Genre.yarisma, 5), isFalse, reason: 'ada: drone + sv5');
+      g.dispose();
+    });
+
+    test('üst format daha pahalı ve daha kaliteli', () {
+      Staff p(int s) => Staff(id: 'x$s', name: 'a', role: Role.sunucu, skill: s, salary: 1);
+      expect(productionCost(Genre.yarisma, 4), greaterThan(productionCost(Genre.yarisma, 0)));
+      expect(showQuality([p(60)], Genre.yarisma, 4, const []),
+          greaterThan(showQuality([p(60)], Genre.yarisma, 0, const [])));
+    });
+
+    test('YouTuber: transfer, gelir, büyüme, kampanya', () async {
+      final g = Game();
+      await g.start();
+      g.cash = 1e9;
+      final c = g.creatorMarket.first;
+      expect(g.signCreator(c), isNull);
+      expect(g.creatorIncomePerDay, greaterThan(0));
+      final f0 = c.followers;
+      g.debugAdvanceDays(3);
+      expect(c.followers, greaterThan(f0));
+      final f1 = c.followers;
+      expect(g.runCampaign(c), isNull);
+      expect(c.followers, closeTo(f1 * 1.15, 1));
+      expect(g.runCampaign(c), isNotNull, reason: 'bekleme süresi');
+      g.dispose();
+    });
+
+    test('kasa geçmişi her gün kaydedilir ve gelir/gider doğru', () async {
+      final g = await gameWithShowOnAir();
+      g.debugAdvanceDays(3);
+      expect(g.history.length, 3);
+      final h = g.history.last;
+      expect(h.income, greaterThan(0));
+      expect(h.expense, greaterThan(0));
+      expect(g.history[1].cash + g.history[2].net, closeTo(g.history[2].cash, 2));
+      g.dispose();
+    });
+
+    test('görev tamamlanınca elmas ödülü verilir (bir kez)', () async {
+      final g = Game();
+      await g.start();
+      final d0 = g.diamonds;
+      g.cash = 1e9;
+      g.hire(g.market[0]);
+      g.hire(g.market[0]);
+      expect(g.claimedGoals, contains(0));
+      expect(g.diamonds, d0 + 3);
+      g.hire(g.market[0]);
+      expect(g.diamonds, d0 + 3);
+      g.dispose();
+    });
+  });
 }

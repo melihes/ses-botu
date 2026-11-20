@@ -5,6 +5,7 @@ import '../../core/theme.dart';
 import '../../data/content.dart';
 import '../../models/models.dart';
 import '../widgets/common.dart';
+import '../widgets/item_art.dart';
 
 class StaffScreen extends StatefulWidget {
   const StaffScreen({super.key});
@@ -88,11 +89,11 @@ class _PersonCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(children: [
-            CircleAvatar(
-              radius: 20,
-              backgroundColor: p.role.color.withValues(alpha: 0.2),
-              child: Icon(p.role.icon, color: p.role.color),
-            ),
+            PersonAvatar(
+                seed: p.id.hashCode,
+                color: p.role.color,
+                size: 46,
+                badgeIcon: p.role.icon),
             const SizedBox(width: 10),
             Expanded(
               child: Column(

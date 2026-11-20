@@ -5,6 +5,7 @@ import '../../core/theme.dart';
 import '../../data/content.dart';
 import '../../engine/economy.dart';
 import '../widgets/common.dart';
+import '../widgets/item_art.dart';
 
 class HoldingScreen extends StatelessWidget {
   const HoldingScreen({super.key});
@@ -69,7 +70,11 @@ class _BizCard extends StatelessWidget {
       padding: const EdgeInsets.all(12),
       borderColor: lv > 0 ? b.color.withValues(alpha: 0.6) : null,
       child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        ArtTile(icon: b.icon, color: b.color, size: 72,
+        ItemArt(
+            id: b.id,
+            color: b.color,
+            width: 96,
+            height: 84,
             badge: lv > 0 ? 'SV $lv' : null),
         const SizedBox(width: 10),
         Expanded(

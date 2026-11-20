@@ -10,6 +10,8 @@ import 'screens/bank_screen.dart';
 import 'screens/broadcast_screen.dart';
 import 'screens/channels_screen.dart';
 import 'screens/cinema_screen.dart';
+import 'screens/digital_screen.dart';
+import 'dialogs/tutorial.dart';
 import 'screens/holding_screen.dart';
 import 'screens/home_screen.dart';
 import 'screens/luxury_screen.dart';
@@ -25,6 +27,7 @@ enum PageId {
   production,
   broadcast,
   cinema,
+  digital,
   studio,
   holding,
   channels,
@@ -52,6 +55,8 @@ const _nav = [
       Icons.live_tv_rounded),
   _NavItem(PageId.cinema, 'Sinema', 'FİLM YAPIM', 'Sinema & haklar',
       Icons.theaters_rounded),
+  _NavItem(PageId.digital, 'Dijital', 'VİDEOM', 'Dijital · YouTuber\'lar',
+      Icons.smart_display_rounded),
   _NavItem(PageId.studio, 'Stüdyo', 'TESİSLER', 'Stüdyo & ekipman',
       Icons.domain_rounded),
   _NavItem(PageId.holding, 'Holding', 'YAN İŞLER', 'Holding',
@@ -93,6 +98,7 @@ class _ShellState extends State<Shell> {
         PageId.production => const ProductionScreen(),
         PageId.broadcast => const BroadcastScreen(),
         PageId.cinema => const CinemaScreen(),
+        PageId.digital => const DigitalScreen(),
         PageId.studio => const StudioScreen(),
         PageId.holding => const HoldingScreen(),
         PageId.bank => const BankScreen(),
@@ -100,6 +106,25 @@ class _ShellState extends State<Shell> {
         PageId.luxury => const LuxuryScreen(),
         PageId.online => const OnlineScreen(),
       };
+
+  bool _introShowing = false;
+
+  void _maybeShowIntro() {
+    if (_introShowing || _offlineShowing) return;
+    _introShowing = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (!mounted) return;
+      final game = GameScope.read(context);
+      await showIntroTutorial(context);
+      game.markIntroSeen();
+      _introShowing = false;
+    });
+  }
+
+  static const goalPages = [
+    PageId.staff, PageId.production, PageId.broadcast, PageId.broadcast,
+    PageId.digital, PageId.cinema, PageId.studio,
+  ];
 
   void _maybeShowOffline() {
     final game = GameScope.read(context);
@@ -121,6 +146,7 @@ class _ShellState extends State<Shell> {
   Widget build(BuildContext context) {
     final game = GameScope.of(context);
     if (game.pendingOffline != null) _maybeShowOffline();
+    if (!game.introSeen && game.pendingOffline == null) _maybeShowIntro();
     final item = _nav.firstWhere((n) => n.id == _page);
     return ShellNav(
       goTo: (p) => setState(() => _page = p),
@@ -145,6 +171,13 @@ class _ShellState extends State<Shell> {
                 ]),
               ),
             ]),
+            if (_page != PageId.home)
+              Positioned(
+              right: 10,
+              bottom: 10,
+              child: CoachBubble(
+                  onGo: (i) => setState(() => _page = goalPages[i])),
+            ),
             const _ToastHost(),
           ]),
         ),

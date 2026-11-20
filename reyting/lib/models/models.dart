@@ -229,6 +229,7 @@ class PeriodSummary {
   double boxOffice = 0;
   double platformIncome = 0;
   double bizIncome = 0;
+  double digitalIncome = 0;
   int filmsDone = 0;
   double eventCash = 0;
   int events = 0;
@@ -350,4 +351,64 @@ class Film {
             .map((e) => FilmLicense.fromJson(e))
             .toList(),
       );
+}
+
+/// Videom'daki içerik üreticisi (YouTuber)
+class Creator {
+  final String id;
+  final String name;
+  final String handle;
+  final Niche niche;
+  double followers;
+  double growth; // günlük büyüme oranı
+  final double engagement; // etkileşim oranı
+  final double salary;
+  int campaignReadyDay;
+  final int look; // avatar varyasyonu
+
+  Creator({
+    required this.id,
+    required this.name,
+    required this.handle,
+    required this.niche,
+    required this.followers,
+    required this.growth,
+    required this.engagement,
+    required this.salary,
+    this.campaignReadyDay = 0,
+    this.look = 0,
+  });
+
+  double get revenuePerDay => followers * engagement * 2;
+  double get signingFee => salary * 7;
+  double get campaignCost => followers * 0.5;
+
+  Map<String, dynamic> toJson() => {
+        'id': id, 'name': name, 'handle': handle, 'niche': niche.index,
+        'followers': followers, 'growth': growth, 'engagement': engagement,
+        'salary': salary, 'crd': campaignReadyDay, 'look': look,
+      };
+  factory Creator.fromJson(Map<String, dynamic> j) => Creator(
+        id: j['id'], name: j['name'], handle: j['handle'],
+        niche: Niche.values[j['niche']],
+        followers: (j['followers'] as num).toDouble(),
+        growth: (j['growth'] as num).toDouble(),
+        engagement: (j['engagement'] as num).toDouble(),
+        salary: (j['salary'] as num).toDouble(),
+        campaignReadyDay: j['crd'] ?? 0,
+        look: j['look'] ?? 0,
+      );
+}
+
+/// Kasa geçmişi (grafik için): bir günün özeti
+class DayStat {
+  final int day;
+  final double cash;
+  final double income;
+  final double expense;
+  DayStat(this.day, this.cash, this.income, this.expense);
+  double get net => income - expense;
+  List<num> toJson() => [day, cash.round(), income.round(), expense.round()];
+  factory DayStat.fromJson(List j) => DayStat(j[0] as int, (j[1] as num).toDouble(),
+      (j[2] as num).toDouble(), (j[3] as num).toDouble());
 }

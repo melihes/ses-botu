@@ -740,3 +740,136 @@ BizDef? bizById(String id) {
   }
   return null;
 }
+
+// =====================================================================
+// FORMATLAR: her türün seviyeli program formatları (bütçe merdiveni)
+// =====================================================================
+
+/// Sahnede çizilecek dekor
+enum Prop {
+  // dizi
+  livingRoom, neighborhood, sitcom, police, palace, epic,
+  // yarışma
+  quiz, couples, wheel, voice, talent, island,
+  // haber
+  newsDesk, globe, debate, field, election,
+  // magazin
+  gossip, redCarpet, paparazzi, awards,
+  // talk show
+  morning, nightShow, standup, sketch, newYear,
+  // belgesel
+  nature, ocean, history, space,
+  // spor
+  sportsDesk, football, basketball, derby, tournament,
+  // çocuk
+  cartoon, puppet, lab, kidsStage,
+  // diğer
+  film, studio,
+}
+
+class FormatDef {
+  final String name;
+  final String desc;
+  final Prop prop;
+  final double costMult;
+  final double qualityMult;
+  final int unlockLevel; // stüdyo seviyesi
+  final String? reqEquip;
+  const FormatDef(this.name, this.desc, this.prop, this.costMult,
+      this.qualityMult, this.unlockLevel,
+      {this.reqEquip});
+}
+
+const genreFormats = <Genre, List<FormatDef>>{
+  Genre.dizi: [
+    FormatDef('Gündüz dizisi', 'Ev içinde geçen sıcak aile hikâyesi. Ucuz ve sade.', Prop.livingRoom, 0.5, 0.85, 1),
+    FormatDef('Mahalle dizisi', 'Mahallede dostluk, aşk ve dedikodu.', Prop.neighborhood, 1, 1.0, 1),
+    FormatDef('Komedi dizisi', 'Seyircili çekilen, kahkahalı aile komedisi.', Prop.sitcom, 1.5, 1.1, 2),
+    FormatDef('Polisiye', 'Gece çekimleri, sirenler, kovalamacalar.', Prop.police, 2.5, 1.22, 3),
+    FormatDef('Dönem dizisi', 'Saraylar, kostümler, görkemli dekorlar.', Prop.palace, 4, 1.35, 4),
+    FormatDef('Süper yapım', 'Dünyaya satılacak dev bütçeli epik yapım.', Prop.epic, 7, 1.5, 5),
+  ],
+  Genre.yarisma: [
+    FormatDef('Bilgi yarışması', 'Klasik soru-cevap. Ucuz, sevimli, sadık izleyici.', Prop.quiz, 0.5, 0.85, 1),
+    FormatDef('Çiftler yarışması', 'Eşler birbirini ne kadar tanıyor? Kahkaha garantili.', Prop.couples, 1, 1.0, 1),
+    FormatDef('Şans çarkı', 'Çark döner, harfler açılır, ödüller dağılır.', Prop.wheel, 1.6, 1.12, 2),
+    FormatDef('Ses yarışması', 'Jüri koltukları dönüyor, en güzel ses kazanıyor.', Prop.voice, 2.8, 1.25, 3),
+    FormatDef('Yetenek şovu', 'Jüri önünde her türlü yetenek: dans, sihir, akrobasi.', Prop.talent, 4.5, 1.38, 4),
+    FormatDef('Adada Kalan', 'İki takım, ıssız bir ada, dev prodüksiyon. Drone ekibi şart.', Prop.island, 8, 1.55, 5, reqEquip: 'drone'),
+  ],
+  Genre.haber: [
+    FormatDef('Yerel bülten', 'Tek sunucu, sade masa, şehir haberleri.', Prop.newsDesk, 0.5, 0.85, 1),
+    FormatDef('Ana haber', 'Dev ekranlar, dönen dünya, ülke gündemi.', Prop.globe, 1, 1.0, 1),
+    FormatDef('Tartışma programı', 'Dört konuk, sıcak gündem, yüksek ses!', Prop.debate, 1.6, 1.12, 2),
+    FormatDef('Sahadan canlı', 'Canlı yayın aracıyla olay yerinden bağlantı.', Prop.field, 2.5, 1.25, 3, reqEquip: 'ob'),
+    FormatDef('Seçim gecesi', 'Canlı sonuçlar, grafikler, sabaha kadar yayın.', Prop.election, 4, 1.38, 4),
+  ],
+  Genre.magazin: [
+    FormatDef('Stüdyo magazini', 'İki sunucu, bol dedikodu.', Prop.gossip, 0.5, 0.85, 1),
+    FormatDef('Kırmızı halı', 'Ünlülerin geçidi, flaş patlamaları.', Prop.redCarpet, 1, 1.0, 1),
+    FormatDef('Paparazzi takibi', 'Gece sokaklarda ünlü avı.', Prop.paparazzi, 1.8, 1.15, 2),
+    FormatDef('Ödül gecesi', 'Yılın yıldızlarına ödüller, canlı tören.', Prop.awards, 3.5, 1.32, 4),
+  ],
+  Genre.talkShow: [
+    FormatDef('Sabah kuşağı', 'Mutfakta kahve eşliğinde sohbet.', Prop.morning, 0.5, 0.85, 1),
+    FormatDef('Gece talk show', 'Şehir manzarası, ünlü konuklar, esprili sunucu.', Prop.nightShow, 1, 1.0, 1),
+    FormatDef('Stand-up gecesi', 'Tuğla duvar, tek spot, bol kahkaha.', Prop.standup, 1.6, 1.12, 2),
+    FormatDef('Skeç şovu', 'Kostümlü komedi skeçleri.', Prop.sketch, 2.6, 1.25, 3),
+    FormatDef('Yılbaşı özel', 'Havai fişekler, dev kadro, rekor reyting.', Prop.newYear, 4.5, 1.4, 4),
+  ],
+  Genre.belgesel: [
+    FormatDef('Doğa belgeseli', 'Dağlar, ormanlar, vahşi yaşam.', Prop.nature, 1, 1.0, 1),
+    FormatDef('Okyanus belgeseli', 'Mercanlar ve derin deniz canlıları.', Prop.ocean, 1.6, 1.15, 2),
+    FormatDef('Tarih belgeseli', 'Antik kentlerin sırları.', Prop.history, 2.4, 1.25, 3),
+    FormatDef('Uzay belgeseli', 'Gezegenler, roketler, sonsuz evren.', Prop.space, 4, 1.4, 4),
+  ],
+  Genre.spor: [
+    FormatDef('Spor bülteni', 'Günün skorları ve yorumları.', Prop.sportsDesk, 0.5, 0.85, 1),
+    FormatDef('Futbol maçı', 'Canlı lig maçı yayını.', Prop.football, 1, 1.0, 1),
+    FormatDef('Basketbol maçı', 'Parkede heyecan, son saniye basketleri.', Prop.basketball, 1.6, 1.12, 2),
+    FormatDef('Derbi gecesi', 'Meşaleler, dev tribün, yılın maçı.', Prop.derby, 3, 1.3, 3),
+    FormatDef('Uluslararası turnuva', 'Kıtalar arası kupa yayın hakları.', Prop.tournament, 5, 1.45, 5),
+  ],
+  Genre.cocuk: [
+    FormatDef('Çizgi film kuşağı', 'Sevimli karakterler, ucuz ve sürekli.', Prop.cartoon, 0.5, 0.85, 1),
+    FormatDef('Kukla tiyatrosu', 'Çocukların bayıldığı kukla gösterisi.', Prop.puppet, 1, 1.0, 1),
+    FormatDef('Bilim atölyesi', 'Fokurdayan deneyler, eğlenceli bilim.', Prop.lab, 1.6, 1.12, 2),
+    FormatDef('Çocuk şarkı yarışması', 'Gökkuşağı sahnesinde minik sesler.', Prop.kidsStage, 2.5, 1.25, 3),
+  ],
+};
+
+FormatDef formatOf(Genre g, int tier) {
+  final l = genreFormats[g]!;
+  return l[tier.clamp(0, l.length - 1)];
+}
+
+// =====================================================================
+// DİJİTAL: video platformu "Videom" ve içerik üreticileri (kurgusal)
+// =====================================================================
+enum Niche { oyun, yemek, komedi, vlog, teknoloji, guzellik, muzik, spor }
+
+extension NicheX on Niche {
+  String get label => const [
+        'Oyun', 'Yemek', 'Komedi', 'Vlog', 'Teknoloji', 'Güzellik', 'Müzik', 'Spor'
+      ][index];
+  IconData get icon => const [
+        Icons.sports_esports_rounded,
+        Icons.restaurant_rounded,
+        Icons.mood_rounded,
+        Icons.flight_rounded,
+        Icons.memory_rounded,
+        Icons.brush_rounded,
+        Icons.headphones_rounded,
+        Icons.fitness_center_rounded,
+      ][index];
+  Color get color => const [
+        AppColors.purple, AppColors.orange, AppColors.yellow, AppColors.cyan,
+        AppColors.blue, AppColors.pink, AppColors.accent, AppColors.green,
+      ][index];
+  String get handleWord => const [
+        'oyunda', 'mutfakta', 'gulduruyor', 'yolda', 'teknolojik', 'guzellik',
+        'muzik', 'formda'
+      ][index];
+}
+
+const videoPlatformName = 'Videom';
