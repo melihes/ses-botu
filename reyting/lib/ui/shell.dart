@@ -14,6 +14,7 @@ import 'screens/digital_screen.dart';
 import 'dialogs/tutorial.dart';
 import 'dialogs/events_dialogs.dart';
 import 'screens/trophies_screen.dart';
+import 'screens/market_screen.dart';
 import 'screens/holding_screen.dart';
 import 'screens/home_screen.dart';
 import 'screens/luxury_screen.dart';
@@ -33,6 +34,7 @@ enum PageId {
   studio,
   holding,
   channels,
+  market,
   bank,
   luxury,
   trophies,
@@ -66,6 +68,8 @@ const _nav = [
       Icons.business_center_rounded),
   _NavItem(PageId.channels, 'Pazar', 'SATIN ALMA', 'Kanal & platform pazarı',
       Icons.connected_tv_rounded),
+  _NavItem(PageId.market, 'Borsa', 'MEDYA BORSASI', 'Borsa',
+      Icons.candlestick_chart_rounded),
   _NavItem(PageId.bank, 'Banka', 'FİNANS', 'Banka',
       Icons.account_balance_rounded),
   _NavItem(PageId.luxury, 'Lüks', 'YAŞAM', 'Lüks yaşam',
@@ -109,6 +113,7 @@ class _ShellState extends State<Shell> {
         PageId.bank => const BankScreen(),
         PageId.channels => const ChannelsScreen(),
         PageId.luxury => const LuxuryScreen(),
+        PageId.market => const MarketScreen(),
         PageId.trophies => const TrophiesScreen(),
         PageId.online => const OnlineScreen(),
       };

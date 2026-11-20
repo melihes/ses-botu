@@ -14,7 +14,7 @@ class TrophiesScreen extends StatefulWidget {
 }
 
 class _TrophiesScreenState extends State<TrophiesScreen> {
-  int _tab = 0;
+  int _tab = 3;
 
   @override
   Widget build(BuildContext context) {
@@ -29,6 +29,7 @@ class _TrophiesScreenState extends State<TrophiesScreen> {
               'Başarımlar $done/${achDefs.length}',
               'Ödül dolabı ${game.trophies.length}',
               'Koleksiyon ${game.ownedLuxury.length}/${luxuryDefs.length}',
+              'Zenginler #${game.richRank}',
             ],
             selected: _tab,
             onChanged: (i) => setState(() => _tab = i),
@@ -94,6 +95,11 @@ class _TrophiesScreenState extends State<TrophiesScreen> {
                 ]),
               ),
           ]),
+        ],
+        if (_tab == 3) ...[
+          PageHint('Zenginler listesi Şirket Değeri\'ne göre sıralanır. Şu an ${game.richRank}. sıradasın. '
+              'Online sürümde bu listede gerçek oyuncular yarışacak.'),
+          _RichList(),
         ],
         if (_tab == 2) ...[
           const PageHint('Lüks koleksiyonun. Sahip olmadıkların gölgede bekliyor!'),
@@ -171,4 +177,65 @@ class _Badge extends StatelessWidget {
           ),
         ]),
       );
+}
+
+class _RichList extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    final game = GameScope.of(context);
+    final me = game.netWorth;
+    final myRank = game.richRank;
+    final rows = <(int, String, double, bool)>[];
+    int r = 1;
+    var placed = false;
+    for (int i = 0; i < 150 && r <= 100; i++) {
+      final w = game.tycoonWorth(i);
+      if (!placed && me >= w) {
+        rows.add((r++, game.channelName, me, true));
+        placed = true;
+      }
+      if (r > 100) break;
+      rows.add((r++, game.tycoonName(i), w, false));
+    }
+    final needed = myRank > 100 ? game.tycoonWorth(99) : null;
+    return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+      if (needed != null)
+        Panel(
+          padding: const EdgeInsets.all(10),
+          borderColor: AppColors.accent.withValues(alpha: 0.6),
+          child: Text(
+              'Sen: $myRank. sıra · ${fmtShort(me)}. İlk 100 için ${fmtShort(needed)} gerekiyor '
+              '(%${(me / needed * 100).clamp(0, 100).toStringAsFixed(1)} yoldasın).',
+              style: const TextStyle(fontWeight: FontWeight.w800)),
+        ),
+      const SizedBox(height: 6),
+      AutoGrid(minItemWidth: 260, spacing: 6, children: [
+        for (final row in rows)
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+            decoration: BoxDecoration(
+              color: row.$4 ? AppColors.accent.withValues(alpha: 0.2) : AppColors.panel,
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: row.$4 ? AppColors.accent : AppColors.border),
+            ),
+            child: Row(children: [
+              SizedBox(
+                width: 34,
+                child: Text('${row.$1}',
+                    style: TextStyle(
+                        fontWeight: FontWeight.w900,
+                        color: row.$1 <= 3 ? AppColors.yellow : AppColors.textDim)),
+              ),
+              Expanded(
+                child: Text(row.$2,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(fontWeight: row.$4 ? FontWeight.w900 : FontWeight.w600)),
+              ),
+              Text(fmtShort(row.$3), style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 12)),
+            ]),
+          ),
+      ]),
+    ]);
+  }
 }

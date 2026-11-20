@@ -31,3 +31,11 @@ Hedef: akıllı oyuncu son seviyeye ~200-220. günde, 300. günde şirket değer
 Kaçak liderliği frenleyen kurallar: rakip baskısı (zamanla en fazla -%35),
 aynı türe yığılma cezası (her ek program -%12), boştaki kadroya yarım maaş.
 Online sıralama ölçüsü: Şirket Değeri (kasa + varlıklar - borç).
+
+## Uzun vade: 1 yıllık zirve (v0.7)
+`flutter test test/sim/long_sim.dart --dart-define=DAYS=80000` akıllı botu 80.000 gün oynatır.
+Varsayım: ciddi oyuncu gerçek günde ~180-200 oyun günü ilerler (aktif oyun + çevrimdışı).
+Ölçülen: ilk 100 ~800. gün, 12. (son) stüdyo seviyesi ~65.000. gün (~1 yıl), o anda
+zenginler listesinde ~9. sıra. Birincilik için borsa al-satı gerekir.
+Uzun simülasyonun yakaladığı hatalar: sınırsız katlanan YouTuber takipçisi (doyma tavanı
+eklendi) ve üst üste binen zamlar (maaş tavanı = piyasa maaşının 2 katı).

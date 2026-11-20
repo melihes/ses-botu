@@ -60,6 +60,12 @@ class Game extends ChangeNotifier {
   final List<Trophy> trophies = [];
   final Set<String> achievements = {};
   Decision? pendingDecision;
+  final Map<String, double> stockPrices = {};
+  final Map<String, List<double>> stockHist = {};
+  final Map<String, double> holdings = {};
+  final Map<String, double> costBasis = {};
+  double tradingProfit = 0;
+  int lastStockHour = 0;
   List<AwardResult>? pendingAwards;
   final Map<String, NegState> negotiations = {};
   final List<double> cashHistory = [];
@@ -143,6 +149,10 @@ class Game extends ChangeNotifier {
     achievements.clear();
     pendingDecision = null;
     pendingAwards = null;
+    _initStocks();
+    holdings.clear();
+    costBasis.clear();
+    tradingProfit = 0;
     _refreshCreators();
     negotiations.clear();
     cashHistory
@@ -288,6 +298,12 @@ class Game extends ChangeNotifier {
         'decisionsMade': decisionsMade,
         'trophies': trophies.map((e) => e.toJson()).toList(),
         'achievements': achievements.toList(),
+        'stockPrices': stockPrices,
+        'stockHist': stockHist,
+        'holdings': holdings,
+        'costBasis': costBasis,
+        'tradingProfit': tradingProfit,
+        'lastStockHour': lastStockHour,
         'negotiations': {
           for (final e in negotiations.entries) e.key: e.value.toJson()
         },
@@ -376,6 +392,30 @@ class Game extends ChangeNotifier {
     achievements
       ..clear()
       ..addAll(List<String>.from(j['achievements'] ?? []));
+    stockPrices.clear();
+    stockHist.clear();
+    if (j['stockPrices'] == null) {
+      _initStocks();
+    } else {
+      (j['stockPrices'] as Map<String, dynamic>)
+          .forEach((k, v) => stockPrices[k] = (v as num).toDouble());
+      (j['stockHist'] as Map<String, dynamic>).forEach((k, v) => stockHist[k] =
+          (v as List).map((e) => (e as num).toDouble()).toList());
+      for (final d in stockDefs) {
+        stockPrices.putIfAbsent(d.ticker, () => d.basePrice);
+        stockHist.putIfAbsent(d.ticker, () => [d.basePrice]);
+      }
+    }
+    holdings
+      ..clear()
+      ..addAll((j['holdings'] as Map<String, dynamic>? ?? {})
+          .map((k, v) => MapEntry(k, (v as num).toDouble())));
+    costBasis
+      ..clear()
+      ..addAll((j['costBasis'] as Map<String, dynamic>? ?? {})
+          .map((k, v) => MapEntry(k, (v as num).toDouble())));
+    tradingProfit = (j['tradingProfit'] as num? ?? 0).toDouble();
+    lastStockHour = j['lastStockHour'] ?? ((day + dayProgress) * 24).floor();
     negotiations
       ..clear()
       ..addAll((j['negotiations'] as Map<String, dynamic>)
@@ -406,6 +446,12 @@ class Game extends ChangeNotifier {
       _accrue(step);
       dayProgress += step;
       rem -= step;
+      final hourNow = (gameTime * 24).floor();
+      if (lastStockHour < hourNow - 24 * 40) lastStockHour = hourNow - 24 * 40;
+      while (lastStockHour < hourNow) {
+        lastStockHour++;
+        _stockTick(lastStockHour);
+      }
       final pd = pendingDecision;
       if (pd != null && gameTime >= pd.deadline) {
         resolveDecision(pd.defaultOption, auto: true);
@@ -543,6 +589,7 @@ class Game extends ChangeNotifier {
       if (s.episodesAired >= s.seasonDays) _endSeason(s);
     }
     _buildReport();
+    _stockNews();
     _maybeDecision();
     if (day % 30 == 0) _awardCeremony();
 
@@ -562,7 +609,9 @@ class Game extends ChangeNotifier {
     }
 
     for (final c in creators) {
-      c.followers *= 1 + c.growth;
+      // tavana yaklaştıkça büyüme yavaşlar (doyma)
+      final room = max(0.0, 1 - c.followers / followerCap);
+      c.followers *= 1 + c.growth * room;
       c.growth = max(0.002, c.growth * 0.995);
     }
     if (day % 5 == 0) _refreshCreators();
@@ -720,7 +769,7 @@ class Game extends ChangeNotifier {
     for (final id in ownedEquip) {
       r += equipById(id)?.reachBonus ?? 0;
     }
-    return min(r, 1.2);
+    return r;
   }
 
   int get prestige {
@@ -765,6 +814,7 @@ class Game extends ChangeNotifier {
     for (final f in films) {
       if (f.rightsOwned && f.score > 0) v += filmValue(f);
     }
+    v += portfolioValue;
     return v;
   }
 
@@ -1486,7 +1536,10 @@ class Game extends ChangeNotifier {
     return null;
   }
 
-  int get maxCreators => 3 + studioLevel * 2;
+  int get maxCreators => 3 + min(studioLevel, 5) * 2 + max(0, studioLevel - 5);
+
+  /// Bir içerik üreticisinin ulaşabileceği en fazla takipçi (erişime bağlı)
+  double get followerCap => 3e6 * reach * reach;
 
   String? signCreator(Creator c) {
     if (creators.length >= maxCreators) {
@@ -1515,7 +1568,7 @@ class Game extends ChangeNotifier {
     final cost = c.campaignCost;
     if (cash < cost) return 'Kasada yeterli para yok (${fmtShort(cost)}).';
     cash -= cost;
-    c.followers *= 1.15;
+    c.followers = min(followerCap, c.followers * 1.15);
     c.growth = min(0.04, c.growth + 0.005);
     c.campaignReadyDay = day + 5;
     _notify('🚀 ${c.handle} reklam kampanyası: takipçiler +%15!');
@@ -1637,7 +1690,7 @@ class Game extends ChangeNotifier {
     final stars = staff.where((p) => p.isStar).toList();
     if (stars.isNotEmpty && _rng.nextDouble() < 0.03) {
       final p = stars[_rng.nextInt(stars.length)];
-      if (_rng.nextBool()) {
+      if (_rng.nextBool() && p.salary < salaryFor(p.skill) * 1.9) {
         _setDecision(Decision(
           kind: 'raise',
           title: '⭐ ${p.name} zam istiyor',
@@ -1807,6 +1860,8 @@ class Game extends ChangeNotifier {
   void _replaceSalary(Staff p, double salary) {
     final i = staff.indexOf(p);
     if (i < 0) return;
+    // zam tavanı: piyasa maaşının en fazla 2 katı
+    salary = min(salary, salaryFor(p.skill) * 2);
     staff[i] = Staff(
         id: p.id, name: p.name, role: p.role, skill: p.skill,
         salary: (salary / 100).round() * 100.0, showId: p.showId);
@@ -1884,6 +1939,142 @@ class Game extends ChangeNotifier {
         _notify('🎖️ Başarım: ${a.title}! +${a.reward} 💎');
       }
     }
+  }
+
+  // =================================================================
+  // Medya Borsası
+  // =================================================================
+
+  void _initStocks() {
+    stockPrices.clear();
+    stockHist.clear();
+    for (final d in stockDefs) {
+      stockPrices[d.ticker] = d.basePrice;
+      stockHist[d.ticker] = [d.basePrice];
+    }
+    lastStockHour = ((day + dayProgress) * 24).floor();
+  }
+
+  double _gauss() {
+    final u1 = max(1e-9, _rng.nextDouble()), u2 = _rng.nextDouble();
+    return sqrt(-2 * log(u1)) * cos(2 * pi * u2);
+  }
+
+  /// Şirketin "adil değeri" zamanla büyür (ekonomi büyüyor).
+  double fairPrice(StockDef d) => d.basePrice * (1 + day / 3000);
+
+  void _stockTick(int hour) {
+    for (final d in stockDefs) {
+      final p = stockPrices[d.ticker] ?? d.basePrice;
+      final gap = log(fairPrice(d) / p);
+      final ret = 0.01 * gap + d.volatility / sqrt(24) * _gauss();
+      final np = max(0.05, p * exp(ret));
+      stockPrices[d.ticker] = np;
+      if (hour % 3 == 0) {
+        final h = stockHist[d.ticker]!..add(np);
+        if (h.length > 80) h.removeAt(0);
+      }
+    }
+  }
+
+  static const _goodNews = [
+    'yeni dizisiyle rekor kırdı',
+    'yurt dışına büyük satış yaptı',
+    'rekor kâr açıkladı',
+    'dev bir sponsorlukla anlaştı',
+  ];
+  static const _badNews = [
+    'zarar açıkladı',
+    'yıldız oyuncusunu kaybetti',
+    'yayın cezası aldı',
+    'reytinglerde çakıldı',
+  ];
+
+  void _stockNews() {
+    if (_rng.nextDouble() > 0.25) return;
+    final d = stockDefs[_rng.nextInt(stockDefs.length)];
+    final up = _rng.nextBool();
+    final pct = 0.06 + _rng.nextDouble() * 0.12;
+    stockPrices[d.ticker] = stockPrices[d.ticker]! * (up ? 1 + pct : 1 - pct);
+    final msg = '${d.name} ${(up ? _goodNews : _badNews)[_rng.nextInt(4)]}';
+    lastStockNews = '📰 ${d.ticker}: $msg (${up ? '+' : '-'}%${(pct * 100).round()})';
+    if (holdings.containsKey(d.ticker)) _notify(lastStockNews!);
+  }
+
+  String? lastStockNews;
+
+  double priceOf(String t) => stockPrices[t] ?? 0;
+  double get portfolioValue =>
+      holdings.entries.fold(0.0, (a, e) => a + e.value * priceOf(e.key));
+
+  StockDef stockDef(String t) => stockDefs.firstWhere((d) => d.ticker == t);
+
+  /// En fazla şirketin %25'i alınabilir.
+  double maxBuyable(String t) {
+    final d = stockDef(t);
+    final room = d.shares * 0.25 - (holdings[t] ?? 0);
+    final afford = cash / (priceOf(t) * 1.003);
+    return max(0, min(room, afford)).floorToDouble();
+  }
+
+  String? buyStock(String t, double qty) {
+    qty = qty.floorToDouble();
+    if (qty < 1) return 'En az 1 hisse almalısın.';
+    final d = stockDef(t);
+    if ((holdings[t] ?? 0) + qty > d.shares * 0.25) {
+      return 'Bir şirketin en fazla %25\'ine sahip olabilirsin.';
+    }
+    final cost = priceOf(t) * qty * 1.003; // %0,3 komisyon
+    if (cash < cost) return 'Kasada yeterli para yok.';
+    cash -= cost;
+    holdings[t] = (holdings[t] ?? 0) + qty;
+    costBasis[t] = (costBasis[t] ?? 0) + cost;
+    // büyük alımlar fiyatı yukarı iter
+    stockPrices[t] = priceOf(t) * (1 + qty / d.shares * 0.5);
+    _changed();
+    return null;
+  }
+
+  String? sellStock(String t, double qty) {
+    qty = min(qty.floorToDouble(), holdings[t] ?? 0);
+    if (qty < 1) return 'Satacak hissen yok.';
+    final d = stockDef(t);
+    final have = holdings[t]!;
+    final proceeds = priceOf(t) * qty * 0.997;
+    final basis = (costBasis[t] ?? 0) * qty / have;
+    tradingProfit += proceeds - basis;
+    _gain(proceeds);
+    holdings[t] = have - qty;
+    costBasis[t] = (costBasis[t] ?? 0) - basis;
+    if (holdings[t]! < 1) {
+      holdings.remove(t);
+      costBasis.remove(t);
+    }
+    // büyük satışlar fiyatı aşağı iter
+    stockPrices[t] = priceOf(t) * (1 - qty / d.shares * 0.5);
+    _changed();
+    return null;
+  }
+
+  // =================================================================
+  // Zenginler listesi
+  // =================================================================
+
+  /// Kurgusal patronların servetleri (online'da gerçek oyuncular gelecek)
+  double tycoonWorth(int i) => 5e12 * exp(-i * 0.075) * (1 + day / 60000);
+
+  String tycoonName(int i) =>
+      '${firstNames[(i * 17 + 3) % firstNames.length]} '
+      '${lastNames[(i * 11 + 5) % lastNames.length]} '
+      '${tycoonFirms[(i * 3) % tycoonFirms.length]}';
+
+  int get richRank {
+    final me = netWorth;
+    int rank = 1;
+    for (int i = 0; i < 150; i++) {
+      if (tycoonWorth(i) > me) rank++;
+    }
+    return rank;
   }
 
   // =================================================================

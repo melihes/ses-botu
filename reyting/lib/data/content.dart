@@ -331,6 +331,13 @@ const studioLevels = [
   StudioLevel('Büyük Plato', 0.70, 25000000, 90000, 32),
   StudioLevel('Medya Kampüsü', 0.85, 130000000, 250000, 45),
   StudioLevel('Medya İmparatorluğu', 1.00, 500000000, 600000, 60),
+  // ---- Uluslararası genişleme: uzun soluklu hedefler ----
+  StudioLevel('Balkan Yayın Ağı', 1.30, 35e9, 1500000, 70),
+  StudioLevel('Avrasya Medya Grubu', 1.70, 135e9, 3000000, 80),
+  StudioLevel('Kıtalararası Ağ', 2.20, 420e9, 5000000, 90),
+  StudioLevel('Küresel Yayın Devi', 2.90, 1e12, 8000000, 100),
+  StudioLevel('Dünya Medya İmparatorluğu', 3.80, 2e12, 12000000, 110),
+  StudioLevel('Efsanevi Medya Patronu', 5.00, 3.5e12, 18000000, 120),
 ];
 
 /// Lüks yaşam
@@ -899,4 +906,43 @@ const sponsorBrands = [
   'Fırtına Cola', 'Köpük Deterjan', 'Lezzet Çikolata', 'Hızlı Kargo',
   'Mavi Banka', 'Çıtır Cips', 'Parla Diş Macunu', 'Rüzgâr Turizm',
   'Bulut Telekom', 'Sıcak Fırın Bisküvi',
+];
+
+// =====================================================================
+// MEDYA BORSASI: kurgusal şirket hisseleri
+// =====================================================================
+class StockDef {
+  final String ticker;
+  final String name;
+  final String sector;
+  final double basePrice;
+  final double shares; // toplam hisse adedi
+  final double volatility; // günlük oynaklık
+  final Color color;
+  const StockDef(this.ticker, this.name, this.sector, this.basePrice,
+      this.shares, this.volatility, this.color);
+}
+
+const stockDefs = [
+  StockDef('MRTV', 'Martı TV', 'Yerel yayın', 4.2, 30e6, 0.045, AppColors.blue),
+  StockDef('PSLA', 'Pusula Medya', 'Yerel yayın', 7.8, 40e6, 0.04, AppColors.teal),
+  StockDef('TLSM', 'Telesim', 'Bölgesel yayın', 18.5, 80e6, 0.035, AppColors.orange),
+  StockDef('KZY24', 'Kuzey 24 Haber', 'Haber', 26.0, 120e6, 0.03, AppColors.red),
+  StockDef('MVEK', 'Mavi Ekran Grubu', 'Ulusal yayın', 54.0, 250e6, 0.028, AppColors.purple),
+  StockDef('YLDZ', 'Yıldız Kanal', 'Eğlence', 88.0, 400e6, 0.03, AppColors.yellow),
+  StockDef('NOVA', 'Nova Türk Yapım', 'Dizi yapımı', 140.0, 600e6, 0.032, AppColors.pink),
+  StockDef('UFUK', 'Ufuk Global', 'Uluslararası', 320.0, 1.2e9, 0.025, AppColors.green),
+  StockDef('SYRL', 'Seyirlik Dijital', 'Dijital platform', 12.0, 150e6, 0.055, AppColors.teal),
+  StockDef('AKIS', 'Akış+ Teknoloji', 'Dijital platform', 45.0, 300e6, 0.05, AppColors.accent),
+  StockDef('GLKS', 'Galaksi Play', 'Dijital platform', 210.0, 900e6, 0.045, AppColors.blue),
+  StockDef('VDOM', 'Videom', 'Video platformu', 95.0, 1.5e9, 0.06, AppColors.accent),
+  StockDef('BYZP', 'Beyazperde Sinemaları', 'Sinema', 22.0, 100e6, 0.035, AppColors.red),
+  StockDef('NOTA', 'Nota Müzik', 'Müzik', 9.5, 60e6, 0.04, AppColors.yellow),
+  StockDef('REKL', 'Reklamix Ajans', 'Reklam', 31.0, 90e6, 0.038, AppColors.orange),
+  StockDef('UYDU', 'Yörünge Uydu', 'Altyapı', 480.0, 2e9, 0.022, AppColors.cyan),
+];
+
+/// Zenginler listesindeki kurgusal patronlar (online'da gerçek oyuncular gelecek)
+const tycoonFirms = [
+  'Holding', 'Medya Grubu', 'Yatırım', 'Yapım', 'Grup', 'Global', 'Medya',
 ];

@@ -92,7 +92,7 @@ class LoanOffer {
 }
 
 List<LoanOffer> loanOffersFor(int level) {
-  final scale = pow(3, level).toDouble();
+  final scale = pow(3, min(level, 6)).toDouble() * pow(1.8, max(0, level - 6));
   return [
     LoanOffer(500000 * scale, 4, 0.12),
     LoanOffer(1500000 * scale, 8, 0.20),

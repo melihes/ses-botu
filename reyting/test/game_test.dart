@@ -505,4 +505,68 @@ void main() {
       g.dispose();
     });
   });
+
+  test('HATA #3: art arda zamlar maaşı sınırsız büyütemez', () async {
+    final g = Game();
+    await g.start();
+    g.staff.add(Staff(id: 'star', name: 'Yıldız', role: Role.oyuncu, skill: 95, salary: salaryFor(95)));
+    for (int i = 0; i < 50; i++) {
+      g.pendingDecision = Decision(kind: 'raise', title: 't', body: 'b',
+          options: ['a', 'b', 'c'], hints: ['', '', ''], targetId: 'star');
+      g.resolveDecision(0);
+    }
+    expect(g.staffById('star')!.salary, lessThanOrEqualTo(salaryFor(95) * 2 + 100));
+    g.dispose();
+  });
+
+  group('Borsa ve zenginler', () {
+    test('hisse al-sat: komisyon ve kâr hesabı', () async {
+      final g = Game();
+      await g.start();
+      g.cash = 1e8;
+      final t = stockDefs.first.ticker;
+      final p0 = g.priceOf(t);
+      expect(g.buyStock(t, 1000), isNull);
+      expect(g.holdings[t], 1000);
+      expect(g.cash, closeTo(1e8 - p0 * 1000 * 1.003, 1));
+      expect(g.netWorth, greaterThan(1e8 - p0 * 1000 * 0.01));
+      expect(g.sellStock(t, 1000), isNull);
+      expect(g.holdings.containsKey(t), isFalse);
+      expect(g.tradingProfit, lessThan(0), reason: 'anında al-sat komisyon kaybettirir');
+      g.dispose();
+    });
+
+    test('bir şirketin en fazla %25\'i alınabilir', () async {
+      final g = Game();
+      await g.start();
+      g.cash = 1e15;
+      final d = stockDefs.first;
+      expect(g.buyStock(d.ticker, d.shares * 0.3), isNotNull);
+      expect(g.maxBuyable(d.ticker), lessThanOrEqualTo(d.shares * 0.25));
+      g.dispose();
+    });
+
+    test('fiyatlar zamanla hareket eder ve pozitif kalır', () async {
+      final g = Game();
+      await g.start();
+      final before = Map.of(g.stockPrices);
+      g.debugAdvanceDays(20);
+      var moved = 0;
+      for (final d in stockDefs) {
+        expect(g.priceOf(d.ticker), greaterThan(0));
+        if ((g.priceOf(d.ticker) - before[d.ticker]!).abs() > 1e-6) moved++;
+      }
+      expect(moved, stockDefs.length);
+      g.dispose();
+    });
+
+    test('zenginler sırası servet arttıkça yükselir', () async {
+      final g = Game();
+      await g.start();
+      final r0 = g.richRank;
+      g.cash = 1e12;
+      expect(g.richRank, lessThan(r0));
+      g.dispose();
+    });
+  });
 }
