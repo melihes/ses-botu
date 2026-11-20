@@ -131,7 +131,10 @@ class _PersonCard extends StatelessWidget {
                 style: const TextStyle(fontWeight: FontWeight.w900)),
           ]),
           const SizedBox(height: 6),
-          Text('Maaş: ${fmtShort(p.salary)}/gün',
+          Text(
+              hired && p.showId == null
+                  ? 'Maaş: ${fmtShort(p.salary)}/gün (boştayken yarısı)'
+                  : 'Maaş: ${fmtShort(p.salary)}/gün',
               style: const TextStyle(color: AppColors.textDim, fontSize: 12)),
           const SizedBox(height: 10),
           if (hired)

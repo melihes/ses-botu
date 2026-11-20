@@ -739,6 +739,35 @@ class Game extends ChangeNotifier {
     return p;
   }
 
+  /// Şirket değeri: kasa + varlıklar - borç. Online sıralamanın temel ölçüsü.
+  double get netWorth {
+    var v = cash - debt;
+    for (int i = 1; i <= studioLevel; i++) {
+      v += studioLevels[i].upgradeCost * 0.7;
+    }
+    for (final id in ownedEquip) {
+      v += (equipById(id)?.price ?? 0) * 0.5;
+    }
+    for (final c in channelDefs) {
+      if (ownedChannels.contains(c.id)) v += c.price * 0.8;
+    }
+    for (final p in platformDefs) {
+      if (ownedPlatforms.contains(p.id)) v += p.price * 0.8;
+    }
+    for (final d in luxuryDefs) {
+      if (ownedLuxury.contains(d.id)) v += d.price * 0.7;
+    }
+    for (final b in bizDefs) {
+      for (int l = 0; l < bizLevel(b.id); l++) {
+        v += bizUpgradeCost(b, l) * 0.6;
+      }
+    }
+    for (final f in films) {
+      if (f.rightsOwned && f.score > 0) v += filmValue(f);
+    }
+    return v;
+  }
+
   double get adBonus => prestigeAdBonus(prestige) + bizEffect(BizEffect.adRate);
 
   // ---- Holding etkileri ----
@@ -759,7 +788,20 @@ class Game extends ChangeNotifier {
   }
 
   double ratingMultFor(Genre g) =>
-      1 + bizEffect(BizEffect.showRating, genre: g) + digitalBoost;
+      (1 + bizEffect(BizEffect.showRating, genre: g) + digitalBoost) *
+      saturationFor(g) *
+      rivalPressure;
+
+  /// Aynı türden birden fazla program yayındaysa izleyici sıkılır.
+  double saturationFor(Genre g) {
+    final n = shows
+        .where((s) => s.status == ShowStatus.onAir && s.genre == g)
+        .length;
+    return n <= 1 ? 1.0 : max(0.6, 1 - 0.12 * (n - 1));
+  }
+
+  /// Rakipler zamanla güçlenir ve seyirci çalar (zirvede kalmak emek ister).
+  double get rivalPressure => max(0.65, 1 / (1 + day / 800));
 
   double get sponsorIncomePerDay => shows
       .where((s) => s.status == ShowStatus.onAir && s.sponsorDays > 0)
@@ -798,7 +840,9 @@ class Game extends ChangeNotifier {
       .fold(0.0,
           (a, f) => a + boxOfficeForDay(f, f.theaterDay, reach, boxOfficeBonus));
 
-  double get dailySalaries => staff.fold(0.0, (a, s) => a + s.salary);
+  /// Boşta bekleyen (programda olmayan) kadro yarım maaş alır.
+  double get dailySalaries => staff.fold(
+      0.0, (a, s) => a + (s.showId == null ? s.salary * 0.5 : s.salary));
   double get dailyRent => studio.rentPerDay;
   double get dailyUpkeep => ownedEquip.fold(
       0.0, (a, id) => a + (equipById(id)?.upkeepPerDay ?? 0));

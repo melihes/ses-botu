@@ -41,9 +41,13 @@ bool ensureCrew(Game g, Genre genre, List<Staff> out) {
   return true;
 }
 
+bool naive = false;
+final _r = Random(3);
+
 void botDay(Game g) {
   // reklam ayarı: en iyi nokta
   for (final s in g.shows.where((s) => s.status == ShowStatus.onAir)) {
+    if (naive) continue;
     g.setAdMinutes(s.slot!, adTolerance(s.quality).roundToDouble().clamp(0, 24));
   }
   // hazır programları yayına koy
@@ -73,7 +77,10 @@ void botDay(Game g) {
       }
     }
     if (done) continue;
-    for (final genre in bestGenre[slot]!) {
+    final genres = naive
+        ? (Genre.values.toList()..shuffle(_r))
+        : bestGenre[slot]!;
+    for (final genre in genres) {
       if (!g.genreUnlocked(genre)) continue;
       var tier = 0;
       for (int t = genreFormats[genre]!.length - 1; t >= 0; t--) {
@@ -89,7 +96,7 @@ void botDay(Game g) {
     }
   }
   // kadroyu güçlendir: daha iyi aday varsa al, en zayıf boştakini çıkar
-  if (g.day % 3 == 0 && g.cash > burn(g) * 20) {
+  if (!naive && g.day % 3 == 0 && g.cash > burn(g) * 20) {
     for (final r in Role.values) {
       final mine = g.staff.where((p) => p.role == r).toList();
       if (mine.isEmpty) continue;
@@ -129,34 +136,40 @@ void botDay(Game g) {
   g.pendingAwards = null;
 }
 
+Future<Map<int, int>> runOnce(bool isNaive, StringBuffer report, {bool log = false}) async {
+  naive = isNaive;
+  SharedPreferences.setMockInitialValues({});
+  final g = Game();
+  await g.start();
+  g.introSeen = true;
+  final m = <int, int>{};
+  for (int d = 1; d <= 300; d++) {
+    botDay(g);
+    g.debugAdvanceDays(1);
+    final lv = g.studioLevel + 1;
+    if (!m.containsKey(lv)) m[lv] = d;
+    if (log && [10, 30, 60, 120, 200, 300].contains(d)) {
+      final on = g.shows.where((s) => s.status == ShowStatus.onAir).toList();
+      report.writeln('${isNaive ? "ÖZENSİZ" : "AKILLI "} Gün ${d.toString().padLeft(3)}: kasa ${fmtShort(g.cash).padLeft(10)} '
+          '· net/gün ${fmtShort(g.netPerDay).padLeft(9)} · stüdyo $lv · ort reyting '
+          '${fmtDec(on.fold(0.0, (a, s) => a + g.currentRating(s)) / max(1, on.length), 2)} · değer ${fmtShort(g.netWorth)}');
+    }
+  }
+  g.dispose();
+  return m;
+}
+
 void main() {
   test('denge simülasyonu', () async {
-    final rng = Random(1);
-    final milestones = <int, int>{};
     final report = StringBuffer();
-    for (int run = 0; run < 3; run++) {
-      SharedPreferences.setMockInitialValues({});
-      final g = Game();
-      await g.start();
-      g.introSeen = true;
-      for (int d = 1; d <= 300; d++) {
-        botDay(g);
-        g.debugAdvanceDays(1);
-        if (run == 0 && [5, 10, 20, 30, 45, 60, 90, 120, 180, 240, 300].contains(d)) {
-          report.writeln('Gün ${d.toString().padLeft(3)}: kasa ${fmtShort(g.cash).padLeft(10)} '
-              '· net/gün ${fmtShort(g.netPerDay).padLeft(9)} · stüdyo ${g.studioLevel + 1} '
-              '· kadro ${g.staff.length} · yayında ${g.shows.where((s) => s.status == ShowStatus.onAir).length} '
-              '· ort reyting ${fmtDec(g.shows.where((s) => s.status == ShowStatus.onAir).fold(0.0, (a, s) => a + g.currentRating(s)) / max(1, g.shows.where((s) => s.status == ShowStatus.onAir).length), 2)}');
-        }
-        final lv = g.studioLevel + 1;
-        if (run == 0 && !milestones.containsKey(lv)) milestones[lv] = d;
+    for (final nv in [false, true]) {
+      final all = <Map<int, int>>[];
+      for (int run = 0; run < 3; run++) {
+        all.add(await runOnce(nv, report, log: run == 0));
       }
-      g.dispose();
-      rng.nextInt(1);
+      report.writeln('${nv ? "ÖZENSİZ" : "AKILLI "} seviye günleri: ${all.map((m) => m.toString()).join("  ")}');
     }
     // ignore: avoid_print
     print(report);
-    // ignore: avoid_print
-    print('Stüdyo seviyesine ulaşılan gün: $milestones');
-  }, timeout: const Timeout(Duration(minutes: 5)));
+  }, timeout: const Timeout(Duration(minutes: 10)));
 }

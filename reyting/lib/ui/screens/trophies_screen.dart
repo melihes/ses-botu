@@ -34,6 +34,8 @@ class _TrophiesScreenState extends State<TrophiesScreen> {
             onChanged: (i) => setState(() => _tab = i),
           ),
           const Spacer(),
+          Tag('Şirket değeri ${fmtShort(game.netWorth)}', color: AppColors.cyan),
+          const SizedBox(width: 6),
           Tag('★ ${fmtInt(game.prestige)} prestij', color: AppColors.yellow),
         ]),
         const SizedBox(height: 10),

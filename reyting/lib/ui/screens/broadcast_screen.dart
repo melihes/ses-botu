@@ -34,6 +34,11 @@ class _BroadcastScreenState extends State<BroadcastScreen> {
             onChanged: (i) => setState(() => _tab = i),
           ),
           const Spacer(),
+          Tooltip(
+            message: 'Rakip kanallar zamanla güçlenir ve seyirci çalar.',
+            child: Tag('Rakip baskısı -${fmtPct((1 - game.rivalPressure) * 100, 0)}', color: AppColors.orange),
+          ),
+          const SizedBox(width: 6),
           Tag('🏆 Prime time birinciliği: ${game.primeWins}', color: AppColors.yellow),
         ]),
         const SizedBox(height: 10),
@@ -271,6 +276,9 @@ class _OnAir extends StatelessWidget {
                     Tag(s.buff >= 1 ? '▲ ${s.buffDays}g' : '▼ ${s.buffDays}g',
                         color: s.buff >= 1 ? AppColors.green : AppColors.red),
                 ]),
+                if (game.saturationFor(s.genre) < 1)
+                  Text('⚠️ Aynı türden çok program: reyting -${fmtPct((1 - game.saturationFor(s.genre)) * 100, 0)}',
+                      style: const TextStyle(color: AppColors.orange, fontSize: 11, fontWeight: FontWeight.w700)),
                 if (s.sponsorDays > 0)
                   Text('🤝 ${s.sponsor} · +${fmtShort(s.sponsorPerDay)}/gün · ${s.sponsorDays}g',
                       maxLines: 1,

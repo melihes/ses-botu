@@ -22,3 +22,12 @@ simülasyon tekrar çalıştırılmalı.
 
 Olaylar ve kararlar oyunu yönlendirmemeli: reyting etkisi ±%20 ile sınırlı,
 kararlar oyunu durdurmaz ve cevap verilmezse güvenli seçenek otomatik seçilir.
+
+## Rekabet dengesi (v0.6)
+Simülasyon iki bot oynatır: AKILLI (reklam ayarı, tür-kuşak uyumu, kadro güçlendirme,
+holding) ve ÖZENSİZ (ayar yok, rastgele tür, kadro güçlendirme yok).
+Hedef: akıllı oyuncu son seviyeye ~200-220. günde, 300. günde şirket değeri
+özensizin ~5-8 katı; özensiz oyuncu da ilerleyebilmeli (imkânsız değil).
+Kaçak liderliği frenleyen kurallar: rakip baskısı (zamanla en fazla -%35),
+aynı türe yığılma cezası (her ek program -%12), boştaki kadroya yarım maaş.
+Online sıralama ölçüsü: Şirket Değeri (kasa + varlıklar - borç).

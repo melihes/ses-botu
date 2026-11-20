@@ -466,4 +466,43 @@ void main() {
     }
     g.dispose();
   });
+
+  group('Rekabet dengesi', () {
+    test('aynı türden iki program yayındaysa ikisi de reyting kaybeder', () async {
+      final g = await gameWithShowOnAir();
+      g.cash = 1e9;
+      final r1 = g.currentRating(g.shows.first);
+      final host = g.market.firstWhere((p) => p.role == Role.sunucu);
+      g.hire(host);
+      g.createShow('İkinci', Genre.magazin, 0, [host]);
+      final s2 = g.shows.first;
+      g.speedUp(s2);
+      g.putOnAir(s2, SlotId.gunduz);
+      expect(g.saturationFor(Genre.magazin), lessThan(1));
+      expect(g.currentRating(g.shows.last), lessThan(r1));
+      g.dispose();
+    });
+
+    test('rakip baskısı zamanla artar ama sınırlı kalır', () async {
+      final g = Game();
+      await g.start();
+      final p0 = g.rivalPressure;
+      g.day = 400;
+      expect(g.rivalPressure, lessThan(p0));
+      g.day = 5000;
+      expect(g.rivalPressure, 0.65);
+      g.dispose();
+    });
+
+    test('şirket değeri varlıkları da sayar', () async {
+      final g = Game();
+      await g.start();
+      g.cash = 1e9;
+      final v0 = g.netWorth;
+      g.buyFixed(luxuryDefs.first);
+      expect(g.netWorth, lessThan(v0));
+      expect(g.netWorth, greaterThan(v0 - luxuryDefs.first.price));
+      g.dispose();
+    });
+  });
 }

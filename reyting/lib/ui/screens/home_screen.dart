@@ -97,6 +97,9 @@ class _CashCard extends StatelessWidget {
           const SizedBox(height: 6),
           Row(children: [
             Expanded(
+                child: StatBlock('Şirket değeri', fmtShort(game.netWorth),
+                    color: AppColors.yellow)),
+            Expanded(
                 child: StatBlock('Gelir/gün', fmtSigned(income),
                     color: AppColors.green)),
             Expanded(

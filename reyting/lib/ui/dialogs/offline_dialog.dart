@@ -68,6 +68,13 @@ class _OfflineBody extends StatelessWidget {
             ],
           ),
         ),
+        if (s.cashAfter < 0) ...[
+          const SizedBox(height: 8),
+          const Text(
+            '💡 Kasa eksiye düştü. Yayına program koy, gereksiz kadroyu çıkar ya da Banka\'dan kredi çek.',
+            style: TextStyle(color: AppColors.orange, fontSize: 12),
+          ),
+        ],
         if (capped) ...[
           const SizedBox(height: 8),
           const Text(
