@@ -136,3 +136,109 @@ Future<void> showAwardsDialog(BuildContext context, Game game, List<AwardResult>
     ),
   );
 }
+
+/// Oyunu durdurmayan karar kartı. Cevap verilmezse süre dolunca
+/// en güvenli seçenek otomatik seçilir.
+class DecisionCard extends StatefulWidget {
+  const DecisionCard({super.key});
+  @override
+  State<DecisionCard> createState() => _DecisionCardState();
+}
+
+class _DecisionCardState extends State<DecisionCard> {
+  bool _min = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final game = GameScope.of(context);
+    final d = game.pendingDecision;
+    if (d == null) return const SizedBox.shrink();
+    final left = game.decisionTimeLeft;
+    if (_min) {
+      return GestureDetector(
+        onTap: () => setState(() => _min = false),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+          decoration: BoxDecoration(
+            color: const Color(0xF2241C34),
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: AppColors.yellow),
+            boxShadow: const [BoxShadow(color: Colors.black54, blurRadius: 8)],
+          ),
+          child: Text('🔔 ${d.title}',
+              style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 12)),
+        ),
+      );
+    }
+    return Container(
+      width: 560,
+      padding: const EdgeInsets.fromLTRB(12, 8, 8, 8),
+      decoration: BoxDecoration(
+        color: const Color(0xF51E182B),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AppColors.yellow.withValues(alpha: 0.7)),
+        boxShadow: const [BoxShadow(color: Colors.black54, blurRadius: 14)],
+      ),
+      child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Row(children: [
+          Expanded(
+            child: Text(d.title,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 14)),
+          ),
+          Text('${(left * 60).ceil()} sn',
+              style: const TextStyle(color: AppColors.textDim, fontSize: 11)),
+          IconButton(
+            visualDensity: VisualDensity.compact,
+            tooltip: 'Küçült',
+            onPressed: () => setState(() => _min = true),
+            icon: const Icon(Icons.expand_less_rounded, size: 18, color: AppColors.textDim),
+          ),
+        ]),
+        Text(d.body,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(color: AppColors.textDim, fontSize: 12)),
+        const SizedBox(height: 6),
+        IntrinsicHeight(
+          child: Row(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+          for (int i = 0; i < d.options.length; i++)
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.only(right: 6),
+                child: Material(
+                  color: i == d.defaultOption
+                      ? AppColors.accent.withValues(alpha: 0.2)
+                      : AppColors.panelHi,
+                  borderRadius: BorderRadius.circular(10),
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(10),
+                    onTap: () => game.resolveDecision(i),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                        Text(d.options[i],
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 12)),
+                        Text(d.hints[i],
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(color: AppColors.textDim, fontSize: 10)),
+                      ]),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+        ])),
+        const SizedBox(height: 6),
+        Bar(left, color: AppColors.yellow, height: 3),
+        const SizedBox(height: 2),
+        Text('Seçmezsen "${d.options[d.defaultOption]}" otomatik seçilir.',
+            style: const TextStyle(color: AppColors.textFaint, fontSize: 10)),
+      ]),
+    );
+  }
+}

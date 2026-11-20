@@ -24,15 +24,19 @@ Future<void> main() async {
               AwardResult('En İyi Film', 'Son Kurşun', true),
             ]);
           } else {
-            showDecisionDialog(ctx, g, Decision(
+            g.pendingDecision = (Decision(
               kind: which, title: '📰 Skandal manşetlerde!',
               body: '"Kırmızı Halı" kulis dedikodusuyla gazetelerde. Ne yapacaksın?',
               options: ['Kamuoyundan özür dile', 'Sessiz kal', 'Avukat tut'],
               hints: ['Reyting biraz düşer, +10 prestij', 'Kumar: reyting uçabilir ya da çakılır', '150 B ₺, risk yok'],
-              targetId: 'x'));
+              targetId: 'x')..deadline = g.gameTime + 0.6);
+            g.showToast('');
           }
         });
-        return const Scaffold();
+        return const Scaffold(
+            body: Stack(children: [
+          Positioned(top: 64, left: 94, right: 10, child: Center(child: DecisionCard())),
+        ]));
       }),
     ),
   ));

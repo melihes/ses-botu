@@ -406,6 +406,10 @@ class Game extends ChangeNotifier {
       _accrue(step);
       dayProgress += step;
       rem -= step;
+      final pd = pendingDecision;
+      if (pd != null && gameTime >= pd.deadline) {
+        resolveDecision(pd.defaultOption, auto: true);
+      }
       final hour = (dayProgress * 24).floor();
       while (todaySamples.length <= hour && todaySamples.length < 24) {
         todaySamples.add(cash);
@@ -601,7 +605,7 @@ class Game extends ChangeNotifier {
   // =================================================================
 
   void _rollEvent() {
-    if (_rng.nextDouble() > 0.14) return;
+    if (_rng.nextDouble() > 0.10) return;
     final onAir = shows.where((s) => s.status == ShowStatus.onAir).toList();
     final pick = _rng.nextInt(10);
     Show? s = onAir.isEmpty ? null : onAir[_rng.nextInt(onAir.length)];
@@ -609,19 +613,19 @@ class Game extends ChangeNotifier {
     switch (pick) {
       case 0:
         if (s == null) return;
-        s.buff = 1.35;
-        s.buffDays = 3;
+        s.buff = 1.2;
+        s.buffDays = 2;
         _event('📈 Viral oldu!',
-            '"${s.name}" sosyal medyada gündem oldu. 3 gün reyting +%35.', true);
+            '"${s.name}" sosyal medyada gündem oldu. 2 gün reyting +%20.', true);
       case 1:
         if (s == null || !s.def.needs.containsKey(Role.oyuncu)) return;
         if (_offerDecision(_setCrisisDecision(s))) return;
-        s.buff = 0.8;
-        s.buffDays = 2;
+        s.buff = 0.92;
+        s.buffDays = 1;
         _event('😤 Sette kriz',
-            '"${s.name}" başrolü sete gelmedi. 2 gün reyting -%20.', false);
+            '"${s.name}" başrolü sete geç geldi. 1 gün reyting -%8.', false);
       case 2:
-        final cost = max(50000.0, cash.abs() * 0.02).clamp(50000.0, 5e6);
+        final cost = (yesterdayIncome * 0.15).clamp(20000.0, 2e6);
         cash -= cost;
         _acc?.eventCash -= cost;
         _event('⚡ Verici arızası',
@@ -631,7 +635,7 @@ class Game extends ChangeNotifier {
             !(s.genre == Genre.magazin || s.genre == Genre.talkShow)) {
           return;
         }
-        final fine = productionCost(s.genre, s.tier) * 0.8;
+        final fine = productionCost(s.genre, s.tier) * 0.3;
         if (_offerDecision(_regulatorDecision(s, fine))) return;
         cash -= fine;
         _acc?.eventCash -= fine;
@@ -647,25 +651,25 @@ class Game extends ChangeNotifier {
             true);
       case 5:
         final amount = (yesterdayIncome * 1.5).clamp(80000.0, 50e6);
-        cash += amount;
+        _gain(amount);
         _acc?.eventCash += amount;
         _event('🤝 Sponsor anlaşması',
             'Bir içecek markası sponsor oldu: +${fmtShort(amount)}', true);
       case 6:
         if (s == null) return;
         if (_offerDecision(_scandalDecision(s))) return;
-        s.buff = 1.25;
+        s.buff = 1.12;
         s.buffDays = 2;
-        bonusPrestige = max(0, bonusPrestige - 5);
+        bonusPrestige = max(0, bonusPrestige - 3);
         _event('📰 Skandal manşette',
-            '"${s.name}" kulis dedikodusuyla gazetelerde. Reyting +%25 ama -5 prestij.',
+            '"${s.name}" kulis dedikodusuyla gazetelerde. Reyting +%12 ama -3 prestij.',
             true);
       case 7:
         if (s == null) return;
-        s.buff = 0.85;
-        s.buffDays = 3;
+        s.buff = 0.93;
+        s.buffDays = 2;
         _event('📺 Rakip hamlesi',
-            'Rakip kanal aynı saate dev yapım koydu. "${s.name}" 3 gün -%15.',
+            'Rakip kanal aynı saate dev yapım koydu. "${s.name}" 2 gün -%7.',
             false);
       case 9:
         final pool = films
@@ -1015,7 +1019,7 @@ class Game extends ChangeNotifier {
     for (final c in crew) {
       c.showId = s.id;
     }
-    final fatigue = pow(0.95, s.season).toDouble();
+    final fatigue = max(0.75, pow(0.97, s.season).toDouble());
     s
       ..season += 1
       ..episodesAired = 0
@@ -1111,7 +1115,7 @@ class Game extends ChangeNotifier {
 
   String? takeLoan(LoanOffer o) {
     if (loans.length >= 3) return 'En fazla 3 açık kredin olabilir.';
-    cash += o.amount;
+    _gain(o.amount);
     loans.add(Loan(
       id: _newId('l'),
       principal: o.amount,
@@ -1155,7 +1159,7 @@ class Game extends ChangeNotifier {
 
   void sellLuxury(LuxuryDef d) {
     if (!ownedLuxury.remove(d.id)) return;
-    cash += sellValueLuxury(d);
+    _gain(sellValueLuxury(d));
     _notify('${d.name} satıldı: +${fmtShort(sellValueLuxury(d))}');
     _changed();
   }
@@ -1164,7 +1168,7 @@ class Game extends ChangeNotifier {
 
   void sellChannel(ChannelDef c) {
     if (!ownedChannels.remove(c.id)) return;
-    cash += sellValueChannel(c);
+    _gain(sellValueChannel(c));
     _notify('${c.name} satıldı: +${fmtShort(sellValueChannel(c))}');
     _changed();
   }
@@ -1528,28 +1532,49 @@ class Game extends ChangeNotifier {
   /// Karar bekliyorsa yenisini açma; çevrimdışıyken karar sorulmaz.
   bool _offerDecision(Decision d) {
     if (_offlineMode || pendingDecision != null) return false;
-    pendingDecision = d;
+    _setDecision(d);
     return true;
+  }
+
+  double get gameTime => day + dayProgress;
+
+  /// Kasaya giren her para günlük gelire de yazılır (grafik doğru olsun).
+  void _gain(double amount) {
+    cash += amount;
+    todayIncome += amount;
+  }
+
+  void _setDecision(Decision d) {
+    d.deadline = gameTime + 1.0;
+    pendingDecision = d;
+  }
+
+  /// Karara kalan süre (0..1)
+  double get decisionTimeLeft {
+    final d = pendingDecision;
+    if (d == null) return 0;
+    return (d.deadline - gameTime).clamp(0.0, 1.0);
   }
 
   Decision _scandalDecision(Show s) => Decision(
         kind: 'scandal',
         title: '📰 Skandal manşetlerde!',
         body: '"${s.name}" kulis dedikodusuyla gazetelerde. Ne yapacaksın?',
-        options: ['Kamuoyundan özür dile', 'Sessiz kal', 'Avukat tut'],
-        hints: ['Reyting biraz düşer, +10 prestij', 'Kumar: reyting uçabilir ya da çakılır', '${fmtShort(productionCost(s.genre, s.tier) * 0.3)}, risk yok'],
+        options: ['Özür dile', 'Sessiz kal', 'Avukat tut'],
+        hints: ['+5 prestij, 1 gün -%5', 'Şans: +%15 ya da -%10', '${fmtShort(productionCost(s.genre, s.tier) * 0.1)}, risk yok'],
         targetId: s.id,
-        amount: productionCost(s.genre, s.tier) * 0.3,
+        amount: productionCost(s.genre, s.tier) * 0.1,
       );
 
   Decision _setCrisisDecision(Show s) => Decision(
         kind: 'setCrisis',
         title: '😤 Sette kriz!',
         body: '"${s.name}" başrolü sete gelmedi, menajeri "şartlarımız var" diyor.',
-        options: ['Gönlünü al (prim öde)', 'Senaryodan çıkar', 'Bekle'],
-        hints: ['${fmtShort(productionCost(s.genre, s.tier) * 0.25)} öde, sorun biter', '3 gün reyting -%15', '50% şansla 2 gün -%25'],
+        options: ['Prim öde', 'Senaryoyu değiştir', 'Bekle'],
+        hints: ['${fmtShort(productionCost(s.genre, s.tier) * 0.08)}, sorun biter', '2 gün -%8', 'Şans: sorun yok ya da 1 gün -%10'],
         targetId: s.id,
-        amount: productionCost(s.genre, s.tier) * 0.25,
+        amount: productionCost(s.genre, s.tier) * 0.08,
+        defaultOption: 2,
       );
 
   Decision _regulatorDecision(Show s, double fine) => Decision(
@@ -1557,7 +1582,7 @@ class Game extends ChangeNotifier {
         title: '⚖️ Yayın Kurulu uyarısı',
         body: '"${s.name}" için şikâyet geldi. Ceza ${fmtShort(fine)} olabilir.',
         options: ['Cezayı öde', 'Programı düzenle', 'İtiraz et'],
-        hints: [fmtShort(fine), '${fmtShort(fine * 0.4)} + 2 gün reyting -%10', '%60 ceza yok, %40 ceza ×1,5'],
+        hints: [fmtShort(fine), '${fmtShort(fine * 0.4)} + 1 gün -%5', '%70 ceza yok, %30 ceza ×1,3'],
         targetId: s.id,
         amount: fine,
       );
@@ -1566,28 +1591,28 @@ class Game extends ChangeNotifier {
     if (_offlineMode || pendingDecision != null) return;
     // Yıldız egosu: zam talebi ya da rakip transfer teklifi
     final stars = staff.where((p) => p.isStar).toList();
-    if (stars.isNotEmpty && _rng.nextDouble() < 0.05) {
+    if (stars.isNotEmpty && _rng.nextDouble() < 0.03) {
       final p = stars[_rng.nextInt(stars.length)];
       if (_rng.nextBool()) {
-        pendingDecision = Decision(
+        _setDecision(Decision(
           kind: 'raise',
           title: '⭐ ${p.name} zam istiyor',
-          body: '${p.role.label} ${p.name} (yetenek ${p.skill}) maaşına %30 zam istiyor. Yoksa "başka kapılar" diyor.',
-          options: ['Zammı ver', 'Pazarlık et (%15)', 'Reddet'],
-          hints: ['Maaş ${fmtShort(p.salary * 1.3)}/gün', '%60 kabul eder', '%50 istifa eder'],
+          body: '${p.role.label} ${p.name} (yetenek ${p.skill}) maaşına %20 zam istiyor.',
+          options: ['Zammı ver', 'Pazarlık et (%10)', 'Reddet'],
+          hints: ['Maaş ${fmtShort(p.salary * 1.2)}/gün', '%75 kabul eder', '%25 istifa eder'],
           targetId: p.id,
-        );
+        ));
       } else {
         final rival = rivalDefs[_rng.nextInt(rivalDefs.length)].name;
-        pendingDecision = Decision(
+        _setDecision(Decision(
           kind: 'poach',
           title: '📞 $rival transfer teklifi',
           body: '$rival, ${p.name} için teklif yaptı. Bonservis olarak ${fmtShort(p.salary * 25)} ödemeye hazırlar.',
-          options: ['Teklifi eşle (+%40 maaş)', 'Sat gitsin'],
-          hints: ['Maaş ${fmtShort(p.salary * 1.4)}/gün, kadroda kalır', '+${fmtShort(p.salary * 25)}, yıldızı kaybedersin'],
+          options: ['Teklifi eşle (+%15 maaş)', 'Sat gitsin'],
+          hints: ['Maaş ${fmtShort(p.salary * 1.15)}/gün, kadroda kalır', '+${fmtShort(p.salary * 25)}, yıldızı kaybedersin'],
           targetId: p.id,
           extra: rival,
-        );
+        ));
       }
       return;
     }
@@ -1597,7 +1622,7 @@ class Game extends ChangeNotifier {
       final s = free[_rng.nextInt(free.length)];
       final brand = sponsorBrands[_rng.nextInt(sponsorBrands.length)];
       final perDay = max(5000.0, revenuePerDay(s) * (0.25 + _rng.nextDouble() * 0.25));
-      pendingDecision = Decision(
+      _setDecision(Decision(
         kind: 'sponsor',
         title: '🤝 Sponsor teklifi: $brand',
         body: '$brand, "${s.name}" programında ürün yerleştirme yapmak istiyor. 10 gün sürecek.',
@@ -1606,13 +1631,14 @@ class Game extends ChangeNotifier {
         targetId: s.id,
         amount: perDay,
         extra: brand,
-      );
+      ));
     }
   }
 
-  void resolveDecision(int option) {
+  void resolveDecision(int option, {bool auto = false}) {
     final d = pendingDecision;
     if (d == null) return;
+    if (auto) _notify('⏱️ Süre doldu, otomatik seçildi: ${d.options[option]}');
     pendingDecision = null;
     decisionsMade++;
     final s = d.targetId == null ? null : showById(d.targetId);
@@ -1621,17 +1647,17 @@ class Game extends ChangeNotifier {
     switch (d.kind) {
       case 'scandal':
         if (option == 0) {
-          bonusPrestige += 10;
-          s?..buff = 0.9..buffDays = 2;
-          msg = 'Özür kabul gördü. +10 prestij, reyting kısa süre düştü.';
+          bonusPrestige += 5;
+          s?..buff = 0.95..buffDays = 1;
+          msg = 'Özür kabul gördü. +5 prestij.';
         } else if (option == 1) {
           if (_rng.nextBool()) {
-            s?..buff = 1.3..buffDays = 3;
-            msg = 'Merak uyandı! 3 gün reyting +%30.';
+            s?..buff = 1.15..buffDays = 2;
+            msg = 'Merak uyandı! 2 gün reyting +%15.';
           } else {
-            s?..buff = 0.8..buffDays = 3;
-            bonusPrestige = max(0, bonusPrestige - 15);
-            msg = 'Tepki büyüdü: -15 prestij, 3 gün reyting -%20.';
+            s?..buff = 0.9..buffDays = 2;
+            bonusPrestige = max(0, bonusPrestige - 5);
+            msg = 'Tepki büyüdü: -5 prestij, 2 gün reyting -%10.';
           }
         } else {
           cash -= d.amount;
@@ -1642,14 +1668,14 @@ class Game extends ChangeNotifier {
           cash -= d.amount;
           msg = 'Başrol sete döndü (-${fmtShort(d.amount)}).';
         } else if (option == 1) {
-          s?..buff = 0.85..buffDays = 3;
-          msg = 'Senaryo değişti, 3 gün reyting -%15.';
+          s?..buff = 0.92..buffDays = 2;
+          msg = 'Senaryo değişti, 2 gün reyting -%8.';
         } else {
           if (_rng.nextBool()) {
             msg = 'Ertesi gün özür dileyip sete geldi. Bedava çözüm!';
           } else {
-            s?..buff = 0.75..buffDays = 2;
-            msg = 'Gelmedi! 2 gün reyting -%25.';
+            s?..buff = 0.9..buffDays = 1;
+            msg = 'Gelmedi! 1 gün reyting -%10.';
           }
         }
       case 'regulator':
@@ -1658,31 +1684,31 @@ class Game extends ChangeNotifier {
           msg = 'Ceza ödendi (-${fmtShort(d.amount)}).';
         } else if (option == 1) {
           cash -= d.amount * 0.4;
-          s?..buff = 0.9..buffDays = 2;
+          s?..buff = 0.95..buffDays = 1;
           msg = 'Program düzenlendi (-${fmtShort(d.amount * 0.4)}).';
         } else {
-          if (_rng.nextDouble() < 0.6) {
+          if (_rng.nextDouble() < 0.7) {
             msg = 'İtiraz kabul edildi, ceza yok! 🎉';
           } else {
-            cash -= d.amount * 1.5;
-            msg = 'İtiraz reddedildi, ceza katlandı (-${fmtShort(d.amount * 1.5)}).';
+            cash -= d.amount * 1.3;
+            msg = 'İtiraz reddedildi (-${fmtShort(d.amount * 1.3)}).';
           }
         }
       case 'raise':
         if (p == null) return;
         if (option == 0) {
-          _replaceSalary(p, p.salary * 1.3);
+          _replaceSalary(p, p.salary * 1.2);
           msg = '${p.name} mutlu, kadroda kalıyor.';
         } else if (option == 1) {
-          if (_rng.nextDouble() < 0.6) {
-            _replaceSalary(p, p.salary * 1.15);
-            msg = '${p.name} %15 zamma razı oldu.';
+          if (_rng.nextDouble() < 0.75) {
+            _replaceSalary(p, p.salary * 1.1);
+            msg = '${p.name} %10 zamma razı oldu.';
           } else {
             _quit(p);
             msg = '${p.name} pazarlığı beğenmedi ve istifa etti!';
           }
         } else {
-          if (_rng.nextBool()) {
+          if (_rng.nextDouble() < 0.75) {
             msg = '${p.name} söylendi ama kaldı.';
           } else {
             _quit(p);
@@ -1692,11 +1718,11 @@ class Game extends ChangeNotifier {
       case 'poach':
         if (p == null) return;
         if (option == 0) {
-          _replaceSalary(p, p.salary * 1.4);
+          _replaceSalary(p, p.salary * 1.15);
           msg = '${p.name} sende kaldı, maaşı arttı.';
         } else {
           final fee = p.salary * 25;
-          cash += fee;
+          _gain(fee);
           _quit(p);
           msg = '${p.name}, ${d.extra}\'a transfer oldu: +${fmtShort(fee)}';
         }
@@ -1719,7 +1745,7 @@ class Game extends ChangeNotifier {
         msg = '';
     }
     _log(d.title, msg, !msg.contains('-'));
-    _notify(msg);
+    if (!auto) _notify(msg);
     _changed();
   }
 

@@ -119,15 +119,13 @@ class _ShellState extends State<Shell> {
   void _maybeShowEvents() {
     if (_eventShowing || _offlineShowing || _introShowing) return;
     final game = GameScope.read(context);
-    if (game.pendingAwards == null && game.pendingDecision == null) return;
+    if (game.pendingAwards == null) return;
     _eventShowing = true;
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       if (!mounted) return;
       if (game.pendingAwards != null) {
         await showAwardsDialog(context, game, game.pendingAwards!);
         game.dismissAwards();
-      } else if (game.pendingDecision != null) {
-        await showDecisionDialog(context, game, game.pendingDecision!);
       }
       _eventShowing = false;
     });
@@ -203,6 +201,12 @@ class _ShellState extends State<Shell> {
               bottom: 10,
               child: CoachBubble(
                   onGo: (i) => setState(() => _page = goalPages[i])),
+            ),
+            const Positioned(
+              top: 64,
+              left: 94,
+              right: 10,
+              child: Center(child: DecisionCard()),
             ),
             const _ToastHost(),
           ]),

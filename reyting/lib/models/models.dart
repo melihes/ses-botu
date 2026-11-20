@@ -449,7 +449,10 @@ class Decision {
   final String? targetId;
   final double amount;
   final String extra;
+  final int defaultOption; // cevap verilmezse seçilen güvenli seçenek
+  double deadline = 0; // oyun zamanı (gün + ilerleme)
   Decision({
+    this.defaultOption = 0,
     required this.kind,
     required this.title,
     required this.body,

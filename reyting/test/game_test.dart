@@ -376,14 +376,14 @@ void main() {
       g.dispose();
     });
 
-    test('yıldız zammı verilince maaş %30 artar', () async {
+    test('yıldız zammı verilince maaş %20 artar', () async {
       final g = Game();
       await g.start();
       g.staff.add(Staff(id: 'star', name: 'Yıldız', role: Role.oyuncu, skill: 95, salary: 10000));
       g.pendingDecision = Decision(kind: 'raise', title: 't', body: 'b',
           options: ['a', 'b', 'c'], hints: ['', '', ''], targetId: 'star');
       g.resolveDecision(0);
-      expect(g.staffById('star')!.salary, 13000);
+      expect(g.staffById('star')!.salary, 12000);
       g.dispose();
     });
 
@@ -420,5 +420,50 @@ void main() {
       expect(g.diamonds, d);
       g.dispose();
     });
+  });
+
+  group('Kararlar oyunu durdurmaz', () {
+    test('cevap verilmezse 1 gün sonra güvenli seçenek otomatik seçilir', () async {
+      final g = await gameWithShowOnAir();
+      final s = g.shows.first;
+      s.episodesAired = -20;
+      final d = Decision(kind: 'setCrisis', title: 't', body: 'b',
+          options: ['a', 'b', 'c'], hints: ['', '', ''], targetId: s.id,
+          amount: 1000, defaultOption: 2);
+      d.deadline = g.gameTime + 1.0;
+      g.pendingDecision = d;
+      g.debugAdvanceDays(0.5);
+      expect(g.pendingDecision, isNotNull, reason: 'süre dolmadı');
+      g.debugAdvanceDays(0.6);
+      expect(g.pendingDecision, isNull, reason: 'otomatik çözülmeli');
+      expect(g.decisionsMade, 1);
+      g.dispose();
+    });
+
+    test('olayların reyting etkisi ±%20 ile sınırlı', () async {
+      final g = await gameWithShowOnAir();
+      final s = g.shows.first;
+      s.episodesAired = -200;
+      for (int i = 0; i < 150; i++) {
+        g.debugAdvanceDays(1);
+        if (g.pendingDecision != null) g.resolveDecision(1);
+        expect(s.buff, inInclusiveRange(0.85, 1.2));
+      }
+      g.dispose();
+    });
+  });
+
+  test('HATA #2: grafikte gider hiçbir gün eksi çıkmaz', () async {
+    final g = await gameWithShowOnAir();
+    g.shows.first.episodesAired = -300;
+    g.takeLoan(loanOffersFor(0).first);
+    for (int i = 0; i < 200; i++) {
+      g.debugAdvanceDays(1);
+      if (g.pendingDecision != null) g.resolveDecision(i % 2);
+    }
+    for (final h in g.history) {
+      expect(h.expense, greaterThanOrEqualTo(-1), reason: 'Gün ${h.day}');
+    }
+    g.dispose();
   });
 }

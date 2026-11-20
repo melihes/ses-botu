@@ -325,12 +325,12 @@ class StudioLevel {
 }
 
 const studioLevels = [
-  StudioLevel('Yerel Stüdyo', 0.20, 0, 8000, 8),
-  StudioLevel('Bölgesel Stüdyo', 0.35, 3000000, 20000, 14),
-  StudioLevel('Ulusal Kanal', 0.50, 12000000, 50000, 22),
-  StudioLevel('Büyük Plato', 0.65, 40000000, 120000, 32),
-  StudioLevel('Medya Kampüsü', 0.82, 120000000, 300000, 45),
-  StudioLevel('Medya İmparatorluğu', 1.00, 400000000, 700000, 60),
+  StudioLevel('Yerel Stüdyo', 0.25, 0, 8000, 8),
+  StudioLevel('Bölgesel Stüdyo', 0.40, 2000000, 16000, 14),
+  StudioLevel('Ulusal Kanal', 0.55, 8000000, 40000, 22),
+  StudioLevel('Büyük Plato', 0.70, 25000000, 90000, 32),
+  StudioLevel('Medya Kampüsü', 0.85, 130000000, 250000, 45),
+  StudioLevel('Medya İmparatorluğu', 1.00, 500000000, 600000, 60),
 ];
 
 /// Lüks yaşam

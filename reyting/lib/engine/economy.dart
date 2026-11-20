@@ -11,7 +11,7 @@ const offlineCapMinutesFree = 30.0;
 const offlineCapMinutesVip = 480.0;
 
 /// Bir izleyicinin bir reklam dakikası başına getirdiği gelir (₺).
-const adRatePerViewerMinute = 0.05;
+const adRatePerViewerMinute = 0.15;
 
 const startingCash = 1500000.0;
 const startingDiamonds = 25;
@@ -52,7 +52,8 @@ double freshness(Genre g, double progress) => g == Genre.dizi
 
 /// Reklamsız, ideal koşullardaki ham reyting (%).
 double baseRating(double quality, Genre g) =>
-    (1.5 + 16 * pow(quality, 1.4)) * genreDefs[g]!.ratingMult;
+    (0.8 + 13 * pow(quality, 1.3) / (1 + 0.3 * quality)) *
+    genreDefs[g]!.ratingMult;
 
 /// Programın o anki reytingi (%).
 double showRating(Show s, SlotId slot, double adMinutes) {
