@@ -1,6 +1,6 @@
 // Saf (veritabanından bağımsız) oyun kuralları: kolayca test edilir.
 import {
-  channelPrices, firstNames, lastNames, luxuryPrices, maxNetPerDay,
+  channelPrices, firstNames, lastNames, locationPrices, luxuryPrices, maxNetPerDay,
   platformPrices, roles, salaryFor, stockBase, studioCosts,
 } from './gamedata';
 
@@ -14,6 +14,7 @@ export interface SaveSummary {
   ownedLuxury: string[];
   ownedChannels: string[];
   ownedPlatforms: string[];
+  ownedLocations: string[];
   holdings: Record<string, number>;
   stockPrices: Record<string, number>;
   timeScale: number;
@@ -32,6 +33,7 @@ export function summarize(save: any): SaveSummary {
     ownedLuxury: Array.isArray(save.ownedLuxury) ? save.ownedLuxury.map(String) : [],
     ownedChannels: Array.isArray(save.ownedChannels) ? save.ownedChannels.map(String) : [],
     ownedPlatforms: Array.isArray(save.ownedPlatforms) ? save.ownedPlatforms.map(String) : [],
+    ownedLocations: Array.isArray(save.locations) ? save.locations.map(String) : [],
     holdings: typeof save.holdings === 'object' && save.holdings ? save.holdings : {},
     stockPrices: typeof save.stockPrices === 'object' && save.stockPrices ? save.stockPrices : {},
     timeScale: num(save.timeScale, 1),
@@ -54,6 +56,7 @@ export function serverWorth(s: SaveSummary): number {
   for (const id of new Set(s.ownedLuxury)) v += (luxuryPrices[id] ?? 0) * 0.7;
   for (const id of new Set(s.ownedChannels)) v += (channelPrices[id] ?? 0) * 0.65;
   for (const id of new Set(s.ownedPlatforms)) v += (platformPrices[id] ?? 0) * 0.65;
+  for (const id of new Set(s.ownedLocations)) v += (locationPrices[id] ?? 0) * 0.5;
   v += portfolioWorth(s);
   return v;
 }

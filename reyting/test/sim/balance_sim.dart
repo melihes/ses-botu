@@ -5,6 +5,7 @@ import 'dart:math';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:reyting/core/format.dart';
 import 'package:reyting/data/content.dart';
+import 'package:reyting/data/content2.dart';
 import 'package:reyting/engine/economy.dart';
 import 'package:reyting/engine/game.dart';
 import 'package:reyting/models/models.dart';
@@ -44,6 +45,9 @@ bool ensureCrew(Game g, Genre genre, List<Staff> out) {
 }
 
 bool naive = false;
+bool useV12 = const bool.fromEnvironment('V12', defaultValue: true);
+const v12Parts = String.fromEnvironment('PARTS', defaultValue: 'bmel');
+bool part(String c) => useV12 && v12Parts.contains(c);
 final _r = Random(3);
 
 void botDay(Game g) {
@@ -119,7 +123,30 @@ void botDay(Game g) {
       }
       final crew = <Staff>[];
       if (!ensureCrew(g, genre, crew)) continue;
-      if (g.createShow('Bot', genre, tier, crew) == null) break;
+      var budget = 1, guest = 0;
+      if (!naive && part('b')) {
+        for (int b = prodBudgets.length - 1; b >= 1; b--) {
+          if (g.budgetUnlocked(b) &&
+              g.cash - g.showCost(genre, tier, b, 0, null) > burn(g) * 6 + 200000) {
+            budget = b;
+            break;
+          }
+        }
+        for (int q = guestTiers.length - 1; q >= 0; q--) {
+          if (g.guestUnlocked(q) &&
+              g.cash - g.showCost(genre, tier, budget, q, null) > burn(g) * 6 + 200000) {
+            guest = q;
+            break;
+          }
+        }
+      }
+      String? loc;
+      if (!naive && part('l')) {
+        for (final l in locationDefs) {
+          if (g.ownedLocations.contains(l.id) && g.locationFits(l, genre)) loc = l.id;
+        }
+      }
+      if (g.createShow('Bot', genre, tier, crew, budget: budget, guest: guest, location: loc) == null) break;
     }
   }
   // kadroyu güçlendir: daha iyi aday varsa al, en zayıf boştakini çıkar
@@ -172,6 +199,33 @@ void botDay(Game g) {
     final c = g.creatorMarket.reduce((a, b) =>
         a.revenuePerDay - a.salary > b.revenuePerDay - b.salary ? a : b);
     if (c.revenuePerDay > c.salary && g.cash > c.signingFee * 6) g.signCreator(c);
+  }
+  if (!naive && useV12) {
+    // markalar
+    if (part('m')) {
+      for (final o in g.brandOffers.toList()) {
+        g.acceptBrandOffer(o);
+      }
+    }
+    // yönetim kurulu: kârlıysa en iyi adayı al
+    final net = g.netPerDay;
+    for (final e in g.execCandidates.toList()..sort((a, b) => b.skill.compareTo(a.skill))) {
+      final cur = g.execs[e.role];
+      if (!part('e')) break;
+      if (cur != null && cur.skill >= e.skill) continue;
+      if (e.salary < net * 0.04 && g.cash > e.signingFee * 6) g.hireExec(e);
+    }
+    // lokasyonlar
+    for (final l in locationDefs) {
+      if (!part('l')) break;
+      if (!g.ownedLocations.contains(l.id) && g.locationLockReason(l) == null &&
+          g.cash > l.price * 6 && l.upkeep < net * 0.02) {
+        g.buyLocation(l);
+      }
+      if (g.ownedLocations.contains(l.id) && l.event != null && g.cash > g.eventCost(l) * 4) {
+        g.holdEvent(l);
+      }
+    }
   }
   // kararları nötr çöz
   if (g.pendingDecision != null) g.resolveDecision(0);

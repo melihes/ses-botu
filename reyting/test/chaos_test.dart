@@ -4,6 +4,7 @@ import 'dart:math';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:reyting/data/content.dart';
+import 'package:reyting/data/content2.dart';
 import 'package:reyting/engine/economy.dart';
 import 'package:reyting/engine/game.dart';
 import 'package:reyting/models/models.dart';
@@ -74,6 +75,23 @@ List<String> invariants(Game g) {
     if (l.installmentsLeft <= 0) e.add('bitmiş kredi listede');
   }
   if (g.diamonds < 0) e.add('elmas eksi: ${g.diamonds}');
+  if (g.academy.length > g.agency.academySlots) e.add('akademi sınırı aşıldı');
+  for (final o in g.transferOffers) {
+    if (g.personById(o.staffId) == null) e.add('sahipsiz transfer teklifi');
+  }
+  for (final d in g.deals) {
+    if (d.daysLeft <= 0 || bad(d.perDay) || d.perDay < 0) e.add('bozuk anlaşma');
+  }
+  for (final s in g.shows) {
+    if (s.budget < 0 || s.budget >= prodBudgets.length) e.add('bozuk bütçe');
+    if (s.guest < 0 || s.guest >= guestTiers.length) e.add('bozuk konuk');
+    if (bad(s.quality) || s.quality > 1.8) e.add('kalite aralık dışı ${s.quality}');
+  }
+  for (final p in [...g.staff, ...g.academy]) {
+    if (p.fame < 0 || p.fame > 100 || bad(p.fame)) e.add('şöhret bozuk');
+    if (p.skill > 99 || p.skill < 1) e.add('yetenek aralık dışı');
+  }
+  if (bad(g.netWorth)) e.add('servet bozuk');
   return e;
 }
 
@@ -86,7 +104,7 @@ Future<void> chaos(int seed, int steps) async {
   T pick<T>(List<T> l) => l[r.nextInt(l.length)];
   final log = <String>[];
   for (int i = 0; i < steps; i++) {
-    final a = r.nextInt(32);
+    final a = r.nextInt(38);
     String act = 'a$a';
     try {
       switch (a) {
@@ -194,6 +212,54 @@ Future<void> chaos(int seed, int steps) async {
             final crew = <Staff>[];
             t.def.crew.forEach((role, n) => crew.addAll(g.freeStaff(role).take(n)));
             g.bidTender(t, t.budget * (0.5 + r.nextDouble() * 0.7), crew);
+          }
+        case 32:
+          act = 'premium program';
+          final genre = pick(Genre.values);
+          final tier = r.nextInt(genreFormats[genre]!.length);
+          final crew = <Staff>[];
+          genreDefs[genre]!.needs.forEach((role, n) => crew.addAll(g.freeStaff(role).take(n)));
+          final locs = g.ownedLocations.toList();
+          g.createShow('P$i', genre, tier, crew,
+              budget: r.nextInt(prodBudgets.length),
+              guest: r.nextInt(guestTiers.length),
+              location: locs.isEmpty || r.nextBool() ? null : pick(locs));
+        case 33:
+          final l = pick(locationDefs);
+          act = 'lokasyon';
+          if (r.nextBool()) { g.buyLocation(l); } else { g.holdEvent(l); }
+        case 34:
+          final k = r.nextInt(9);
+          act = 'ajans $k';
+          final mine = [...g.staff, ...g.academy];
+          if (k == 0) g.upgradeAgency();
+          if (k == 1 && g.youthMarket.isNotEmpty) g.signYouth(pick(g.youthMarket));
+          if (k == 2 && g.academy.isNotEmpty) g.promoteYouth(pick(g.academy));
+          if (k == 3 && mine.isNotEmpty) g.toggleForSale(pick(mine));
+          if (k == 4 && g.transferOffers.isNotEmpty) g.acceptTransfer(pick(g.transferOffers));
+          if (k == 5 && mine.isNotEmpty) g.quickSell(pick(mine));
+          if (k == 6 && g.transferMarket.isNotEmpty) g.buyTransfer(pick(g.transferMarket));
+          if (k == 7 && mine.isNotEmpty) g.promoteFame(pick(mine));
+          if (k == 8) g.sendScout();
+        case 35:
+          act = 'yönetici';
+          if (r.nextInt(3) == 0 && g.execs.isNotEmpty) {
+            g.fireExec(pick(g.execs.keys.toList()));
+          } else if (g.execCandidates.isNotEmpty) {
+            g.hireExec(pick(g.execCandidates));
+          }
+        case 36:
+          if (g.brandOffers.isNotEmpty) {
+            act = 'marka';
+            final o = pick(g.brandOffers);
+            r.nextBool() ? g.acceptBrandOffer(o) : g.rejectBrandOffer(o);
+          }
+        case 37:
+          final live = g.shows.where((s) => s.status != ShowStatus.ended).toList();
+          if (live.isNotEmpty) {
+            act = 'bütçe/konuk yükselt';
+            final s = pick(live);
+            r.nextBool() ? g.upgradeShowBudget(s) : g.upgradeShowGuest(s);
           }
         case 30:
           act = 'uzaklaş';

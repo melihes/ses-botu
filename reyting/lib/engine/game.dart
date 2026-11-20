@@ -7,9 +7,12 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../core/format.dart';
 import '../data/content.dart';
+import '../data/content2.dart';
 import '../models/models.dart';
 import 'achievements.dart';
 import 'economy.dart';
+
+part 'game_v12.dart';
 
 /// Oyunun tüm durumunu tutan ve zamanı ilerleten motor.
 /// Ekranlar bunu dinler; her değişiklikte notifyListeners() çağrılır.
@@ -75,6 +78,31 @@ class Game extends ChangeNotifier {
   int bonusPrestige = 0;
   double todayIncome = 0;
   double yesterdayIncome = 0;
+
+  // ---- v0.12: şirket kimliği, lokasyonlar, ajans, yönetim kurulu, markalar ----
+  String companyName = 'Kanal 9';
+  int companySuffix = 0;
+  CompanyLogo logo = CompanyLogo();
+  bool identitySet = false;
+  bool stingOn = true;
+  final Set<String> ownedLocations = {};
+  final Map<String, int> eventReadyDay = {};
+  int agencyLevel = 0;
+  final List<Staff> academy = [];
+  final List<Staff> youthMarket = [];
+  final List<Staff> transferMarket = [];
+  final List<TransferOffer> transferOffers = [];
+  int talentsSold = 0;
+  double transferProfit = 0;
+  final Map<ExecRole, Exec> execs = {};
+  final List<Exec> execCandidates = [];
+  final List<BrandOffer> brandOffers = [];
+  final List<Deal> deals = [];
+  int storyChoices = 0;
+  int eventsHeld = 0;
+
+  /// Yeni yapım başlarken oynatılan şirket logosu (yapım adı)
+  final sting = ValueNotifier<String?>(null);
 
   /// Ekranın altında kısa süre görünen bildirim.
   final toast = ValueNotifier<String?>(null);
@@ -167,6 +195,7 @@ class Game extends ChangeNotifier {
     bonusPrestige = 0;
     todayIncome = 0;
     yesterdayIncome = 0;
+    _resetV12();
     _refreshMarket();
     _tendersDaily();
     _log('Kanal kuruldu', '$channelName yayın hayatına başladı. Bol reytingler!',
@@ -225,28 +254,26 @@ class Game extends ChangeNotifier {
 
   /// Genel Müdür (işe alınırsa): biten sezonları otomatik yeniler ve
   /// aynı kuşağa koyar. Günlük maaşı stüdyo seviyesiyle artar.
-  bool autoManager = false;
+  bool get autoManager => execs.containsKey(ExecRole.genelMudur);
 
   double get managerSalary => 15000 * pow(1.9, studioLevel).toDouble();
   double get managerSigningFee => managerSalary * 10;
 
+  /// Hızlı yol: orta seviye (55) bir Genel Müdür işe alır.
   String? hireManager() {
     if (autoManager) return 'Genel Müdür zaten görevde.';
     if (cash < managerSigningFee) {
       return 'İmza ücreti için ${fmtShort(managerSigningFee)} gerekli.';
     }
     cash -= managerSigningFee;
-    autoManager = true;
+    execs[ExecRole.genelMudur] =
+        Exec(_newId('e'), 'Kemal Ardıç', ExecRole.genelMudur, 55, managerSalary);
     _notify('🤵 Genel Müdür göreve başladı! Biten sezonları artık o yenileyecek.');
     _changed();
     return null;
   }
 
-  void fireManager() {
-    autoManager = false;
-    _notify('Genel Müdür ile yollar ayrıldı.');
-    _changed();
-  }
+  void fireManager() => fireExec(ExecRole.genelMudur);
 
   @visibleForTesting
   void debugAway(Duration d) => _catchUp(d);
@@ -362,6 +389,7 @@ class Game extends ChangeNotifier {
         'bonusPrestige': bonusPrestige,
         'todayIncome': todayIncome,
         'yesterdayIncome': yesterdayIncome,
+        ..._v12ToJson(),
       };
 
   void _load(Map<String, dynamic> j) {
@@ -434,7 +462,6 @@ class Game extends ChangeNotifier {
       ..addAll((j['todaySamples'] as List? ?? []).map((e) => (e as num).toDouble()));
     cashAtDayStart = (j['cashAtDayStart'] as num? ?? cash).toDouble();
     introSeen = j['introSeen'] ?? true;
-    autoManager = j['managerHired'] ?? false;
     missionDate = j['missionDate'] ?? '';
     missions
       ..clear()
@@ -505,6 +532,7 @@ class Game extends ChangeNotifier {
     bonusPrestige = j['bonusPrestige'] ?? 0;
     todayIncome = (j['todayIncome'] as num? ?? 0).toDouble();
     yesterdayIncome = (j['yesterdayIncome'] as num? ?? 0).toDouble();
+    _v12Load(j);
   }
 
   // =================================================================
@@ -598,7 +626,7 @@ class Game extends ChangeNotifier {
     cash += pf;
     todayIncome += pf;
     _acc?.platformIncome += pf;
-    final sp = sponsorIncomePerDay * step;
+    final sp = (sponsorIncomePerDay + dealIncomePerDay) * step;
     cash += sp;
     todayIncome += sp;
     _acc?.sponsorIncome += sp;
@@ -631,7 +659,7 @@ class Game extends ChangeNotifier {
     // Giderler
     final sal = dailySalaries +
         creators.fold(0.0, (a, c) => a + c.salary) +
-        (autoManager ? managerSalary : 0);
+        execSalaries;
     cash -= sal;
     _acc?.salaries += sal;
     final rent = dailyRent;
@@ -682,6 +710,7 @@ class Game extends ChangeNotifier {
       if (s.episodesAired >= s.seasonDays) _endSeason(s);
     }
     _tendersDaily();
+    _v12Daily();
     _buildReport();
     _stockNews();
     _maybeDecision();
@@ -745,8 +774,9 @@ class Game extends ChangeNotifier {
     _acc?.endedSeasons++;
     if (autoManager && !manual && prevSlot != null) {
       // Genel Müdür: kasa elveriyorsa yeni sezonu başlatır
-      final cost = productionCost(s.genre, s.tier);
-      if (cash >= cost * 1.5 && renewShow(s) == null) {
+      final cost = showCostOf(s);
+      final gm = execs[ExecRole.genelMudur]!;
+      if (cash >= cost * (2.0 - gm.power * 0.8) && renewShow(s) == null) {
         s.autoSlot = prevSlot;
         _acc?.autoRenewed++;
         _notify('🤵 Genel Müdür: "${s.name}" ${s.season}. sezon çekimlerine başladı.');
@@ -792,7 +822,8 @@ class Game extends ChangeNotifier {
             !(s.genre == Genre.magazin || s.genre == Genre.talkShow)) {
           return;
         }
-        final fine = productionCost(s.genre, s.tier) * 0.3;
+        final fine = productionCost(s.genre, s.tier) * 0.3 *
+            (1 - execBonus(ExecRole.hukuk));
         if (_offerDecision(_regulatorDecision(s, fine))) return;
         cash -= fine;
         _acc?.eventCash -= fine;
@@ -893,6 +924,9 @@ class Game extends ChangeNotifier {
     for (final pf in platformDefs) {
       if (ownedPlatforms.contains(pf.id)) p += (pf.price / 2e6).round();
     }
+    for (final l in locationDefs) {
+      if (ownedLocations.contains(l.id)) p += l.prestige;
+    }
     return p;
   }
 
@@ -923,10 +957,16 @@ class Game extends ChangeNotifier {
       if (f.rightsOwned && f.score > 0) v += filmValue(f);
     }
     v += portfolioValue;
+    for (final l in locationDefs) {
+      if (ownedLocations.contains(l.id)) v += l.price * 0.5;
+    }
     return v;
   }
 
-  double get adBonus => prestigeAdBonus(prestige) + bizEffect(BizEffect.adRate);
+  double get adBonus =>
+      prestigeAdBonus(prestige) +
+      bizEffect(BizEffect.adRate) +
+      execBonus(ExecRole.genelMudur);
 
   // ---- Holding etkileri ----
   int bizLevel(String id) => bizLevels[id] ?? 0;
@@ -975,7 +1015,8 @@ class Game extends ChangeNotifier {
   double get digitalBoost => min(totalFollowers / 20e6, 0.10);
   double get boxOfficeBonus =>
       bizEffect(BizEffect.boxOffice) +
-      ownedEquip.fold(0.0, (a, id) => a + (equipById(id)?.boxOfficeBonus ?? 0));
+      ownedEquip.fold(0.0, (a, id) => a + (equipById(id)?.boxOfficeBonus ?? 0)) +
+      execBonus(ExecRole.sinema);
   double get licenseBonus => bizEffect(BizEffect.licenseFee);
   double get musicQualityBonus => bizEffect(BizEffect.quality);
 
@@ -1001,11 +1042,16 @@ class Game extends ChangeNotifier {
           (a, f) => a + boxOfficeForDay(f, f.theaterDay, reach, boxOfficeBonus));
 
   /// Boşta bekleyen (programda olmayan) kadro yarım maaş alır.
-  double get dailySalaries => staff.fold(
-      0.0, (a, s) => a + (s.showId == null ? s.salary * 0.5 : s.salary));
-  double get dailyRent => studio.rentPerDay;
-  double get dailyUpkeep => ownedEquip.fold(
-      0.0, (a, id) => a + (equipById(id)?.upkeepPerDay ?? 0));
+  double get dailySalaries =>
+      staff.fold(
+          0.0, (a, s) => a + (s.showId == null ? s.salary * 0.5 : s.salary)) +
+      academy.fold(0.0, (a, s) => a + s.salary);
+  double get dailyRent =>
+      studio.rentPerDay * (1 - execBonus(ExecRole.finans));
+  double get dailyUpkeep =>
+      (ownedEquip.fold(0.0, (a, id) => a + (equipById(id)?.upkeepPerDay ?? 0)) +
+          locationUpkeep) *
+      (1 - execBonus(ExecRole.finans));
   double get debt => loans.fold(0.0, (a, l) => a + l.remaining);
 
   double get channelIncomePerDay => channelDefs
@@ -1022,9 +1068,10 @@ class Game extends ChangeNotifier {
       platformIncomePerDay +
       bizIncomePerDay +
       creatorIncomePerDay +
-      sponsorIncomePerDay -
+      sponsorIncomePerDay +
+      dealIncomePerDay -
       creatorSalaries -
-      (autoManager ? managerSalary : 0) +
+      execSalaries +
       boxOfficePerDay -
       dailySalaries -
       dailyRent -
@@ -1033,17 +1080,24 @@ class Game extends ChangeNotifier {
   double currentRating(Show s) {
     if (s.slot == null) return 0;
     return showRating(s, s.slot!, slots[s.slot]!.adMinutes) *
-        ratingMultFor(s.genre);
+        ratingMultFor(s.genre) *
+        showExtraMult(s);
   }
 
   /// Programı belirli bir kuşağa koysak reytingi ne olurdu (önizleme).
   double previewRating(Show s, SlotId slot) =>
-      showRating(s, slot, slots[slot]!.adMinutes) * ratingMultFor(s.genre);
+      showRating(s, slot, slots[slot]!.adMinutes) *
+      ratingMultFor(s.genre) *
+      showExtraMult(s);
 
   double viewers(Show s) =>
       s.slot == null ? 0 : viewersFor(currentRating(s), s.slot!, reach);
 
-  double revenuePerDay(Show s) {
+  /// Net yayın geliri: büyük bütçe, ünlü konuk ve dış çekim bölüm başı
+  /// gelirden pay alır (bkz. [runShare]).
+  double revenuePerDay(Show s) => grossRevenuePerDay(s) * runShare(s);
+
+  double grossRevenuePerDay(Show s) {
     if (s.slot == null) return 0;
     final m = slots[s.slot]!.adMinutes;
     return adRevenuePerDay(viewers(s), m, s.slot!, adBonus);
@@ -1156,8 +1210,9 @@ class Game extends ChangeNotifier {
     if (staff.length >= studio.maxStaff) {
       return 'Kadro dolu (${studio.maxStaff}). Stüdyoyu büyüt.';
     }
-    if (cash < p.signingFee) return 'İmza ücreti için kasada para yok.';
-    cash -= p.signingFee;
+    final fee = signingFeeFor(p);
+    if (cash < fee) return 'İmza ücreti için kasada para yok.';
+    cash -= fee;
     market.remove(p);
     staff.add(p);
     _count('hire');
@@ -1171,6 +1226,7 @@ class Game extends ChangeNotifier {
     final severance = p.salary * 3;
     cash -= severance;
     staff.remove(p);
+    _forgetPerson(p);
     _notify('${p.name} ile yollar ayrıldı (tazminat ${fmtShort(severance)}).');
     _changed();
     return null;
@@ -1180,7 +1236,8 @@ class Game extends ChangeNotifier {
   // Yapım
   // =================================================================
 
-  String? createShow(String name, Genre genre, int tier, List<Staff> crew) {
+  String? createShow(String name, Genre genre, int tier, List<Staff> crew,
+      {int budget = 1, int guest = 0, String? location}) {
     final def = genreDefs[genre]!;
     if (!genreUnlocked(genre)) {
       return '${def.label} için ${equipById(def.reqEquip!)!.name} gerekli.';
@@ -1195,23 +1252,31 @@ class Game extends ChangeNotifier {
       final n = crew.where((c) => c.role == e.key).length;
       if (n < e.value) return '${e.value} ${e.key.label} seçmelisin.';
     }
-    final cost = productionCost(genre, tier);
+    final optErr = prodOptionError(genre, budget, guest, location);
+    if (optErr != null) return optErr;
+    final cost = showCost(genre, tier, budget, guest, location);
     if (cash < cost) return 'Kasada yeterli para yok (${fmtShort(cost)}).';
     cash -= cost;
     final s = Show(
+      budget: budget,
+      guest: guest,
+      guestName: guest > 0
+          ? guestTiers[guest].names[_rng.nextInt(guestTiers[guest].names.length)]
+          : null,
+      location: location,
       id: _newId('s'),
       name: name.trim().isEmpty ? showNameIdeas[genre]!.first : name.trim(),
       genre: genre,
       tier: tier,
       staffIds: crew.map((c) => c.id).toList(),
       prodLeft: def.prodDays * prodSpeedMult(),
-      quality: showQuality(crew, genre, tier, ownedEquip) *
-          (genre == Genre.dizi ? 1 + musicQualityBonus : 1),
+      quality: fullShowQuality(crew, genre, tier, budget, location),
     );
     for (final c in crew) {
       c.showId = s.id;
     }
     shows.insert(0, s);
+    _playSting(s.name);
     _count('show');
     _notify('🎥 "${s.name}" çekimleri başladı!');
     _changed();
@@ -1228,7 +1293,7 @@ class Game extends ChangeNotifier {
       if (st.showId != null) return '${st.name} başka bir programda.';
       crew.add(st);
     }
-    final cost = productionCost(s.genre, s.tier);
+    final cost = showCostOf(s);
     if (cash < cost) return 'Kasada yeterli para yok (${fmtShort(cost)}).';
     cash -= cost;
     for (final c in crew) {
@@ -1241,7 +1306,7 @@ class Game extends ChangeNotifier {
       ..seasonRevenue = 0
       ..status = ShowStatus.producing
       ..prodLeft = max(1.0, s.def.prodDays - 1) * prodSpeedMult()
-      ..quality = showQuality(crew, s.genre, s.tier, ownedEquip) * fatigue
+      ..quality = fullShowQuality(crew, s.genre, s.tier, s.budget, s.location) * fatigue
       ..ratingHistory.clear();
     if (!_offlineMode) _count('show');
     _notify('🎥 "${s.name}" ${s.season}. sezon çekimleri başladı!');
@@ -1518,7 +1583,8 @@ class Game extends ChangeNotifier {
     return (avg * budgetTiers[tier].qualityMult * (1 + bonus)).clamp(0.0, 1.3);
   }
 
-  String? createFilm(String name, FilmGenre genre, int tier, List<Staff> crew) {
+  String? createFilm(String name, FilmGenre genre, int tier, List<Staff> crew,
+      {String? location}) {
     final def = filmGenreDefs[genre]!;
     if (!filmGenreUnlocked(genre)) {
       return '${def.label} için ${equipById(def.reqEquip!)!.name} gerekli.';
@@ -1528,7 +1594,10 @@ class Game extends ChangeNotifier {
         return '${e.value} ${e.key.label} seçmelisin.';
       }
     }
-    final cost = filmCost(genre, tier);
+    if (location != null && !ownedLocations.contains(location)) {
+      return 'Bu lokasyonda setin yok.';
+    }
+    final cost = filmCost(genre, tier) + filmLocationFee(genre, tier, location);
     if (cash < cost) return 'Kasada yeterli para yok (${fmtShort(cost)}).';
     cash -= cost;
     final f = Film(
@@ -1539,12 +1608,14 @@ class Game extends ChangeNotifier {
       staffIds: crew.map((c) => c.id).toList(),
       cost: cost,
       prodLeft: def.prodDays * prodSpeedMult(),
-      quality: filmQuality(crew, tier),
+      quality: (filmQuality(crew, tier) * filmExtraMult(crew, genre, location))
+          .clamp(0.0, 1.5),
     );
     for (final c in crew) {
       c.showId = f.id;
     }
     films.insert(0, f);
+    _playSting(f.name);
     _count('film');
     _notify('🎬 "${f.name}" filminin çekimleri başladı!');
     _changed();
@@ -1836,8 +1907,10 @@ class Game extends ChangeNotifier {
 
   void _maybeDecision() {
     if (_offlineMode || pendingDecision != null) return;
+    // Senaryo kararları: sadece oyun açıkken (başında olana ekstra kazanç)
+    if (_rng.nextDouble() < 0.22 && _offerStory()) return;
     // Yıldız egosu: zam talebi ya da rakip transfer teklifi
-    final stars = staff.where((p) => p.isStar).toList();
+    final stars = staff.where((p) => p.isStar && p.trait != 5).toList();
     if (stars.isNotEmpty && _rng.nextDouble() < 0.03) {
       final p = stars[_rng.nextInt(stars.length)];
       if (_rng.nextBool() && p.salary < salaryFor(p.skill) * 1.9) {
@@ -1869,23 +1942,6 @@ class Game extends ChangeNotifier {
       }
       return;
     }
-    // Sponsor teklifi
-    final free = shows.where((s) => s.status == ShowStatus.onAir && s.sponsorDays == 0).toList();
-    if (free.isNotEmpty && _rng.nextDouble() < 0.10) {
-      final s = free[_rng.nextInt(free.length)];
-      final brand = sponsorBrands[_rng.nextInt(sponsorBrands.length)];
-      final perDay = max(5000.0, revenuePerDay(s) * (0.25 + _rng.nextDouble() * 0.25));
-      _setDecision(Decision(
-        kind: 'sponsor',
-        title: '🤝 Sponsor teklifi: $brand',
-        body: '$brand, "${s.name}" programında ürün yerleştirme yapmak istiyor. 10 gün sürecek.',
-        options: ['Kabul et', 'Daha fazlasını iste', 'Reddet'],
-        hints: ['+${fmtShort(perDay)}/gün, reyting -%3', '%50 +%40 para, %50 vazgeçer', 'Hiçbir şey olmaz'],
-        targetId: s.id,
-        amount: perDay,
-        extra: brand,
-      ));
-    }
   }
 
   void resolveDecision(int option, {bool auto = false}) {
@@ -1899,6 +1955,8 @@ class Game extends ChangeNotifier {
     final p = d.targetId == null ? null : staffById(d.targetId!);
     String msg;
     switch (d.kind) {
+      case 'story':
+        msg = _resolveStory(d, option, s);
       case 'scandal':
         if (option == 0) {
           bonusPrestige += 5;
@@ -2020,9 +2078,15 @@ class Game extends ChangeNotifier {
     p.salary = (salary / 100).round() * 100.0;
   }
 
+  void _forgetPerson(Staff p) {
+    transferOffers.removeWhere((o) => o.staffId == p.id);
+    deals.removeWhere((d) => d.targetId == p.id);
+  }
+
   /// Kişi ayrılır; bir programdaysa program kalitesi düşer.
   void _quit(Staff p) {
     staff.remove(p);
+    _forgetPerson(p);
     if (p.showId != null) {
       final s = showById(p.showId);
       if (s != null) {
@@ -2238,7 +2302,7 @@ class Game extends ChangeNotifier {
   /// Kurgusal patronların servetleri (online'da gerçek oyuncular gelecek)
   /// Takvim simülasyonuna göre ayarlı: günde ~1 saat oynayan oyuncu
   /// ~1. ayda ilk 100'e, ~1 yılda ilk 10-15'e ulaşır; 1 numara ekstra emek ister.
-  double tycoonWorth(int i) => 2e13 * exp(-i * 0.0408) * (1 + day / 1e6);
+  double tycoonWorth(int i) => 5.4e13 * exp(-i * 0.0408) * (1 + day / 1e6);
 
   String tycoonName(int i) =>
       '${firstNames[(i * 17 + 3) % firstNames.length]} '
@@ -2417,9 +2481,11 @@ class Game extends ChangeNotifier {
     final cost = trainCost(p);
     if (cash < cost) return 'Eğitim için ${fmtShort(cost)} gerekli.';
     cash -= cost;
-    final gain = 3 + _rng.nextInt(4);
+    var gain = 3 + _rng.nextInt(4);
+    if (p.trait == 3) gain = (gain * 1.5).round();
     final ratio = p.salary / salaryFor(p.skill);
     p.skill = min(99, p.skill + gain);
+    p.potential = max(p.potential, p.skill);
     p.salary = (salaryFor(p.skill) * ratio / 100).round() * 100.0;
     p.trainedDay = day;
     _count('train');
@@ -2477,6 +2543,8 @@ class Game extends ChangeNotifier {
     ('license', '1 filmi platforma sat', 1),
     ('campaign', '1 YouTuber kampanyası yap', 1),
     ('tender', '1 devlet ihalesine teklif ver', 1),
+    ('brand', '1 marka anlaşması imzala', 1),
+    ('youth', 'Akademine 1 genç yetenek al', 1),
   ];
 
   /// Görev oyuncunun şu anki durumunda yapılabilir mi?
@@ -2485,6 +2553,8 @@ class Game extends ChangeNotifier {
         'campaign' => creators.isNotEmpty,
         'train' => staff.length >= 2,
         'tender' => tenders.any((t) => t.status == TenderStatus.open && tenderEligible(t) == null),
+        'brand' => brandOffers.isNotEmpty,
+        'youth' => agencyOpen,
         _ => true,
       };
 

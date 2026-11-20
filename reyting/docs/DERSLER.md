@@ -76,3 +76,26 @@ ile ölçülür (~1 dk). Ölçülen: 1. gün 5. seviye, ~9. gün 7. seviye, ~1. 
 - Devlet ihaleleri: kapalı zarf, "fiyat ÷ kalite" puanı, %5 teminat (kaybedince iade),
   yapım maliyeti kazanınca ödenir, teslimde ödeme + kalite primi + prestij.
   Online'da rakip şirketlerin yerini gerçek oyuncular alacak (teklifler sunucuda).
+
+## v0.12: Şirket kimliği, harita, ajans, yönetim kurulu, markalar
+- Şirket adı + ek (Yapım, Film, A.Ş. …) + logo (28 sembol × 14 renk × 6 çerçeve = 2352 logo).
+  Yeni yapım başlarken "… sunar" logo animasyonu (ayarlardan kapatılabilir).
+- Prodüksiyon bütçesi (Düşük → Mega) ve ünlü konuk (Yerel ünlü → Dünya yıldızı).
+  DERS: yapım maliyeti gelire göre çok küçük (sezon geliri maliyetin 30-400 katı);
+  sabit ücretle herkes hep en pahalısını seçerdi. Çözüm: büyük yapım ve ünlü konuk
+  yayın gelirinden "bölüm başı pay" alır. Sonuç: en pahalı seçenek ~%10-25 net kâr
+  getirir ama riskli değil, azalan getirili (test/sim/roi_sim.dart).
+- Senaryo kararları (kim ölsün, kim kazansın…) sadece oyun açıkken çıkar, ihtimaller görünür.
+  Başında olan oyuncuya ekstra reyting = "telefon başında daha çok kazanç".
+- Türkiye (12) + dünya (13) çekim lokasyonu: uyumlu türde kalite bonusu, dış çekim payı,
+  bakım gideri; bazılarında etkinlik (podyum, gala, festival, dizi fuarı).
+- Yetenek ajansı (9 seviye): genç yetenek, akademi, potansiyel, şöhret, transfer pazarı,
+  satış teklifleri. Al-sat ile para basılamaz: alış 1,3× değer, teklif en fazla 1,2×,
+  hemen satış 0,6×. Gerçek oyuncularla takas online sürümde.
+- Yönetim kurulu (8 koltuk): orta/iyi/uzman adaylar her gün yenilenir; yetenek arttıkça
+  etki üstel artar (güç = (yetenek/100)^1,5), maaş da artar.
+- Marka teklifleri gelen kutusu (prestije göre marka seviyesi), Pazarlama Müdürü otomatik kabul eder.
+- DENGE: tüm yeni özellikleri kullanan akıllı bot ~2 kat hızlı zenginleşti. Patron listesi
+  tabanı 2e13 → 5,4e13 yapıldı. Ölçülen (her şeyi kullanan, günde ~1 saat): 30. gün #98,
+  90. gün #65, 180. gün #38, 300. gün #15, 365. gün #8. Yeni özellikleri hiç kullanmayan oyuncu yıl sonunda
+  ~#25 civarında kalır.

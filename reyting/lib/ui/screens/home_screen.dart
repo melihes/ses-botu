@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import '../../core/format.dart';
 import '../../core/theme.dart';
 import '../../data/content.dart';
+import '../../data/content2.dart';
 import '../../engine/game.dart';
 import '../../models/models.dart';
 import '../shell.dart';
@@ -234,6 +235,34 @@ class _TileGrid extends StatelessWidget {
         onTap: () => ShellNav.go(context, PageId.studio),
       ),
       _Tile(
+        art: const StageScene(prop: Prop.globe, color: AppColors.cyan, tier: 2, height: 200),
+        title: 'Harita',
+        status: '${g.ownedLocations.length} set · ${locationDefs.length} lokasyon',
+        onTap: () => ShellNav.go(context, PageId.map),
+      ),
+      _Tile(
+        art: const StageScene(prop: Prop.talent, color: AppColors.pink, tier: 2, height: 200),
+        title: 'Ajans',
+        status: g.agencyOpen
+            ? '${g.academy.length} genç · sv ${g.agencyLevel}'
+            : 'Genç yetenek keşfet',
+        alert: g.transferOffers.isNotEmpty ? '${g.transferOffers.length} teklif' : null,
+        onTap: () => ShellNav.go(context, PageId.agency),
+      ),
+      _Tile(
+        art: const StageScene(prop: Prop.election, color: AppColors.purple, tier: 2, height: 200),
+        title: 'Yönetim',
+        status: '${g.execs.length} yönetici · ${fmtShort(g.execSalaries)}/gün',
+        onTap: () => ShellNav.go(context, PageId.board),
+      ),
+      _Tile(
+        art: const StageScene(prop: Prop.redCarpet, color: AppColors.yellow, tier: 2, height: 200),
+        title: 'Markalar',
+        status: '${g.deals.length + g.shows.where((s) => s.sponsorDays > 0).length} anlaşma',
+        alert: g.brandOffers.isNotEmpty ? '${g.brandOffers.length} teklif' : null,
+        onTap: () => ShellNav.go(context, PageId.brands),
+      ),
+      _Tile(
         art: const ItemArt(id: 'otel', color: AppColors.green, width: 300, height: 200),
         title: 'Holding',
         status: '$bizCount işletme · ${fmtSigned(g.bizIncomePerDay)}/gün',
@@ -246,16 +275,10 @@ class _TileGrid extends StatelessWidget {
             '${g.ownedChannels.length} kanal · ${g.ownedPlatforms.length} platform',
         onTap: () => ShellNav.go(context, PageId.channels),
       ),
-      _Tile(
-        art: const ItemArt(id: 'y2', color: AppColors.blue, width: 300, height: 200),
-        title: 'Lüks',
-        status: '${g.ownedLuxury.length} eşya · ★ ${fmtInt(g.prestige)}',
-        onTap: () => ShellNav.go(context, PageId.luxury),
-      ),
     ];
 
     return LayoutBuilder(builder: (ctx, c) {
-      const cols = 3, gap = 8.0;
+      const cols = 4, gap = 8.0;
       final rows = (tiles.length / cols).ceil();
       final tw = (c.maxWidth - gap * (cols - 1)) / cols;
       final th = (c.maxHeight - gap * (rows - 1)) / rows;

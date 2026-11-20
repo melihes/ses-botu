@@ -3,10 +3,15 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import '../core/format.dart';
+import '../engine/game.dart';
 import '../core/theme.dart';
 import 'dialogs/offline_dialog.dart';
 import 'dialogs/settings_dialog.dart';
+import 'screens/agency_screen.dart';
 import 'screens/bank_screen.dart';
+import 'screens/board_screen.dart';
+import 'screens/map_screen.dart';
+import 'dialogs/identity_dialog.dart';
 import 'screens/broadcast_screen.dart';
 import 'screens/channels_screen.dart';
 import 'screens/cinema_screen.dart';
@@ -28,6 +33,10 @@ import 'widgets/common.dart';
 
 enum PageId {
   home,
+  map,
+  agency,
+  board,
+  brands,
   staff,
   production,
   broadcast,
@@ -65,6 +74,14 @@ const _nav = [
       Icons.theaters_rounded),
   _NavItem(PageId.digital, 'Dijital', 'VİDEOM', 'Dijital · YouTuber\'lar',
       Icons.smart_display_rounded),
+  _NavItem(PageId.map, 'Harita', 'ÇEKİM LOKASYONLARI', 'Türkiye & dünya haritası',
+      Icons.map_rounded),
+  _NavItem(PageId.agency, 'Ajans', 'GENÇ YETENEKLER', 'Yetenek ajansı',
+      Icons.star_rounded),
+  _NavItem(PageId.board, 'Yönetim', 'YÖNETİM KURULU', 'Yönetim kurulu',
+      Icons.groups_3_rounded),
+  _NavItem(PageId.brands, 'Markalar', 'REKLAM VERENLER', 'Marka teklifleri',
+      Icons.handshake_rounded),
   _NavItem(PageId.studio, 'Stüdyo', 'TESİSLER', 'Stüdyo & ekipman',
       Icons.domain_rounded),
   _NavItem(PageId.holding, 'Holding', 'YAN İŞLER', 'Holding',
@@ -96,18 +113,23 @@ class ShellNav extends InheritedWidget {
 }
 
 class Shell extends StatefulWidget {
-  const Shell({super.key});
+  final PageId initial;
+  const Shell({super.key, this.initial = PageId.home});
   @override
   State<Shell> createState() => _ShellState();
 }
 
 class _ShellState extends State<Shell> {
   // Oyun her açılışta ana ekranda başlar (bkz. docs/DERSLER.md #5)
-  PageId _page = PageId.home;
+  late PageId _page = widget.initial;
   bool _offlineShowing = false;
 
   Widget _body() => switch (_page) {
         PageId.home => const HomeScreen(),
+        PageId.map => const MapScreen(),
+        PageId.agency => const AgencyScreen(),
+        PageId.board => const BoardScreen(),
+        PageId.brands => const BrandsScreen(),
         PageId.staff => const StaffScreen(),
         PageId.production => const ProductionScreen(),
         PageId.broadcast => const BroadcastScreen(),
@@ -154,7 +176,9 @@ class _ShellState extends State<Shell> {
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       if (!mounted) return;
       final game = GameScope.read(context);
-      await showIntroTutorial(context);
+      if (!game.identitySet) await showIdentityDialog(context, first: true);
+      if (!mounted) return;
+      if (!game.introSeen) await showIntroTutorial(context);
       game.markIntroSeen();
       _introShowing = false;
     });
@@ -185,8 +209,9 @@ class _ShellState extends State<Shell> {
   Widget build(BuildContext context) {
     final game = GameScope.of(context);
     if (game.pendingOffline != null) _maybeShowOffline();
-    if (!game.introSeen && game.pendingOffline == null) _maybeShowIntro();
-    if (game.introSeen && game.pendingOffline == null) _maybeShowEvents();
+    final setup = !game.introSeen || !game.identitySet;
+    if (setup && game.pendingOffline == null) _maybeShowIntro();
+    if (!setup && game.pendingOffline == null) _maybeShowEvents();
     final item = _nav.firstWhere((n) => n.id == _page);
     return ShellNav(
       goTo: (p) => setState(() => _page = p),
@@ -225,6 +250,20 @@ class _ShellState extends State<Shell> {
               child: Center(child: DecisionCard()),
             ),
             const _ToastHost(),
+            Positioned.fill(
+              child: ValueListenableBuilder<String?>(
+                valueListenable: game.sting,
+                builder: (_, title, _) => title == null
+                    ? const SizedBox.shrink()
+                    : StingOverlay(
+                        key: ValueKey(title),
+                        logo: game.logo,
+                        company: game.companyFullName,
+                        title: title,
+                        onDone: () => game.sting.value = null,
+                      ),
+              ),
+            ),
           ]),
         ),
       ),

@@ -91,3 +91,9 @@ test('ihale: süresi bitmiş ihaleye teklif verilemez', () => {
   const a = makeAuction(rng(5), 0, 60000);
   assert.equal(applyBid(a, 'u1', 'A', a.startPrice, 1e12, 60001).ok, false);
 });
+
+test('çekim setleri değere yarı fiyatla eklenir, bilinmeyen id sayılmaz', () => {
+  const w0 = serverWorth(base());
+  const w1 = serverWorth(base({ locations: ['ist', 'ist', 'uydurma'] }));
+  assert.equal(w1 - w0, 1.2e6 * 0.5);
+});

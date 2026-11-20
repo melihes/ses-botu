@@ -2,7 +2,10 @@ import 'package:flutter/material.dart';
 
 import '../../core/sfx.dart';
 import '../../core/theme.dart';
+import '../../engine/game.dart';
 import '../widgets/common.dart';
+import '../widgets/company_logo.dart';
+import 'identity_dialog.dart';
 
 Future<void> showSettingsDialog(BuildContext context) {
   return showDialog(
@@ -62,7 +65,26 @@ class _SettingsState extends State<_Settings> {
               GhostButton('Kaydet',
                   compact: true, onTap: () => game.rename(_name.text)),
             ]),
-            const SizedBox(height: 14),
+            const SizedBox(height: 10),
+            Row(children: [
+              CompanyLogoView(logo: game.logo, size: 40),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(game.companyFullName,
+                    style: const TextStyle(fontWeight: FontWeight.w900)),
+              ),
+              GhostButton('Logo ve isim', compact: true, icon: Icons.brush_rounded,
+                  onTap: () => showIdentityDialog(context)),
+            ]),
+            SwitchListTile(
+              contentPadding: EdgeInsets.zero,
+              value: game.stingOn,
+              onChanged: (v) => game.setSting(v),
+              title: const Text('🎬 Açılış logosu',
+                  style: TextStyle(fontWeight: FontWeight.w800)),
+              subtitle: const Text('Yeni yapım başlarken şirket logon ekrana gelsin',
+                  style: TextStyle(fontSize: 12, color: AppColors.textDim)),
+            ),
             SwitchListTile(
               contentPadding: EdgeInsets.zero,
               value: Sfx.enabled,
@@ -121,7 +143,7 @@ class _SettingsState extends State<_Settings> {
               },
             ),
             const SizedBox(height: 12),
-            const Text('Reyting · prototip v0.1',
+            const Text('Reyting · v0.12',
                 style: TextStyle(color: AppColors.textFaint, fontSize: 11)),
           ],
         ),

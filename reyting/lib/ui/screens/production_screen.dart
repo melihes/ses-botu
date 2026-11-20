@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import '../../core/format.dart';
 import '../../core/theme.dart';
 import '../../data/content.dart';
+import '../../data/content2.dart';
 import '../../engine/economy.dart';
 import '../../engine/game.dart';
 import '../../models/models.dart';
@@ -90,7 +91,7 @@ class _ShowCard extends StatelessWidget {
             talk: s.status == ShowStatus.onAir || s.status == ShowStatus.producing,
             prop: propFor(s.genre, s.tier),
             color: s.def.color,
-            tier: s.tier,
+            tier: max(0, s.tier + s.budget - 1),
             live: s.status == ShowStatus.onAir,
             width: 130,
             height: 96,
@@ -119,6 +120,28 @@ class _ShowCard extends StatelessWidget {
                   overflow: TextOverflow.ellipsis,
                   style:
                       const TextStyle(color: AppColors.textDim, fontSize: 12)),
+              const SizedBox(height: 4),
+              Wrap(spacing: 4, runSpacing: 4, children: [
+                Tag('💰 ${prodBudgets[s.budget].label}', color: AppColors.yellow),
+                if (s.guest > 0)
+                  Tag('🌟 ${s.guestName ?? guestTiers[s.guest].label}', color: AppColors.pink),
+                if (locationById(s.location) != null)
+                  Tag('📍 ${locationById(s.location)!.city}', color: AppColors.cyan),
+                if (s.status == ShowStatus.producing || s.status == ShowStatus.onAir) ...[
+                  if (s.budget < prodBudgets.length - 1)
+                    GestureDetector(
+                      onTap: () => report(context, game.upgradeShowBudget(s)),
+                      child: Tag('⬆ ${prodBudgets[s.budget + 1].label} · ${fmtShort(game.upgradeBudgetCost(s))}',
+                          color: AppColors.green),
+                    ),
+                  if (s.guest < guestTiers.length - 1)
+                    GestureDetector(
+                      onTap: () => report(context, game.upgradeShowGuest(s)),
+                      child: Tag('⬆ ${guestTiers[s.guest + 1].label} · ${fmtShort(game.upgradeGuestCost(s))}',
+                          color: AppColors.green),
+                    ),
+                ],
+              ]),
               const SizedBox(height: 8),
               ..._actions(context, game, s),
             ],
@@ -165,7 +188,7 @@ class _ShowCard extends StatelessWidget {
         return [
           Text(
               'Toplam gelir ${fmtShort(s.totalRevenue)} · '
-              'Yeni sezon: ${fmtShort(productionCost(s.genre, s.tier))}',
+              'Yeni sezon: ${fmtShort(game.showCostOf(s))}',
               style: const TextStyle(fontSize: 12, color: AppColors.textDim)),
           const SizedBox(height: 6),
           Row(children: [
@@ -302,6 +325,9 @@ class NewShowWizard extends StatefulWidget {
 class _NewShowWizardState extends State<NewShowWizard> {
   Genre _genre = Genre.magazin;
   int _tier = 0;
+  int _budget = 1;
+  int _guest = 0;
+  String? _loc;
   final _name = TextEditingController();
   final Set<String> _crew = {};
   final _rng = Random();
@@ -345,9 +371,10 @@ class _NewShowWizardState extends State<NewShowWizard> {
     }
     final def = genreDefs[_genre]!;
     final fmt = formatOf(_genre, _tier);
-    final cost = productionCost(_genre, _tier);
+    if (_loc != null && !game.ownedLocations.contains(_loc)) _loc = null;
+    final cost = game.showCost(_genre, _tier, _budget, _guest, _loc);
     final crewList = _crew.map(game.staffById).whereType<Staff>().toList();
-    final quality = showQuality(crewList, _genre, _tier, game.ownedEquip);
+    final quality = game.fullShowQuality(crewList, _genre, _tier, _budget, _loc);
     var complete = game.formatUnlocked(_genre, _tier);
     for (final e in def.needs.entries) {
       if (crewList.where((c) => c.role == e.key).length < e.value) {
@@ -398,8 +425,11 @@ class _NewShowWizardState extends State<NewShowWizard> {
         ),
         const SizedBox(height: 4),
         Text(fmt.desc,
-            maxLines: 2,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
             style: const TextStyle(color: AppColors.textDim, fontSize: 12)),
+        const SizedBox(height: 4),
+        _prodOptions(game),
       ],
     );
 
@@ -465,8 +495,8 @@ class _NewShowWizardState extends State<NewShowWizard> {
           icon: complete ? Icons.videocam_rounded : Icons.info_outline_rounded,
           onTap: complete && game.cash >= cost
               ? () {
-                  final err =
-                      game.createShow(_name.text, _genre, _tier, crewList);
+                  final err = game.createShow(_name.text, _genre, _tier, crewList,
+                      budget: _budget, guest: _guest, location: _loc);
                   report(context, err);
                   if (err == null) Navigator.pop(context);
                 }
@@ -529,7 +559,11 @@ class _NewShowWizardState extends State<NewShowWizard> {
         child: ClipRRect(
           borderRadius: BorderRadius.circular(11),
           child: Stack(fit: StackFit.expand, children: [
-            StageScene(prop: f.prop, color: def.color, tier: i, height: 200),
+            StageScene(
+                prop: f.prop,
+                color: def.color,
+                tier: sel ? max(0, i + _budget - 1) : i,
+                height: 200),
             const DecoratedBox(
               decoration: BoxDecoration(
                 gradient: LinearGradient(
@@ -582,6 +616,109 @@ class _NewShowWizardState extends State<NewShowWizard> {
     );
   }
 
+  Widget _optChip(String label, bool sel, bool locked, VoidCallback onTap,
+      {Color color = AppColors.accent}) =>
+      GestureDetector(
+        onTap: onTap,
+        child: Container(
+          margin: const EdgeInsets.only(right: 4, bottom: 4),
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+          decoration: BoxDecoration(
+            color: sel ? color.withValues(alpha: 0.25) : AppColors.panel,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: sel ? color : AppColors.border),
+          ),
+          child: Text(locked ? '🔒 $label' : label,
+              style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w800,
+                  color: locked
+                      ? AppColors.textFaint
+                      : (sel ? AppColors.text : AppColors.textDim))),
+        ),
+      );
+
+  Widget _optRow(String title, List<Widget> chips) => Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 82,
+            child: Padding(
+              padding: const EdgeInsets.only(top: 4),
+              child: Text(title,
+                  style: const TextStyle(
+                      fontSize: 11, fontWeight: FontWeight.w800, color: AppColors.textDim)),
+            ),
+          ),
+          Expanded(
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(children: chips),
+            ),
+          ),
+        ],
+      );
+
+  /// Bütçe, ünlü konuk ve çekim yeri seçimi
+  Widget _prodOptions(Game game) {
+    final base = productionCost(_genre, _tier);
+    final locs = locationDefs.where((l) => game.ownedLocations.contains(l.id)).toList();
+    final share = game.runShareFor(_budget, _guest, _loc);
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      if (share < 0.999)
+        Text(
+            'Büyük yapım bölüm başı gider ister: yayın gelirinin %${((1 - share) * 100).round()}\'i '
+            'set, konuk ve ekip payına gider. Reyting daha çok artar.',
+            style: const TextStyle(fontSize: 10, color: AppColors.textFaint)),
+      _optRow('💰 Bütçe', [
+        for (int i = 0; i < prodBudgets.length; i++)
+          _optChip(
+              '${prodBudgets[i].label} ×${fmtDec(prodBudgets[i].qualityMult, 2)}'
+              '${prodBudgets[i].share > 0 ? ' · %${(prodBudgets[i].share * 100).round()} pay' : ''}',
+              i == _budget,
+              !game.budgetUnlocked(i), () {
+            if (!game.budgetUnlocked(i)) {
+              game.showToast('🔒 ${prodBudgets[i].label} bütçe stüdyo seviyesi ${prodBudgets[i].unlockLevel} ile açılır.');
+              return;
+            }
+            setState(() => _budget = i);
+          }, color: AppColors.yellow),
+      ]),
+      _optRow('🌟 ${guestLabelFor(_genre)}', [
+        for (int i = 0; i < guestTiers.length; i++)
+          _optChip(
+              i == 0
+                  ? 'Yok'
+                  : '${guestTiers[i].label} +%${(guestTiers[i].boost * 100).round()} · ${fmtShort(base * guestTiers[i].feeMult)} · %${(guestTiers[i].share * 100).round()} pay',
+              i == _guest,
+              !game.guestUnlocked(i), () {
+            if (!game.guestUnlocked(i)) {
+              game.showToast('🔒 ${guestTiers[i].label} stüdyo seviyesi ${guestTiers[i].unlockLevel} ile açılır.');
+              return;
+            }
+            setState(() => _guest = i);
+          }, color: AppColors.pink),
+      ]),
+      _optRow('📍 Çekim yeri', [
+        _optChip('Stüdyo', _loc == null, false, () => setState(() => _loc = null),
+            color: AppColors.cyan),
+        for (final l in locs)
+          _optChip(
+              '${l.city}${game.locationFits(l, _genre) ? ' ⭐+%${(l.bonus * 100).round()}' : ''}',
+              _loc == l.id,
+              false,
+              () => setState(() => _loc = l.id),
+              color: AppColors.cyan),
+        if (locs.isEmpty)
+          const Padding(
+            padding: EdgeInsets.only(top: 4),
+            child: Text('Harita\'dan set kurarsan burada seçebilirsin',
+                style: TextStyle(fontSize: 11, color: AppColors.textFaint)),
+          ),
+      ]),
+    ]);
+  }
+
   Widget _genreItem(Game game, Genre g) {
     final d = genreDefs[g]!;
     final unlocked = game.genreUnlocked(g);
@@ -598,6 +735,7 @@ class _NewShowWizardState extends State<NewShowWizard> {
           setState(() {
             _genre = g;
             _tier = 0;
+            _guest = 0;
             _suggest();
             _autoFill(game);
           });

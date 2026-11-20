@@ -222,6 +222,22 @@ class _DecisionCardState extends State<DecisionCard> {
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 12)),
+                        if (d.chances != null) ...[
+                          const SizedBox(height: 3),
+                          Row(children: [
+                            Expanded(
+                              child: Bar(d.chances![i] / 100,
+                                  color: d.chances![i] >= 70
+                                      ? AppColors.green
+                                      : (d.chances![i] >= 50 ? AppColors.yellow : AppColors.orange),
+                                  height: 5),
+                            ),
+                            const SizedBox(width: 4),
+                            Text('%${d.chances![i]}',
+                                style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w900)),
+                          ]),
+                          const SizedBox(height: 2),
+                        ],
                         Text(d.hints[i],
                             maxLines: 2,
                             overflow: TextOverflow.ellipsis,

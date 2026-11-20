@@ -53,3 +53,32 @@ export const lastNames = [
   'Yelkenci', 'Zeytinoğlu', 'Ilgaz', 'Mercanlı', 'Yamaçlı', 'Pınarbaşı',
 ];
 export const roles = ['senarist', 'yonetmen', 'oyuncu', 'sunucu'];
+
+/** Çekim lokasyonu set fiyatları (istemcideki content2.dart ile aynı) */
+export const locationPrices: Record<string, number> = {
+  ist: 1.2e6,
+  ege: 2.5e6,
+  akdeniz: 6e6,
+  kapadokya: 4e6,
+  karadeniz: 3e6,
+  dogu: 5e6,
+  mardin: 4.5e6,
+  nemrut: 7e6,
+  ankara: 3.5e6,
+  marmara: 25e6,
+  trakya: 5e6,
+  pamukkale: 3.2e6,
+  paris: 60e6,
+  londra: 55e6,
+  ny: 90e6,
+  la: 180e6,
+  tokyo: 85e6,
+  seul: 70e6,
+  dubai: 75e6,
+  rio: 50e6,
+  safari: 45e6,
+  kahire: 50e6,
+  izlanda: 80e6,
+  yz: 150e6,
+  antarktika: 300e6,
+};

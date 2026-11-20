@@ -23,8 +23,10 @@ const _pages = [
       'Hazır programı bir kuşağa koy. Reklam süresini kaydır: reklam uzarsa gelir artar ama izleyici kaçar. En iyi noktayı bulmak senin işin!'),
   _Page(Prop.film, AppColors.orange, '4 · Paranı büyüt',
       'Film çek, vizyona sok, platformlara sat; haklar sende kalsın. YouTuber transfer et, holding kur, rakip kanalları satın al. Yatlar, adalar seni bekliyor!'),
-  _Page(Prop.nightShow, AppColors.cyan, '5 · Zaman akıyor',
-      '1 oyun günü = 1 dakika. Maaşlar ve kira her gün ödenir. Sen yokken de kanalın 30 dakikaya kadar çalışmaya devam eder. Hadi başlayalım!'),
+  _Page(Prop.talent, AppColors.pink, '5 · Büyük oyna',
+      'Bütçeyi yükselt, ünlü konuk getir, Kapadokya\'da ya da Paris\'te çekim yap. Genç yetenekleri ajansında yetiştir, yıldız yapıp sat. Markalar zamanla kapını çalar.'),
+  _Page(Prop.nightShow, AppColors.cyan, '6 · Zaman akıyor',
+      '1 oyun günü = 1 dakika. Maaşlar ve kira her gün ödenir. Sen yokken kanalın 8 saate kadar yarı hızda çalışır; yönetim kuruluna uzman yöneticiler alırsan işler sen yokken de iyi gider. Başındayken çıkan senaryo kararları ekstra reyting getirir!'),
 ];
 
 /// İlk açılışta gösterilen tanıtım turu

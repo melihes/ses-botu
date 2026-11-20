@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import '../../core/format.dart';
 import '../../core/theme.dart';
 import '../../data/content.dart';
+import '../../data/content2.dart';
 import '../../engine/economy.dart';
 import '../../engine/game.dart';
 import '../../models/models.dart';
@@ -326,6 +327,7 @@ class NewFilmWizard extends StatefulWidget {
 class _NewFilmWizardState extends State<NewFilmWizard> {
   FilmGenre _genre = FilmGenre.komedi;
   int _tier = 1;
+  String? _loc;
   final _name = TextEditingController();
   final Set<String> _crew = {};
   final _rng = Random();
@@ -351,9 +353,12 @@ class _NewFilmWizardState extends State<NewFilmWizard> {
   Widget build(BuildContext context) {
     final game = GameScope.of(context);
     final def = filmGenreDefs[_genre]!;
-    final cost = filmCost(_genre, _tier);
+    if (_loc != null && !game.ownedLocations.contains(_loc)) _loc = null;
+    final cost = filmCost(_genre, _tier) + game.filmLocationFee(_genre, _tier, _loc);
     final crew = _crew.map(game.staffById).whereType<Staff>().toList();
-    final q = game.filmQuality(crew, _tier);
+    final q = (game.filmQuality(crew, _tier) * game.filmExtraMult(crew, _genre, _loc))
+        .clamp(0.0, 1.5);
+    final locs = locationDefs.where((l) => game.ownedLocations.contains(l.id)).toList();
     var complete = true;
     for (final e in def.needs.entries) {
       if (crew.where((c) => c.role == e.key).length < e.value) complete = false;
@@ -382,6 +387,24 @@ class _NewFilmWizardState extends State<NewFilmWizard> {
         selected: _tier,
         onChanged: (i) => setState(() => _tier = i),
       ),
+      const SizedBox(height: 12),
+      const SectionLabel('📍 Çekim yeri'),
+      const SizedBox(height: 6),
+      if (locs.isEmpty)
+        const Text('Harita\'dan set kurarsan filmini Kapadokya\'da, Los Angeles\'ta çekebilirsin.',
+            style: TextStyle(color: AppColors.textFaint, fontSize: 12))
+      else
+        Wrap(spacing: 6, runSpacing: 6, children: [
+          ChoiceChip(
+              label: const Text('Stüdyo'),
+              selected: _loc == null,
+              onSelected: (_) => setState(() => _loc = null)),
+          for (final l in locs)
+            ChoiceChip(
+                label: Text('${l.city}${game.locationFitsFilm(l, _genre) ? ' ⭐+%${(l.bonus * 100).round()}' : ''}'),
+                selected: _loc == l.id,
+                onSelected: (_) => setState(() => _loc = l.id)),
+        ]),
       const SizedBox(height: 12),
       const SectionLabel('3 · İsim'),
       Row(children: [
@@ -434,7 +457,8 @@ class _NewFilmWizardState extends State<NewFilmWizard> {
           icon: complete ? Icons.videocam_rounded : Icons.info_outline_rounded,
           onTap: complete && game.cash >= cost
               ? () {
-                  final err = game.createFilm(_name.text, _genre, _tier, crew);
+                  final err = game.createFilm(_name.text, _genre, _tier, crew,
+                      location: _loc);
                   report(context, err);
                   if (err == null) Navigator.pop(context);
                 }

@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 
 import '../../core/format.dart';
+import '../../engine/game.dart';
 import '../../core/theme.dart';
 import '../../data/content.dart';
 import '../../models/models.dart';
+import '../shell.dart';
 import '../widgets/common.dart';
 import '../widgets/item_art.dart';
 
@@ -110,11 +112,19 @@ class _PersonCard extends StatelessWidget {
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(fontWeight: FontWeight.w800)),
-                  Text(p.role.label,
+                  Text('${p.role.label} · ${p.specDef.label}',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                       style: TextStyle(
                           color: p.role.color,
                           fontSize: 12,
                           fontWeight: FontWeight.w700)),
+                  Text(
+                      '${p.age} yaş${p.trait != 0 ? ' · ${p.traitDef.emoji} ${p.traitDef.label}' : ''}'
+                      '${p.fame >= 1 ? ' · şöhret ${p.fame.round()}' : ''}',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(color: AppColors.textDim, fontSize: 11)),
                 ],
               ),
             ),
@@ -182,7 +192,7 @@ class _PersonCard extends StatelessWidget {
                         }),
             ])
           else
-            AccentButton('İşe al · ${fmtShort(p.signingFee)}',
+            AccentButton('İşe al · ${fmtShort(game.signingFeeFor(p))}',
                 compact: true,
                 expand: true,
                 icon: Icons.handshake_rounded,
@@ -193,43 +203,34 @@ class _PersonCard extends StatelessWidget {
   }
 }
 
-/// Genel Müdür: maaşlı yönetici, biten sezonları otomatik yeniler.
+/// Yönetim kurulu kısayolu
 class _ManagerCard extends StatelessWidget {
   const _ManagerCard();
   @override
   Widget build(BuildContext context) {
     final game = GameScope.of(context);
-    final hired = game.autoManager;
+    final n = game.execs.length;
     return Panel(
       padding: const EdgeInsets.all(12),
-      borderColor: hired ? AppColors.green.withValues(alpha: 0.6) : AppColors.yellow.withValues(alpha: 0.6),
+      borderColor: n > 0 ? AppColors.green.withValues(alpha: 0.6) : AppColors.yellow.withValues(alpha: 0.6),
+      onTap: () => ShellNav.go(context, PageId.board),
       child: Row(children: [
-        const PersonAvatar(seed: 7777, color: AppColors.purple, size: 52, badgeIcon: Icons.business_center_rounded),
+        const PersonAvatar(seed: 7777, color: AppColors.purple, size: 48, badgeIcon: Icons.business_center_rounded),
         const SizedBox(width: 12),
         Expanded(
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Row(children: [
-              const Text('🤵 Genel Müdür', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 15)),
-              const SizedBox(width: 8),
-              Tag(hired ? 'GÖREVDE' : 'BOŞ KADRO', color: hired ? AppColors.green : AppColors.textDim),
-            ]),
-            const Text(
-                'Sezonu biten programları otomatik yeniler ve aynı kuşağa geri koyar. '
-                'Sen yokken kanalın boş kalmaz.',
-                style: TextStyle(color: AppColors.textDim, fontSize: 12)),
-            Text('Maaş ${fmtShort(game.managerSalary)}/gün (stüdyo seviyesiyle artar)',
-                style: const TextStyle(color: AppColors.textDim, fontSize: 11)),
+            Text('🤵 Yönetim kurulu · $n yönetici',
+                style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 15)),
+            Text(
+                n == 0
+                    ? 'Genel Müdür, Yayın Planlama, İK, Pazarlama… Sen yokken kanalı onlar yönetir.'
+                    : game.execs.values.map((e) => '${e.def.label} (${e.skill})').join(' · '),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(color: AppColors.textDim, fontSize: 12)),
           ]),
         ),
-        const SizedBox(width: 8),
-        hired
-            ? GhostButton('Görevden al', compact: true, color: AppColors.red, onTap: () async {
-                final ok = await confirm(context, 'Genel Müdür görevden alınsın mı?',
-                    'Biten sezonları artık sen yenilemek zorunda kalırsın.', ok: 'Görevden al');
-                if (ok) game.fireManager();
-              })
-            : AccentButton('İşe al · ${fmtShort(game.managerSigningFee)}',
-                compact: true, icon: Icons.handshake_rounded, onTap: () => report(context, game.hireManager())),
+        const Icon(Icons.chevron_right_rounded, color: AppColors.textDim),
       ]),
     );
   }

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../data/content2.dart';
 import 'game.dart';
 
 /// Başarım tanımı: koşul sağlanınca rozet ve elmas ödülü
@@ -68,5 +69,33 @@ final achDefs = <AchDef>[
       (g) => g.richRank <= 10),
   AchDef('top1', 'Bir numara', 'Zenginler listesinin zirvesine otur.', Icons.emoji_events_rounded, 200,
       (g) => g.richRank == 1),
+  AchDef('brand_id', 'Marka doğdu', 'Şirketinin adını ve logosunu tasarla.', Icons.brush_rounded, 2,
+      (g) => g.identitySet),
+  AchDef('premium', 'Büyük prodüksiyon', 'Premium ya da daha yüksek bütçeli bir program çek.', Icons.diamond_rounded, 4,
+      (g) => g.shows.any((s) => s.budget >= 3)),
+  AchDef('superstar', 'Süperstar konuk', 'Programına süperstar ya da dünya yıldızı getir.', Icons.auto_awesome_rounded, 6,
+      (g) => g.shows.any((s) => s.guest >= 4)),
+  AchDef('loc1', 'Sahaya in', 'Haritada ilk setini kur.', Icons.add_location_alt_rounded, 3,
+      (g) => g.ownedLocations.isNotEmpty),
+  AchDef('loc_world', 'Dünya sahnesi', 'Yurt dışında bir set kur.', Icons.public_rounded, 8,
+      (g) => g.ownedLocations.any((id) => locationById(id)?.world ?? false)),
+  AchDef('loc_all_tr', 'Türkiye turu', 'Türkiye\'deki tüm lokasyonlarda set kur.', Icons.map_rounded, 20,
+      (g) => locationDefs.where((l) => !l.world).every((l) => g.ownedLocations.contains(l.id))),
+  AchDef('event5', 'Organizatör', '5 etkinlik (gala, podyum, festival) düzenle.', Icons.celebration_rounded, 6,
+      (g) => g.eventsHeld >= 5),
+  AchDef('agency', 'Yetenek avcısı', 'Yetenek ajansını kur.', Icons.star_rounded, 3,
+      (g) => g.agencyOpen),
+  AchDef('youth80', 'Altın çocuk', 'Akademinden 80+ yetenekli bir yıldız yetiştir.', Icons.child_care_rounded, 10,
+      (g) => [...g.staff, ...g.academy].any((p) => p.age <= 26 && p.skill >= 80)),
+  AchDef('transfer5', 'Menajer', '5 oyuncu sat.', Icons.swap_horiz_rounded, 8,
+      (g) => g.talentsSold >= 5),
+  AchDef('board4', 'Yönetim kurulu', '4 koltuğa yönetici ata.', Icons.groups_3_rounded, 8,
+      (g) => g.execs.length >= 4),
+  AchDef('board_expert', 'Uzman kadro', '85+ yetenekli bir yönetici işe al.', Icons.workspace_premium_rounded, 5,
+      (g) => g.execs.values.any((e) => e.skill >= 85)),
+  AchDef('story10', 'Senarist patron', '10 senaryo kararı ver.', Icons.menu_book_rounded, 5,
+      (g) => g.storyChoices >= 10),
+  AchDef('famous', 'Şöhret', 'Kadronda 80 şöhretli biri olsun.', Icons.camera_alt_rounded, 8,
+      (g) => g.staff.any((p) => p.fame >= 80)),
 ];
 

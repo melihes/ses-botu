@@ -1,4 +1,7 @@
+import 'dart:math';
+
 import '../data/content.dart';
+import '../data/content2.dart';
 
 /// Kadrodaki (veya pazardaki) bir kişi
 class Staff {
@@ -9,6 +12,13 @@ class Staff {
   double salary; // günlük maaş
   String? showId; // bağlı olduğu program
   int trainedDay; // en son eğitim aldığı gün
+  int spec; // uzmanlık (specsByRole[role] index)
+  int trait; // karakter özelliği (traitDefs index)
+  int age;
+  int potential; // ulaşabileceği en yüksek yetenek
+  double fame; // şöhret 0..100
+  double xp; // gelişim birikimi (1 dolunca +1 yetenek)
+  bool forSale; // transfer listesinde
 
   Staff({
     required this.id,
@@ -18,10 +28,29 @@ class Staff {
     required this.salary,
     this.showId,
     this.trainedDay = -99,
-  });
+    this.spec = -1,
+    this.trait = 0,
+    this.age = 30,
+    this.potential = 0,
+    this.fame = 0,
+    this.xp = 0,
+    this.forSale = false,
+  }) {
+    if (spec < 0) spec = id.hashCode.abs() % specsByRole[role]!.length;
+    if (potential < skill) potential = skill;
+  }
 
   bool get isStar => skill >= 85;
   double get signingFee => salary * 5;
+  SpecDef get specDef => specsByRole[role]![spec % specsByRole[role]!.length];
+  TraitDef get traitDef => traitDefs[trait % traitDefs.length];
+  bool get isYoung => age <= 23;
+
+  /// Uzmanlık uyumu: 1 tam uyum, 0.5 çok yönlü, 0 uyumsuz
+  double fitGenre(Genre g) =>
+      specDef.genres.contains(g) ? 1 : (trait == 7 ? 0.5 : 0);
+  double fitFilm(FilmGenre g) =>
+      specDef.films.contains(g) ? 1 : (trait == 7 ? 0.5 : 0);
 
   Map<String, dynamic> toJson() => {
         'id': id,
@@ -31,6 +60,13 @@ class Staff {
         'salary': salary,
         'showId': showId,
         'trainedDay': trainedDay,
+        'spec': spec,
+        'trait': trait,
+        'age': age,
+        'pot': potential,
+        'fame': fame,
+        'xp': xp,
+        'sale': forSale,
       };
 
   factory Staff.fromJson(Map<String, dynamic> j) => Staff(
@@ -41,6 +77,13 @@ class Staff {
         salary: (j['salary'] as num).toDouble(),
         showId: j['showId'],
         trainedDay: j['trainedDay'] ?? -99,
+        spec: j['spec'] ?? -1,
+        trait: j['trait'] ?? 0,
+        age: j['age'] ?? 30,
+        potential: j['pot'] ?? 0,
+        fame: (j['fame'] as num? ?? 0).toDouble(),
+        xp: (j['xp'] as num? ?? 0).toDouble(),
+        forSale: j['sale'] ?? false,
       );
 }
 
@@ -69,8 +112,16 @@ class Show {
   String? sponsor; // ürün yerleştirme markası
   double sponsorPerDay;
   int sponsorDays;
+  int budget; // prodüksiyon bütçesi (prodBudgets index)
+  int guest; // ünlü konuk seviyesi (guestTiers index)
+  String? guestName;
+  String? location; // çekim lokasyonu id
 
   Show({
+    this.budget = 1,
+    this.guest = 0,
+    this.guestName,
+    this.location,
     this.lastAiredDay = 0,
     this.autoSlot,
     this.sponsor,
@@ -122,6 +173,10 @@ class Show {
         'sponsor': sponsor,
         'sponsorPerDay': sponsorPerDay,
         'sponsorDays': sponsorDays,
+        'budget': budget,
+        'guest': guest,
+        'guestName': guestName,
+        'loc': location,
       };
 
   factory Show.fromJson(Map<String, dynamic> j) => Show(
@@ -149,6 +204,10 @@ class Show {
         sponsor: j['sponsor'],
         sponsorPerDay: (j['sponsorPerDay'] as num? ?? 0).toDouble(),
         sponsorDays: j['sponsorDays'] ?? 0,
+        budget: j['budget'] ?? 1,
+        guest: j['guest'] ?? 0,
+        guestName: j['guestName'],
+        location: j['loc'],
       );
 }
 
@@ -467,8 +526,10 @@ class Decision {
   final double amount;
   final String extra;
   final int defaultOption; // cevap verilmezse seçilen güvenli seçenek
+  final List<int>? chances; // senaryo kararlarında başarı ihtimalleri
   double deadline = 0; // oyun zamanı (gün + ilerleme)
   Decision({
+    this.chances,
     this.defaultOption = 0,
     required this.kind,
     required this.title,
@@ -565,4 +626,87 @@ class Tender {
         prodLeft: (j['p'] as num? ?? 0).toDouble(), qualityFactor: (j['q'] as num? ?? 1).toDouble(),
         winner: j['w'], winningBid: (j['wb'] as num?)?.toDouble(), paid: (j['pd'] as num? ?? 0).toDouble(),
       );
+}
+
+
+/// Yönetim kurulu üyesi
+class Exec {
+  final String id;
+  final String name;
+  final ExecRole role;
+  final int skill; // 1..99
+  final double salary;
+  Exec(this.id, this.name, this.role, this.skill, this.salary);
+  ExecRoleDef get def => execDefs[role]!;
+  double get signingFee => salary * 10;
+
+  /// Yeteneğe göre etki (0..1): uzmanlar çok daha etkili
+  double get power => pow(skill / 100, 1.5).toDouble();
+
+  Map<String, dynamic> toJson() =>
+      {'id': id, 'n': name, 'r': role.index, 's': skill, 'm': salary};
+  factory Exec.fromJson(Map<String, dynamic> j) => Exec(j['id'], j['n'],
+      ExecRole.values[j['r']], j['s'], (j['m'] as num).toDouble());
+}
+
+/// Gelen marka teklifi (kabul edilmeyi bekler)
+class BrandOffer {
+  final String id;
+  final String brand;
+  final DealKind kind;
+  final String? targetId;
+  final double perDay;
+  final double lump;
+  final int days;
+  final double ratingCost; // reyting çarpanı kaybı (0.03 = -%3)
+  final int expires; // bu günden sonra geçersiz
+  BrandOffer(this.id, this.brand, this.kind, this.targetId, this.perDay,
+      this.lump, this.days, this.ratingCost, this.expires);
+  double get total => perDay * days + lump;
+  Map<String, dynamic> toJson() => {
+        'id': id, 'b': brand, 'k': kind.index, 't': targetId, 'p': perDay,
+        'l': lump, 'd': days, 'r': ratingCost, 'e': expires,
+      };
+  factory BrandOffer.fromJson(Map<String, dynamic> j) => BrandOffer(
+      j['id'], j['b'], DealKind.values[j['k']], j['t'],
+      (j['p'] as num).toDouble(), (j['l'] as num).toDouble(), j['d'],
+      (j['r'] as num).toDouble(), j['e']);
+}
+
+/// Süren marka anlaşması (günlük gelir)
+class Deal {
+  final String brand;
+  final DealKind kind;
+  final String? targetId;
+  final double perDay;
+  int daysLeft;
+  Deal(this.brand, this.kind, this.targetId, this.perDay, this.daysLeft);
+  Map<String, dynamic> toJson() =>
+      {'b': brand, 'k': kind.index, 't': targetId, 'p': perDay, 'd': daysLeft};
+  factory Deal.fromJson(Map<String, dynamic> j) => Deal(j['b'],
+      DealKind.values[j['k']], j['t'], (j['p'] as num).toDouble(), j['d']);
+}
+
+/// Satışa çıkarılan oyuncu için gelen transfer teklifi
+class TransferOffer {
+  final String staffId;
+  final String from;
+  final double amount;
+  final int expires;
+  TransferOffer(this.staffId, this.from, this.amount, this.expires);
+  Map<String, dynamic> toJson() =>
+      {'s': staffId, 'f': from, 'a': amount, 'e': expires};
+  factory TransferOffer.fromJson(Map<String, dynamic> j) => TransferOffer(
+      j['s'], j['f'], (j['a'] as num).toDouble(), j['e']);
+}
+
+/// Şirket logosu: sembol × renk × çerçeve
+class CompanyLogo {
+  int shape;
+  int palette;
+  int frame;
+  CompanyLogo({this.shape = 0, this.palette = 0, this.frame = 1});
+  List<int> toJson() => [shape, palette, frame];
+  factory CompanyLogo.fromJson(List j) =>
+      CompanyLogo(shape: j[0], palette: j[1], frame: j[2]);
 }
