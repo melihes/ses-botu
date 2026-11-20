@@ -346,4 +346,79 @@ void main() {
       g.dispose();
     });
   });
+
+  group('Rapor, kararlar, ödüller, başarımlar', () {
+    test('her sabah reyting raporu çıkar ve sıralamada yer alırım', () async {
+      final g = await gameWithShowOnAir();
+      g.debugAdvanceDays(1);
+      expect(g.lastReport[SlotId.prime], isNotEmpty);
+      expect(g.rankIn(SlotId.prime), isNotNull);
+      final rows = g.lastReport[SlotId.prime]!;
+      for (int i = 1; i < rows.length; i++) {
+        expect(rows[i - 1].rating, greaterThanOrEqualTo(rows[i].rating));
+      }
+      g.dispose();
+    });
+
+    test('sponsor kabul edilince günlük gelir gelir, 10 gün sonra biter', () async {
+      final g = await gameWithShowOnAir();
+      final s = g.shows.first;
+      g.pendingDecision = Decision(kind: 'sponsor', title: 't', body: 'b',
+          options: ['a', 'b', 'c'], hints: ['', '', ''], targetId: s.id, amount: 10000, extra: 'Fırtına Cola');
+      g.resolveDecision(0);
+      expect(g.pendingDecision, isNull);
+      expect(g.sponsorIncomePerDay, 10000);
+      expect(g.sponsorDeals, 1);
+      s.episodesAired = -20; // sezon bitmesin
+      g.debugAdvanceDays(10.5);
+      expect(s.sponsorDays, 0);
+      expect(g.sponsorIncomePerDay, 0);
+      g.dispose();
+    });
+
+    test('yıldız zammı verilince maaş %30 artar', () async {
+      final g = Game();
+      await g.start();
+      g.staff.add(Staff(id: 'star', name: 'Yıldız', role: Role.oyuncu, skill: 95, salary: 10000));
+      g.pendingDecision = Decision(kind: 'raise', title: 't', body: 'b',
+          options: ['a', 'b', 'c'], hints: ['', '', ''], targetId: 'star');
+      g.resolveDecision(0);
+      expect(g.staffById('star')!.salary, 13000);
+      g.dispose();
+    });
+
+    test('transfer: satınca bonservis gelir, yıldız gider', () async {
+      final g = Game();
+      await g.start();
+      g.staff.add(Staff(id: 'star', name: 'Yıldız', role: Role.oyuncu, skill: 95, salary: 10000));
+      final c0 = g.cash;
+      g.pendingDecision = Decision(kind: 'poach', title: 't', body: 'b',
+          options: ['a', 'b'], hints: ['', ''], targetId: 'star', extra: 'Nova Türk');
+      g.resolveDecision(1);
+      expect(g.staffById('star'), isNull);
+      expect(g.cash, c0 + 250000);
+      g.dispose();
+    });
+
+    test('30. günde Altın Anten töreni yapılır', () async {
+      final g = await gameWithShowOnAir();
+      g.cash = 1e9;
+      g.shows.first.episodesAired = -100;
+      g.debugAdvanceDays(30);
+      expect(g.pendingAwards, isNotNull);
+      expect(g.pendingAwards!.first.nominee, 'Test Şov');
+      g.dispose();
+    });
+
+    test('başarım bir kez verilir', () async {
+      final g = await gameWithShowOnAir();
+      g.debugAdvanceDays(1);
+      g.hire(g.market.first);
+      expect(g.achievements, contains('first_air'));
+      final d = g.diamonds;
+      g.hire(g.market.first);
+      expect(g.diamonds, d);
+      g.dispose();
+    });
+  });
 }

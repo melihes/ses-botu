@@ -12,6 +12,8 @@ import 'screens/channels_screen.dart';
 import 'screens/cinema_screen.dart';
 import 'screens/digital_screen.dart';
 import 'dialogs/tutorial.dart';
+import 'dialogs/events_dialogs.dart';
+import 'screens/trophies_screen.dart';
 import 'screens/holding_screen.dart';
 import 'screens/home_screen.dart';
 import 'screens/luxury_screen.dart';
@@ -33,6 +35,7 @@ enum PageId {
   channels,
   bank,
   luxury,
+  trophies,
   online,
 }
 
@@ -67,6 +70,8 @@ const _nav = [
       Icons.account_balance_rounded),
   _NavItem(PageId.luxury, 'Lüks', 'YAŞAM', 'Lüks yaşam',
       Icons.diamond_rounded),
+  _NavItem(PageId.trophies, 'Kupalar', 'BAŞARIMLAR', 'Kupalar & koleksiyon',
+      Icons.emoji_events_rounded),
   _NavItem(PageId.online, 'Online', 'YAKINDA', 'Online arena',
       Icons.public_rounded),
 ];
@@ -104,10 +109,30 @@ class _ShellState extends State<Shell> {
         PageId.bank => const BankScreen(),
         PageId.channels => const ChannelsScreen(),
         PageId.luxury => const LuxuryScreen(),
+        PageId.trophies => const TrophiesScreen(),
         PageId.online => const OnlineScreen(),
       };
 
   bool _introShowing = false;
+  bool _eventShowing = false;
+
+  void _maybeShowEvents() {
+    if (_eventShowing || _offlineShowing || _introShowing) return;
+    final game = GameScope.read(context);
+    if (game.pendingAwards == null && game.pendingDecision == null) return;
+    _eventShowing = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (!mounted) return;
+      if (game.pendingAwards != null) {
+        await showAwardsDialog(context, game, game.pendingAwards!);
+        game.dismissAwards();
+      } else if (game.pendingDecision != null) {
+        await showDecisionDialog(context, game, game.pendingDecision!);
+      }
+      _eventShowing = false;
+    });
+  }
+
 
   void _maybeShowIntro() {
     if (_introShowing || _offlineShowing) return;
@@ -147,6 +172,7 @@ class _ShellState extends State<Shell> {
     final game = GameScope.of(context);
     if (game.pendingOffline != null) _maybeShowOffline();
     if (!game.introSeen && game.pendingOffline == null) _maybeShowIntro();
+    if (game.introSeen && game.pendingOffline == null) _maybeShowEvents();
     final item = _nav.firstWhere((n) => n.id == _page);
     return ShellNav(
       goTo: (p) => setState(() => _page = p),
@@ -315,12 +341,14 @@ class _TopBar extends StatelessWidget {
             ],
           ),
           const SizedBox(width: 10),
-          _Chip(
+          GestureDetector(
+            onTap: () => ShellNav.go(context, PageId.trophies),
+            child: _Chip(
             icon: Icons.star_rounded,
             color: AppColors.yellow,
             text: fmtInt(game.prestige),
             tooltip: 'Prestij',
-          ),
+          )),
           const SizedBox(width: 6),
           _Chip(
             icon: Icons.diamond_outlined,

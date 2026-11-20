@@ -8,6 +8,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../core/format.dart';
 import '../data/content.dart';
 import '../models/models.dart';
+import 'achievements.dart';
 import 'economy.dart';
 
 /// Oyunun tüm durumunu tutan ve zamanı ilerleten motor.
@@ -50,6 +51,16 @@ class Game extends ChangeNotifier {
   bool introSeen = false;
   bool adTouched = false;
   final Set<int> claimedGoals = {};
+  final Map<SlotId, List<ReportRow>> lastReport = {};
+  int reportDay = 0;
+  int primeWins = 0;
+  double bestRating = 0;
+  int sponsorDeals = 0;
+  int decisionsMade = 0;
+  final List<Trophy> trophies = [];
+  final Set<String> achievements = {};
+  Decision? pendingDecision;
+  List<AwardResult>? pendingAwards;
   final Map<String, NegState> negotiations = {};
   final List<double> cashHistory = [];
   final List<GameEvent> eventLog = [];
@@ -122,6 +133,16 @@ class Game extends ChangeNotifier {
     introSeen = false;
     adTouched = false;
     claimedGoals.clear();
+    lastReport.clear();
+    reportDay = 0;
+    primeWins = 0;
+    bestRating = 0;
+    sponsorDeals = 0;
+    decisionsMade = 0;
+    trophies.clear();
+    achievements.clear();
+    pendingDecision = null;
+    pendingAwards = null;
     _refreshCreators();
     negotiations.clear();
     cashHistory
@@ -215,6 +236,7 @@ class Game extends ChangeNotifier {
   /// (Uygulama aniden kapansa bile son işlem kaybolmasın.)
   void _changed() {
     _checkGoals();
+    _checkAchievements();
     notifyListeners();
     _saveDebounce?.cancel();
     _saveDebounce = Timer(const Duration(milliseconds: 250), save);
@@ -255,6 +277,17 @@ class Game extends ChangeNotifier {
         'introSeen': introSeen,
         'adTouched': adTouched,
         'claimedGoals': claimedGoals.toList(),
+        'lastReport': {
+          for (final e in lastReport.entries)
+            e.key.name: e.value.map((r) => r.toJson()).toList()
+        },
+        'reportDay': reportDay,
+        'primeWins': primeWins,
+        'bestRating': bestRating,
+        'sponsorDeals': sponsorDeals,
+        'decisionsMade': decisionsMade,
+        'trophies': trophies.map((e) => e.toJson()).toList(),
+        'achievements': achievements.toList(),
         'negotiations': {
           for (final e in negotiations.entries) e.key: e.value.toJson()
         },
@@ -327,6 +360,22 @@ class Game extends ChangeNotifier {
     claimedGoals
       ..clear()
       ..addAll(List<int>.from(j['claimedGoals'] ?? []));
+    lastReport.clear();
+    (j['lastReport'] as Map<String, dynamic>? ?? {}).forEach((k, v) {
+      lastReport[SlotId.values.byName(k)] =
+          (v as List).map((e) => ReportRow.fromJson(e)).toList();
+    });
+    reportDay = j['reportDay'] ?? 0;
+    primeWins = j['primeWins'] ?? 0;
+    bestRating = (j['bestRating'] as num? ?? 0).toDouble();
+    sponsorDeals = j['sponsorDeals'] ?? 0;
+    decisionsMade = j['decisionsMade'] ?? 0;
+    trophies
+      ..clear()
+      ..addAll((j['trophies'] as List? ?? []).map((e) => Trophy.fromJson(e)));
+    achievements
+      ..clear()
+      ..addAll(List<String>.from(j['achievements'] ?? []));
     negotiations
       ..clear()
       ..addAll((j['negotiations'] as Map<String, dynamic>)
@@ -410,6 +459,10 @@ class Game extends ChangeNotifier {
     cash += pf;
     todayIncome += pf;
     _acc?.platformIncome += pf;
+    final sp = sponsorIncomePerDay * step;
+    cash += sp;
+    todayIncome += sp;
+    _acc?.sponsorIncome += sp;
     final dg = creatorIncomePerDay * step;
     cash += dg;
     todayIncome += dg;
@@ -474,8 +527,20 @@ class Game extends ChangeNotifier {
         s.buffDays--;
         if (s.buffDays == 0) s.buff = 1.0;
       }
+      if (r > bestRating) bestRating = r;
+      if (s.sponsorDays > 0) {
+        s.sponsorDays--;
+        if (s.sponsorDays == 0) {
+          _notify('🤝 ${s.sponsor} sponsorluğu "${s.name}" için sona erdi.');
+          s.sponsor = null;
+          s.sponsorPerDay = 0;
+        }
+      }
       if (s.episodesAired >= s.seasonDays) _endSeason(s);
     }
+    _buildReport();
+    _maybeDecision();
+    if (day % 30 == 0) _awardCeremony();
 
     for (final f in films) {
       if (f.status == FilmStatus.inTheaters) {
@@ -513,6 +578,7 @@ class Game extends ChangeNotifier {
       ..add(cash);
     yesterdayIncome = todayIncome;
     todayIncome = 0;
+    _checkAchievements();
     _acc?.days++;
   }
 
@@ -549,6 +615,7 @@ class Game extends ChangeNotifier {
             '"${s.name}" sosyal medyada gündem oldu. 3 gün reyting +%35.', true);
       case 1:
         if (s == null || !s.def.needs.containsKey(Role.oyuncu)) return;
+        if (_offerDecision(_setCrisisDecision(s))) return;
         s.buff = 0.8;
         s.buffDays = 2;
         _event('😤 Sette kriz',
@@ -565,6 +632,7 @@ class Game extends ChangeNotifier {
           return;
         }
         final fine = productionCost(s.genre, s.tier) * 0.8;
+        if (_offerDecision(_regulatorDecision(s, fine))) return;
         cash -= fine;
         _acc?.eventCash -= fine;
         _event('⚖️ Yayın Kurulu cezası',
@@ -585,6 +653,7 @@ class Game extends ChangeNotifier {
             'Bir içecek markası sponsor oldu: +${fmtShort(amount)}', true);
       case 6:
         if (s == null) return;
+        if (_offerDecision(_scandalDecision(s))) return;
         s.buff = 1.25;
         s.buffDays = 2;
         bonusPrestige = max(0, bonusPrestige - 5);
@@ -688,6 +757,10 @@ class Game extends ChangeNotifier {
   double ratingMultFor(Genre g) =>
       1 + bizEffect(BizEffect.showRating, genre: g) + digitalBoost;
 
+  double get sponsorIncomePerDay => shows
+      .where((s) => s.status == ShowStatus.onAir && s.sponsorDays > 0)
+      .fold(0.0, (a, s) => a + s.sponsorPerDay);
+
   // ---- Dijital ----
   double get totalFollowers => creators.fold(0.0, (a, c) => a + c.followers);
   double get creatorIncomePerDay =>
@@ -740,7 +813,8 @@ class Game extends ChangeNotifier {
       channelIncomePerDay +
       platformIncomePerDay +
       bizIncomePerDay +
-      creatorIncomePerDay -
+      creatorIncomePerDay +
+      sponsorIncomePerDay -
       creatorSalaries +
       boxOfficePerDay -
       dailySalaries -
@@ -1399,6 +1473,347 @@ class Game extends ChangeNotifier {
     _notify('🚀 ${c.handle} reklam kampanyası: takipçiler +%15!');
     _changed();
     return null;
+  }
+
+  // =================================================================
+  // Sabah reyting raporu
+  // =================================================================
+
+  void _buildReport() {
+    lastReport.clear();
+    reportDay = day - 1;
+    final growth = 1 + day / 400;
+    final r = Random(day * 7919);
+    for (final slot in SlotId.values) {
+      final def = slotDefs[slot]!;
+      final slotMul = def.poolMillions / slotDefs[SlotId.prime]!.poolMillions;
+      final rows = <ReportRow>[];
+      for (int i = 0; i < rivalDefs.length; i++) {
+        final rv = rivalDefs[i];
+        if (ownedChannels.any((id) => channelDefs.any((c) => c.id == id && c.name == rv.name))) {
+          continue;
+        }
+        final g = Genre.values[r.nextInt(Genre.values.length)];
+        final ideas = showNameIdeas[g]!;
+        final rating = rv.strength * (0.6 + slotMul * 0.5) * (0.7 + r.nextDouble() * 0.6) * growth;
+        rows.add(ReportRow(rv.name, ideas[r.nextInt(ideas.length)], rating, false, i));
+      }
+      final mine = showById(slots[slot]!.showId);
+      if (mine != null && mine.ratingHistory.isNotEmpty) {
+        rows.add(ReportRow(channelName, mine.name, mine.ratingHistory.last, true, -1));
+      }
+      rows.sort((a, b) => b.rating.compareTo(a.rating));
+      lastReport[slot] = rows;
+    }
+    final prime = lastReport[SlotId.prime]!;
+    final rank = prime.indexWhere((e) => e.mine);
+    if (rank == 0) primeWins++;
+    if (rank >= 0) {
+      _notify('📊 Dünün reytingleri: Prime Time\'da ${rank + 1}. oldun '
+          '(${fmtPct(prime[rank].rating, 2)})${rank == 0 ? ' 🏆' : ''}');
+    }
+  }
+
+  int? rankIn(SlotId slot) {
+    final rows = lastReport[slot];
+    if (rows == null) return null;
+    final i = rows.indexWhere((e) => e.mine);
+    return i < 0 ? null : i + 1;
+  }
+
+  // =================================================================
+  // Kararlar: kriz, ego, sponsor
+  // =================================================================
+
+  /// Karar bekliyorsa yenisini açma; çevrimdışıyken karar sorulmaz.
+  bool _offerDecision(Decision d) {
+    if (_offlineMode || pendingDecision != null) return false;
+    pendingDecision = d;
+    return true;
+  }
+
+  Decision _scandalDecision(Show s) => Decision(
+        kind: 'scandal',
+        title: '📰 Skandal manşetlerde!',
+        body: '"${s.name}" kulis dedikodusuyla gazetelerde. Ne yapacaksın?',
+        options: ['Kamuoyundan özür dile', 'Sessiz kal', 'Avukat tut'],
+        hints: ['Reyting biraz düşer, +10 prestij', 'Kumar: reyting uçabilir ya da çakılır', '${fmtShort(productionCost(s.genre, s.tier) * 0.3)}, risk yok'],
+        targetId: s.id,
+        amount: productionCost(s.genre, s.tier) * 0.3,
+      );
+
+  Decision _setCrisisDecision(Show s) => Decision(
+        kind: 'setCrisis',
+        title: '😤 Sette kriz!',
+        body: '"${s.name}" başrolü sete gelmedi, menajeri "şartlarımız var" diyor.',
+        options: ['Gönlünü al (prim öde)', 'Senaryodan çıkar', 'Bekle'],
+        hints: ['${fmtShort(productionCost(s.genre, s.tier) * 0.25)} öde, sorun biter', '3 gün reyting -%15', '50% şansla 2 gün -%25'],
+        targetId: s.id,
+        amount: productionCost(s.genre, s.tier) * 0.25,
+      );
+
+  Decision _regulatorDecision(Show s, double fine) => Decision(
+        kind: 'regulator',
+        title: '⚖️ Yayın Kurulu uyarısı',
+        body: '"${s.name}" için şikâyet geldi. Ceza ${fmtShort(fine)} olabilir.',
+        options: ['Cezayı öde', 'Programı düzenle', 'İtiraz et'],
+        hints: ['${fmtShort(fine)}', '${fmtShort(fine * 0.4)} + 2 gün reyting -%10', '%60 ceza yok, %40 ceza ×1,5'],
+        targetId: s.id,
+        amount: fine,
+      );
+
+  void _maybeDecision() {
+    if (_offlineMode || pendingDecision != null) return;
+    // Yıldız egosu: zam talebi ya da rakip transfer teklifi
+    final stars = staff.where((p) => p.isStar).toList();
+    if (stars.isNotEmpty && _rng.nextDouble() < 0.05) {
+      final p = stars[_rng.nextInt(stars.length)];
+      if (_rng.nextBool()) {
+        pendingDecision = Decision(
+          kind: 'raise',
+          title: '⭐ ${p.name} zam istiyor',
+          body: '${p.role.label} ${p.name} (yetenek ${p.skill}) maaşına %30 zam istiyor. Yoksa "başka kapılar" diyor.',
+          options: ['Zammı ver', 'Pazarlık et (%15)', 'Reddet'],
+          hints: ['Maaş ${fmtShort(p.salary * 1.3)}/gün', '%60 kabul eder', '%50 istifa eder'],
+          targetId: p.id,
+        );
+      } else {
+        final rival = rivalDefs[_rng.nextInt(rivalDefs.length)].name;
+        pendingDecision = Decision(
+          kind: 'poach',
+          title: '📞 $rival transfer teklifi',
+          body: '$rival, ${p.name} için teklif yaptı. Bonservis olarak ${fmtShort(p.salary * 25)} ödemeye hazırlar.',
+          options: ['Teklifi eşle (+%40 maaş)', 'Sat gitsin'],
+          hints: ['Maaş ${fmtShort(p.salary * 1.4)}/gün, kadroda kalır', '+${fmtShort(p.salary * 25)}, yıldızı kaybedersin'],
+          targetId: p.id,
+          extra: rival,
+        );
+      }
+      return;
+    }
+    // Sponsor teklifi
+    final free = shows.where((s) => s.status == ShowStatus.onAir && s.sponsorDays == 0).toList();
+    if (free.isNotEmpty && _rng.nextDouble() < 0.10) {
+      final s = free[_rng.nextInt(free.length)];
+      final brand = sponsorBrands[_rng.nextInt(sponsorBrands.length)];
+      final perDay = max(5000.0, revenuePerDay(s) * (0.25 + _rng.nextDouble() * 0.25));
+      pendingDecision = Decision(
+        kind: 'sponsor',
+        title: '🤝 Sponsor teklifi: $brand',
+        body: '$brand, "${s.name}" programında ürün yerleştirme yapmak istiyor. 10 gün sürecek.',
+        options: ['Kabul et', 'Daha fazlasını iste', 'Reddet'],
+        hints: ['+${fmtShort(perDay)}/gün, reyting -%3', '%50 +%40 para, %50 vazgeçer', 'Hiçbir şey olmaz'],
+        targetId: s.id,
+        amount: perDay,
+        extra: brand,
+      );
+    }
+  }
+
+  void resolveDecision(int option) {
+    final d = pendingDecision;
+    if (d == null) return;
+    pendingDecision = null;
+    decisionsMade++;
+    final s = d.targetId == null ? null : showById(d.targetId);
+    final p = d.targetId == null ? null : staffById(d.targetId!);
+    String msg;
+    switch (d.kind) {
+      case 'scandal':
+        if (option == 0) {
+          bonusPrestige += 10;
+          s?..buff = 0.9..buffDays = 2;
+          msg = 'Özür kabul gördü. +10 prestij, reyting kısa süre düştü.';
+        } else if (option == 1) {
+          if (_rng.nextBool()) {
+            s?..buff = 1.3..buffDays = 3;
+            msg = 'Merak uyandı! 3 gün reyting +%30.';
+          } else {
+            s?..buff = 0.8..buffDays = 3;
+            bonusPrestige = max(0, bonusPrestige - 15);
+            msg = 'Tepki büyüdü: -15 prestij, 3 gün reyting -%20.';
+          }
+        } else {
+          cash -= d.amount;
+          msg = 'Avukatlar konuyu kapattı (-${fmtShort(d.amount)}).';
+        }
+      case 'setCrisis':
+        if (option == 0) {
+          cash -= d.amount;
+          msg = 'Başrol sete döndü (-${fmtShort(d.amount)}).';
+        } else if (option == 1) {
+          s?..buff = 0.85..buffDays = 3;
+          msg = 'Senaryo değişti, 3 gün reyting -%15.';
+        } else {
+          if (_rng.nextBool()) {
+            msg = 'Ertesi gün özür dileyip sete geldi. Bedava çözüm!';
+          } else {
+            s?..buff = 0.75..buffDays = 2;
+            msg = 'Gelmedi! 2 gün reyting -%25.';
+          }
+        }
+      case 'regulator':
+        if (option == 0) {
+          cash -= d.amount;
+          msg = 'Ceza ödendi (-${fmtShort(d.amount)}).';
+        } else if (option == 1) {
+          cash -= d.amount * 0.4;
+          s?..buff = 0.9..buffDays = 2;
+          msg = 'Program düzenlendi (-${fmtShort(d.amount * 0.4)}).';
+        } else {
+          if (_rng.nextDouble() < 0.6) {
+            msg = 'İtiraz kabul edildi, ceza yok! 🎉';
+          } else {
+            cash -= d.amount * 1.5;
+            msg = 'İtiraz reddedildi, ceza katlandı (-${fmtShort(d.amount * 1.5)}).';
+          }
+        }
+      case 'raise':
+        if (p == null) return;
+        if (option == 0) {
+          _replaceSalary(p, p.salary * 1.3);
+          msg = '${p.name} mutlu, kadroda kalıyor.';
+        } else if (option == 1) {
+          if (_rng.nextDouble() < 0.6) {
+            _replaceSalary(p, p.salary * 1.15);
+            msg = '${p.name} %15 zamma razı oldu.';
+          } else {
+            _quit(p);
+            msg = '${p.name} pazarlığı beğenmedi ve istifa etti!';
+          }
+        } else {
+          if (_rng.nextBool()) {
+            msg = '${p.name} söylendi ama kaldı.';
+          } else {
+            _quit(p);
+            msg = '${p.name} istifa etti!';
+          }
+        }
+      case 'poach':
+        if (p == null) return;
+        if (option == 0) {
+          _replaceSalary(p, p.salary * 1.4);
+          msg = '${p.name} sende kaldı, maaşı arttı.';
+        } else {
+          final fee = p.salary * 25;
+          cash += fee;
+          _quit(p);
+          msg = '${p.name}, ${d.extra}\'a transfer oldu: +${fmtShort(fee)}';
+        }
+      case 'sponsor':
+        if (s == null) return;
+        if (option == 0) {
+          _setSponsor(s, d.extra, d.amount);
+          msg = '${d.extra} anlaşması imzalandı!';
+        } else if (option == 1) {
+          if (_rng.nextBool()) {
+            _setSponsor(s, d.extra, d.amount * 1.4);
+            msg = '${d.extra} pes etti: %40 daha fazla ödeyecek!';
+          } else {
+            msg = '${d.extra} teklifini geri çekti.';
+          }
+        } else {
+          msg = 'Teklif reddedildi.';
+        }
+      default:
+        msg = '';
+    }
+    _log(d.title, msg, !msg.contains('-'));
+    _notify(msg);
+    _changed();
+  }
+
+  void _setSponsor(Show s, String brand, double perDay) {
+    s
+      ..sponsor = brand
+      ..sponsorPerDay = perDay
+      ..sponsorDays = 10
+      ..buff = s.buffDays > 0 ? s.buff : 0.97
+      ..buffDays = s.buffDays > 0 ? s.buffDays : 10;
+    sponsorDeals++;
+  }
+
+  /// Staff değişmez (final alanlar), maaş için kopyası değiştirilir.
+  void _replaceSalary(Staff p, double salary) {
+    final i = staff.indexOf(p);
+    if (i < 0) return;
+    staff[i] = Staff(
+        id: p.id, name: p.name, role: p.role, skill: p.skill,
+        salary: (salary / 100).round() * 100.0, showId: p.showId);
+  }
+
+  /// Kişi ayrılır; bir programdaysa program kalitesi düşer.
+  void _quit(Staff p) {
+    staff.remove(p);
+    if (p.showId != null) {
+      final s = showById(p.showId);
+      if (s != null) {
+        s.staffIds.remove(p.id);
+        s.quality *= 0.85;
+      }
+    }
+  }
+
+  // =================================================================
+  // Altın Anten Ödülleri (her 30 günde bir)
+  // =================================================================
+
+  void _awardCeremony() {
+    final results = <AwardResult>[];
+    final bar = 3.0 + day / 60;
+    for (final g in Genre.values) {
+      final cands = shows
+          .where((s) => s.genre == g && s.ratingHistory.isNotEmpty)
+          .toList();
+      if (cands.isEmpty) continue;
+      double avg(Show s) =>
+          s.ratingHistory.reduce((a, b) => a + b) / s.ratingHistory.length;
+      cands.sort((a, b) => avg(b).compareTo(avg(a)));
+      final best = cands.first;
+      final need = bar * genreDefs[g]!.ratingMult;
+      results.add(AwardResult('Yılın ${genreDefs[g]!.label} Programı',
+          best.name, avg(best) >= need));
+    }
+    final recentFilms = films.where((f) => f.score > 0).toList()
+      ..sort((a, b) => b.score.compareTo(a.score));
+    if (recentFilms.isNotEmpty) {
+      results.add(AwardResult('En İyi Film', recentFilms.first.name,
+          recentFilms.first.score >= 7));
+    }
+    if (creators.isNotEmpty) {
+      final top = creators.reduce((a, b) => a.followers > b.followers ? a : b);
+      results.add(AwardResult('Yılın YouTuber\'ı', top.handle,
+          top.followers >= 500000 * (1 + day / 200)));
+    }
+    if (results.isEmpty) return;
+    for (final r in results.where((r) => r.won)) {
+      trophies.add(Trophy(day, r.category, r.nominee));
+      bonusPrestige += 15;
+      diamonds += 3;
+    }
+    pendingAwards = results;
+    _log('🏆 Altın Anten Ödülleri',
+        '${results.where((r) => r.won).length}/${results.length} ödül kazandın!',
+        true);
+  }
+
+  void dismissAwards() {
+    pendingAwards = null;
+    _changed();
+  }
+
+  // =================================================================
+  // Başarımlar
+  // =================================================================
+
+  void _checkAchievements() {
+    for (final a in achDefs) {
+      if (!achievements.contains(a.id) && a.check(this)) {
+        achievements.add(a.id);
+        diamonds += a.reward;
+        _notify('🎖️ Başarım: ${a.title}! +${a.reward} 💎');
+      }
+    }
   }
 
   // =================================================================

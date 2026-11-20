@@ -873,3 +873,30 @@ extension NicheX on Niche {
 }
 
 const videoPlatformName = 'Videom';
+
+// =====================================================================
+// Rakip kanallar (reyting raporu için yapay rakipler) ve sponsor markaları
+// =====================================================================
+class RivalDef {
+  final String name;
+  final double strength; // prime time'daki tipik reyting (%)
+  final Color color;
+  const RivalDef(this.name, this.strength, this.color);
+}
+
+const rivalDefs = [
+  RivalDef('Martı TV', 1.4, AppColors.blue),
+  RivalDef('Pusula TV', 2.0, AppColors.teal),
+  RivalDef('Telesim', 3.0, AppColors.orange),
+  RivalDef('Kuzey 24', 3.6, AppColors.red),
+  RivalDef('Mavi Ekran', 5.0, AppColors.purple),
+  RivalDef('Yıldız Kanal', 6.4, AppColors.yellow),
+  RivalDef('Nova Türk', 8.0, AppColors.pink),
+  RivalDef('Ufuk Global', 9.5, AppColors.green),
+];
+
+const sponsorBrands = [
+  'Fırtına Cola', 'Köpük Deterjan', 'Lezzet Çikolata', 'Hızlı Kargo',
+  'Mavi Banka', 'Çıtır Cips', 'Parla Diş Macunu', 'Rüzgâr Turizm',
+  'Bulut Telekom', 'Sıcak Fırın Bisküvi',
+];

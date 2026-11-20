@@ -786,7 +786,7 @@ class ScenePainter extends CustomPainter {
         d.person(cx, 0.97, 0.5, shirt: const Color(0xFF111111), sunglasses: true, longHair: true, hair: 3, walk: w * 10, armL: 0.2);
         for (int k = 0; k < 3; k++) {
           final x = [0.1, 0.85, 0.65][k];
-          d.person(x, 0.99, 0.4, shirt: [AppColors.blue, AppColors.green, AppColors.orange][k], skin: k, armR: 1.6, armL: 1.6);
+          d.person(x, 0.99, 0.4, shirt: [AppColors.blue, AppColors.green, AppColors.orange][k], skin: k, armR: 2.5, armL: 2.3);
           d.rect(x - 0.03, 0.62, 0.06, 0.05, Colors.black);
           final flash = sin(w * 9 + k * 2.1) > 0.9;
           if (flash) d.glow(x, 0.64, 0.25, Colors.white.withValues(alpha: 0.9));

@@ -9,26 +9,141 @@ import '../../models/models.dart';
 import '../widgets/common.dart';
 import '../widgets/scene.dart';
 
-class BroadcastScreen extends StatelessWidget {
+class BroadcastScreen extends StatefulWidget {
   const BroadcastScreen({super.key});
+  @override
+  State<BroadcastScreen> createState() => _BroadcastScreenState();
+}
+
+class _BroadcastScreenState extends State<BroadcastScreen> {
+  int _tab = 0;
 
   @override
   Widget build(BuildContext context) {
+    final game = GameScope.of(context);
     return ListView(
       padding: const EdgeInsets.all(14),
       children: [
-        const PageHint(
-            'Reklam süresini kaydırarak ayarla: reklam uzadıkça gelir artar ama izleyici kaçar. '
-            'Kaliteli programlar daha uzun reklamı kaldırır. En iyi noktayı bul!'),
-        AutoGrid(
-          minItemWidth: 360,
-          spacing: 12,
-          children: [
-            for (final id in SlotId.values) _SlotCard(id: id),
-          ],
-        ),
+        Row(children: [
+          PillTabs(
+            labels: [
+              'Yayın akışı',
+              game.reportDay > 0 ? 'Reyting raporu · Gün ${game.reportDay}' : 'Reyting raporu',
+            ],
+            selected: _tab,
+            onChanged: (i) => setState(() => _tab = i),
+          ),
+          const Spacer(),
+          Tag('🏆 Prime time birinciliği: ${game.primeWins}', color: AppColors.yellow),
+        ]),
+        const SizedBox(height: 10),
+        if (_tab == 0) ...[
+          const PageHint(
+              'Reklam süresini kaydırarak ayarla: reklam uzadıkça gelir artar ama izleyici kaçar. '
+              'Kaliteli programlar daha uzun reklamı kaldırır. En iyi noktayı bul!'),
+          AutoGrid(
+            minItemWidth: 360,
+            spacing: 12,
+            children: [
+              for (final id in SlotId.values) _SlotCard(id: id),
+            ],
+          ),
+        ] else
+          const _Report(),
       ],
     );
+  }
+}
+
+class _Report extends StatelessWidget {
+  const _Report();
+
+  @override
+  Widget build(BuildContext context) {
+    final game = GameScope.of(context);
+    if (game.lastReport.isEmpty) {
+      return const Panel(
+          child: Text('İlk rapor yarın sabah gelecek. Programlarını yayına koy!',
+              style: TextStyle(color: AppColors.textDim)));
+    }
+    return AutoGrid(minItemWidth: 360, spacing: 10, children: [
+      for (final slot in SlotId.values)
+        if (game.lastReport[slot] != null)
+          Panel(
+            padding: const EdgeInsets.all(10),
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Row(children: [
+                Text(slotDefs[slot]!.label,
+                    style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 15)),
+                const SizedBox(width: 6),
+                Text(slotDefs[slot]!.hours,
+                    style: const TextStyle(color: AppColors.textDim, fontSize: 11)),
+                const Spacer(),
+                if (game.rankIn(slot) != null)
+                  Tag('Sen: ${game.rankIn(slot)}.',
+                      color: game.rankIn(slot) == 1 ? AppColors.yellow : AppColors.cyan),
+              ]),
+              const SizedBox(height: 6),
+              ..._rows(game.lastReport[slot]!),
+            ]),
+          ),
+    ]);
+  }
+
+  List<Widget> _rows(List<ReportRow> rows) {
+    final top = rows.isEmpty ? 1.0 : rows.first.rating;
+    return [
+      for (int i = 0; i < rows.length && i < 6; i++)
+        Container(
+          margin: const EdgeInsets.only(bottom: 3),
+          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+          decoration: BoxDecoration(
+            color: rows[i].mine ? AppColors.accent.withValues(alpha: 0.18) : null,
+            borderRadius: BorderRadius.circular(6),
+          ),
+          child: Row(children: [
+            SizedBox(
+              width: 20,
+              child: Text('${i + 1}',
+                  style: TextStyle(
+                      fontWeight: FontWeight.w900,
+                      color: i == 0 ? AppColors.yellow : AppColors.textDim)),
+            ),
+            Container(
+              width: 8,
+              height: 8,
+              margin: const EdgeInsets.only(right: 6),
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: rows[i].mine ? AppColors.accent : rivalDefs[rows[i].colorIndex].color,
+              ),
+            ),
+            SizedBox(
+              width: 92,
+              child: Text(rows[i].channel,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: rows[i].mine ? FontWeight.w900 : FontWeight.w600)),
+            ),
+            Expanded(
+              child: Text(rows[i].program,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(fontSize: 11, color: AppColors.textDim)),
+            ),
+            SizedBox(width: 50, child: Bar(rows[i].rating / top, color: rows[i].mine ? AppColors.accent : AppColors.cyan, height: 5)),
+            const SizedBox(width: 6),
+            SizedBox(
+              width: 44,
+              child: Text(fmtPct(rows[i].rating, 2),
+                  textAlign: TextAlign.right,
+                  style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w800)),
+            ),
+          ]),
+        ),
+    ];
   }
 }
 
@@ -156,6 +271,11 @@ class _OnAir extends StatelessWidget {
                     Tag(s.buff >= 1 ? '▲ ${s.buffDays}g' : '▼ ${s.buffDays}g',
                         color: s.buff >= 1 ? AppColors.green : AppColors.red),
                 ]),
+                if (s.sponsorDays > 0)
+                  Text('🤝 ${s.sponsor} · +${fmtShort(s.sponsorPerDay)}/gün · ${s.sponsorDays}g',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(color: AppColors.yellow, fontSize: 11, fontWeight: FontWeight.w700)),
                 Text(
                     '${s.def.label} · Bölüm ${s.episodesAired}/${s.seasonDays}',
                     style: TextStyle(color: s.def.color, fontSize: 12)),

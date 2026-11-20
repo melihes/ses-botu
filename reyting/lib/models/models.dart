@@ -60,8 +60,14 @@ class Show {
   double seasonRevenue;
   double buff; // olaylardan gelen geçici reyting çarpanı
   int buffDays;
+  String? sponsor; // ürün yerleştirme markası
+  double sponsorPerDay;
+  int sponsorDays;
 
   Show({
+    this.sponsor,
+    this.sponsorPerDay = 0,
+    this.sponsorDays = 0,
     this.buff = 1.0,
     this.buffDays = 0,
     required this.id,
@@ -103,6 +109,9 @@ class Show {
         'seasonRevenue': seasonRevenue,
         'buff': buff,
         'buffDays': buffDays,
+        'sponsor': sponsor,
+        'sponsorPerDay': sponsorPerDay,
+        'sponsorDays': sponsorDays,
       };
 
   factory Show.fromJson(Map<String, dynamic> j) => Show(
@@ -125,6 +134,9 @@ class Show {
         seasonRevenue: (j['seasonRevenue'] as num? ?? 0).toDouble(),
         buff: (j['buff'] as num? ?? 1).toDouble(),
         buffDays: j['buffDays'] ?? 0,
+        sponsor: j['sponsor'],
+        sponsorPerDay: (j['sponsorPerDay'] as num? ?? 0).toDouble(),
+        sponsorDays: j['sponsorDays'] ?? 0,
       );
 }
 
@@ -230,6 +242,7 @@ class PeriodSummary {
   double platformIncome = 0;
   double bizIncome = 0;
   double digitalIncome = 0;
+  double sponsorIncome = 0;
   int filmsDone = 0;
   double eventCash = 0;
   int events = 0;
@@ -411,4 +424,57 @@ class DayStat {
   List<num> toJson() => [day, cash.round(), income.round(), expense.round()];
   factory DayStat.fromJson(List j) => DayStat(j[0] as int, (j[1] as num).toDouble(),
       (j[2] as num).toDouble(), (j[3] as num).toDouble());
+}
+
+/// Reyting raporundaki bir satır
+class ReportRow {
+  final String channel;
+  final String program;
+  final double rating;
+  final bool mine;
+  final int colorIndex;
+  ReportRow(this.channel, this.program, this.rating, this.mine, this.colorIndex);
+  List toJson() => [channel, program, rating, mine, colorIndex];
+  factory ReportRow.fromJson(List j) => ReportRow(j[0], j[1],
+      (j[2] as num).toDouble(), j[3] as bool, j[4] as int);
+}
+
+/// Oyuncunun karar vermesi gereken durum (kriz, zam talebi, sponsor…)
+class Decision {
+  final String kind;
+  final String title;
+  final String body;
+  final List<String> options;
+  final List<String> hints;
+  final String? targetId;
+  final double amount;
+  final String extra;
+  Decision({
+    required this.kind,
+    required this.title,
+    required this.body,
+    required this.options,
+    required this.hints,
+    this.targetId,
+    this.amount = 0,
+    this.extra = '',
+  });
+}
+
+/// Kazanılan ödül (kupa dolabı)
+class Trophy {
+  final int day;
+  final String award;
+  final String winner;
+  Trophy(this.day, this.award, this.winner);
+  List toJson() => [day, award, winner];
+  factory Trophy.fromJson(List j) => Trophy(j[0] as int, j[1], j[2]);
+}
+
+/// Ödül töreninde bir kategori sonucu
+class AwardResult {
+  final String category;
+  final String nominee;
+  final bool won;
+  AwardResult(this.category, this.nominee, this.won);
 }

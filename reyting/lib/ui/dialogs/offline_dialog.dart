@@ -88,6 +88,7 @@ class _OfflineBody extends StatelessWidget {
       _tile('Platform aboneleri', fmtSigned(s.platformIncome), true),
       _tile('Holding işletmeleri', fmtSigned(s.bizIncome), true),
       _tile('YouTuber gelirleri', fmtSigned(s.digitalIncome), true),
+      _tile('Sponsorlar', fmtSigned(s.sponsorIncome), true),
       _tile('Ödenen maaşlar', fmtSigned(-s.salaries), false),
       _tile('Stüdyo kirası', fmtSigned(-s.rent), false),
       _tile('Ekipman bakımı', fmtSigned(-s.upkeep), false),
