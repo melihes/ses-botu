@@ -18,7 +18,7 @@ Future<Game> gameWithShowOnAir() async {
   final show = g.shows.first;
   expect(g.speedUp(show), isNull);
   expect(show.status, ShowStatus.ready);
-  expect(g.putOnAir(show, SlotId.prime), isNull);
+  expect(g.putOnAir(show, SlotId.prime1), isNull);
   return g;
 }
 
@@ -351,9 +351,9 @@ void main() {
     test('her sabah reyting raporu çıkar ve sıralamada yer alırım', () async {
       final g = await gameWithShowOnAir();
       g.debugAdvanceDays(1);
-      expect(g.lastReport[SlotId.prime], isNotEmpty);
-      expect(g.rankIn(SlotId.prime), isNotNull);
-      final rows = g.lastReport[SlotId.prime]!;
+      expect(g.lastReport[SlotId.prime1], isNotEmpty);
+      expect(g.rankIn(SlotId.prime1), isNotNull);
+      final rows = g.lastReport[SlotId.prime1]!;
       for (int i = 1; i < rows.length; i++) {
         expect(rows[i - 1].rating, greaterThanOrEqualTo(rows[i].rating));
       }
@@ -477,7 +477,7 @@ void main() {
       g.createShow('İkinci', Genre.magazin, 0, [host]);
       final s2 = g.shows.first;
       g.speedUp(s2);
-      g.putOnAir(s2, SlotId.gunduz);
+      g.putOnAir(s2, SlotId.ogle1);
       expect(g.saturationFor(Genre.magazin), lessThan(1));
       expect(g.currentRating(g.shows.last), lessThan(r1));
       g.dispose();
@@ -645,6 +645,7 @@ void main() {
     test('sezon bitince yenilenir ve hazır olunca aynı kuşağa döner', () async {
       final g = await gameWithShowOnAir();
       g.cash = 1e8;
+      expect(g.hireManager(), isNull);
       final s = g.shows.first;
       final slot = s.slot!;
       g.debugAdvanceDays(s.seasonDays + 0.5);
@@ -655,24 +656,124 @@ void main() {
       g.dispose();
     });
 
-    test('kapalıyken yenilemez; elle kaldırılan program yenilenmez', () async {
+    test('işe alınmadan yenilemez; elle kaldırılan program yenilenmez', () async {
       final g = await gameWithShowOnAir();
       g.cash = 1e8;
       final s = g.shows.first;
-      g.takeOffAir(s.slot!);
-      expect(s.status, ShowStatus.ended);
-      g.setAutoManager(false);
-      final g2s = g.shows.first;
-      expect(g2s.season, 1);
+      g.debugAdvanceDays(s.seasonDays + 0.5);
+      expect(s.status, ShowStatus.ended, reason: 'müdür yok, yenilenmemeli');
+      expect(s.season, 1);
+      g.dispose();
+      final g2 = await gameWithShowOnAir();
+      g2.cash = 1e8;
+      g2.hireManager();
+      final s2 = g2.shows.first;
+      g2.takeOffAir(s2.slot!);
+      expect(s2.status, ShowStatus.ended);
+      expect(s2.season, 1);
+      g2.dispose();
+    });
+
+    test('Genel Müdür maaş alır', () async {
+      final g = Game();
+      await g.start();
+      g.cash = 1e8;
+      final before = g.netPerDay;
+      g.hireManager();
+      expect(g.netPerDay, lessThan(before));
       g.dispose();
     });
 
     test('8 saatlik yoklukta kanal boş kalmaz', () async {
       final g = await gameWithShowOnAir();
       g.cash = 1e8;
+      g.hireManager();
       g.debugAway(const Duration(hours: 8));
       expect(g.shows.where((s) => s.status == ShowStatus.onAir), isNotEmpty);
       expect(g.shows.first.season, greaterThan(5));
+      g.dispose();
+    });
+  });
+
+  group('Kuşaklar, eğitim, görevler', () {
+    test('10 kuşak var; seviye arttıkça açılır', () async {
+      final g = Game();
+      await g.start();
+      g.cash = 1e12;
+      expect(SlotId.values.where(g.slotUnlocked).length, 3);
+      g.upgradeStudio();
+      expect(SlotId.values.where(g.slotUnlocked).length, 5);
+      g.upgradeStudio();
+      expect(SlotId.values.where(g.slotUnlocked).length, 8);
+      g.upgradeStudio();
+      expect(SlotId.values.where(g.slotUnlocked).length, 10);
+      g.dispose();
+    });
+
+    test('eski 4 kuşaklı kayıt yeni kuşaklara taşınır', () async {
+      final g = await gameWithShowOnAir();
+      await g.save();
+      g.dispose();
+      final prefs = await SharedPreferences.getInstance();
+      final j = jsonDecode(prefs.getString('reyting_save_v1')!);
+      // v1 kaydını taklit et: prime eski index 2, kuşak adı 'prime'
+      j['v'] = 1;
+      final sid = (j['shows'] as List).first['id'];
+      (j['shows'] as List).first['slot'] = 2;
+      j['slots'] = {'prime': {'showId': sid, 'adMinutes': 9}};
+      await prefs.setString('reyting_save_v1', jsonEncode(j));
+      final g2 = Game();
+      await g2.start();
+      expect(g2.shows.first.slot, SlotId.prime1);
+      expect(g2.slots[SlotId.prime1]!.showId, sid);
+      expect(g2.slots[SlotId.prime1]!.adMinutes, 9);
+      g2.dispose();
+    });
+
+    test('iş ilanları her gün yenilenir ve günün yıldızı yüksek puanlı', () async {
+      final g = Game();
+      await g.start();
+      final ids = g.market.map((p) => p.id).toSet();
+      g.debugAdvanceDays(1);
+      expect(g.market.map((p) => p.id).toSet().intersection(ids), isEmpty);
+      expect(g.market.first.skill, greaterThanOrEqualTo(80));
+      g.dispose();
+    });
+
+    test('eğitim yeteneği artırır, 3 gün bekletir', () async {
+      final g = Game();
+      await g.start();
+      g.cash = 1e8;
+      final p = g.market.last;
+      g.hire(p);
+      final s0 = p.skill;
+      expect(g.trainStaff(p), isNull);
+      expect(p.skill, greaterThan(s0));
+      expect(g.trainStaff(p), isNotNull, reason: 'bekleme süresi');
+      g.debugAdvanceDays(3);
+      expect(g.trainStaff(p), isNull);
+      g.dispose();
+    });
+
+    test('günlük görev tamamlanınca ödül alınır (bir kez)', () async {
+      final g = Game();
+      await g.start();
+      g.cash = 1e7;
+      expect(g.missions.length, 3);
+      final m = g.missions.first;
+      m.progress = m.target;
+      final d0 = g.diamonds;
+      expect(g.claimMission(m), isNull);
+      expect(g.diamonds, d0 + m.gems);
+      expect(g.claimMission(m), isNotNull);
+      g.dispose();
+    });
+
+    test('ilk açılışta giriş ödülü verilir', () async {
+      final g = Game();
+      await g.start();
+      expect(g.pendingLogin, isNotNull);
+      expect(g.loginStreak, 1);
       g.dispose();
     });
   });

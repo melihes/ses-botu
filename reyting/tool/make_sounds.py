@@ -135,11 +135,8 @@ def save(name, x):
 
 if __name__ == '__main__':
     os.makedirs(OUT, exist_ok=True)
-    types = {'low': 105, 'mid': 150, 'high': 225, 'kid': 300}
-    for name, f0 in types.items():
-        for i in range(3):
-            save(f'voice_{name}_{i}', voice(f0, int(rng.integers(4, 8)), question=(i == 1)))
+    # Not: karakter sesleri (voice) ve kahkaha kulağa hoş gelmediği için
+    # oyundan çıkarıldı; sadece alkış ve tribün sesi üretiliyor.
     save('applause', applause())
-    save('laugh', laugh())
     save('cheer', cheer())
     print('\n'.join(sorted(os.listdir(OUT))))

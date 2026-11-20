@@ -47,11 +47,16 @@ class _StaffScreenState extends State<StaffScreen> {
                 onTap: () => report(context, game.refreshMarketPaid())),
         ]),
         const SizedBox(height: 10),
+        if (_tab == 0) ...[
+          const _ManagerCard(),
+          const SizedBox(height: 10),
+        ],
         PageHint(_tab == 0
             ? 'Günlük maaş toplamı: ${fmtShort(game.dailySalaries)}. '
-                'Programda çalışan kişiler kadrodan çıkarılamaz.'
-            : 'Adaylar her 3 günde bir yenilenir. İşe alırken 5 günlük maaş '
-                'kadar imza ücreti ödenir. ★ Yıldızlar ileride online ihaleye düşecek!'),
+                'Programda çalışan kişiler kadrodan çıkarılamaz. '
+                'Eğitim kampı yeteneği artırır (3 günde bir).'
+            : 'Adaylar her gün yenilenir. En üstteki ⭐ Günün Yıldızı yüksek puanlı ama daha pahalı. '
+                'İşe alırken 5 günlük maaş kadar imza ücreti ödenir.'),
         if (list.isEmpty)
           Panel(
             child: Text(
@@ -64,7 +69,8 @@ class _StaffScreenState extends State<StaffScreen> {
           minItemWidth: 250,
           spacing: 10,
           children: [
-            for (final p in list) _PersonCard(person: p, hired: _tab == 0),
+            for (int i = 0; i < list.length; i++)
+              _PersonCard(person: list[i], hired: _tab == 0, featured: _tab == 1 && i == 0),
           ],
         ),
       ],
@@ -75,7 +81,8 @@ class _StaffScreenState extends State<StaffScreen> {
 class _PersonCard extends StatelessWidget {
   final Staff person;
   final bool hired;
-  const _PersonCard({required this.person, required this.hired});
+  final bool featured;
+  const _PersonCard({required this.person, required this.hired, this.featured = false});
 
   @override
   Widget build(BuildContext context) {
@@ -111,7 +118,9 @@ class _PersonCard extends StatelessWidget {
                 ],
               ),
             ),
-            if (p.isStar)
+            if (featured)
+              const Tag('GÜNÜN YILDIZI', color: AppColors.yellow, icon: Icons.auto_awesome)
+            else if (p.isStar)
               const Tag('YILDIZ', color: AppColors.yellow, icon: Icons.star),
           ]),
           const SizedBox(height: 10),
@@ -150,6 +159,12 @@ class _PersonCard extends StatelessWidget {
                       fontSize: 12),
                 ),
               ),
+              GhostButton(
+                  game.canTrain(p) ? 'Eğit · ${fmtShort(game.trainCost(p))}' : 'Eğitimde',
+                  compact: true,
+                  icon: Icons.school_rounded,
+                  onTap: game.canTrain(p) ? () => report(context, game.trainStaff(p)) : null),
+              const SizedBox(width: 4),
               GhostButton('Çıkar',
                   compact: true,
                   color: AppColors.red,
@@ -174,6 +189,48 @@ class _PersonCard extends StatelessWidget {
                 onTap: () => report(context, game.hire(p))),
         ],
       ),
+    );
+  }
+}
+
+/// Genel Müdür: maaşlı yönetici, biten sezonları otomatik yeniler.
+class _ManagerCard extends StatelessWidget {
+  const _ManagerCard();
+  @override
+  Widget build(BuildContext context) {
+    final game = GameScope.of(context);
+    final hired = game.autoManager;
+    return Panel(
+      padding: const EdgeInsets.all(12),
+      borderColor: hired ? AppColors.green.withValues(alpha: 0.6) : AppColors.yellow.withValues(alpha: 0.6),
+      child: Row(children: [
+        const PersonAvatar(seed: 7777, color: AppColors.purple, size: 52, badgeIcon: Icons.business_center_rounded),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Row(children: [
+              const Text('🤵 Genel Müdür', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 15)),
+              const SizedBox(width: 8),
+              Tag(hired ? 'GÖREVDE' : 'BOŞ KADRO', color: hired ? AppColors.green : AppColors.textDim),
+            ]),
+            const Text(
+                'Sezonu biten programları otomatik yeniler ve aynı kuşağa geri koyar. '
+                'Sen yokken kanalın boş kalmaz.',
+                style: TextStyle(color: AppColors.textDim, fontSize: 12)),
+            Text('Maaş ${fmtShort(game.managerSalary)}/gün (stüdyo seviyesiyle artar)',
+                style: const TextStyle(color: AppColors.textDim, fontSize: 11)),
+          ]),
+        ),
+        const SizedBox(width: 8),
+        hired
+            ? GhostButton('Görevden al', compact: true, color: AppColors.red, onTap: () async {
+                final ok = await confirm(context, 'Genel Müdür görevden alınsın mı?',
+                    'Biten sezonları artık sen yenilemek zorunda kalırsın.', ok: 'Görevden al');
+                if (ok) game.fireManager();
+              })
+            : AccentButton('İşe al · ${fmtShort(game.managerSigningFee)}',
+                compact: true, icon: Icons.handshake_rounded, onTap: () => report(context, game.hireManager())),
+      ]),
     );
   }
 }

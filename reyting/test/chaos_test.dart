@@ -82,7 +82,7 @@ Future<void> chaos(int seed, int steps) async {
   T pick<T>(List<T> l) => l[r.nextInt(l.length)];
   final log = <String>[];
   for (int i = 0; i < steps; i++) {
-    final a = r.nextInt(30);
+    final a = r.nextInt(31);
     String act = 'a$a';
     try {
       switch (a) {
@@ -159,6 +159,13 @@ Future<void> chaos(int seed, int steps) async {
           if (r.nextBool()) { g.buyStock(t, g.maxBuyable(t) * r.nextDouble()); } else { g.sellStock(t, (g.holdings[t] ?? 0) * r.nextDouble() + 1); }
         case 26:
           if (g.pendingDecision != null) { act = 'karar'; g.resolveDecision(r.nextInt(g.pendingDecision!.options.length)); }
+        case 29:
+          final k = r.nextInt(4);
+          act = 'müdür/eğitim/görev $k';
+          if (k == 0) g.autoManager ? g.fireManager() : g.hireManager();
+          if (k == 1 && g.staff.isNotEmpty) g.trainStaff(pick(g.staff));
+          if (k == 2 && g.missions.isNotEmpty) g.claimMission(pick(g.missions));
+          if (k == 3) g.dismissLogin();
         case 27:
           act = 'kanal'; final c = pick(channelDefs);
           if (g.ownedChannels.contains(c.id)) { g.sellChannel(c); } else if (g.cash > c.price) { g.completePurchase(c.id, c.price); }
@@ -175,6 +182,10 @@ Future<void> chaos(int seed, int steps) async {
           expect(g.staff.length, staff);
           expect(g.shows.length, shows);
           expect(jsonEncode(invariants(g)), before);
+        case 30:
+          act = 'uzaklaş';
+          g.debugAway(Duration(minutes: r.nextInt(600)));
+          g.pendingOffline = null;
         default:
           act = 'zaman';
           g.debugAdvanceDays(r.nextDouble() * 3);

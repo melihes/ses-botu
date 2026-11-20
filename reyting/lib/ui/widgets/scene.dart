@@ -59,13 +59,50 @@ class _StageSceneState extends State<StageScene>
   double _bubbleX = 0.4;
   final _rnd = Random();
 
-  static const _lines = [
-    'Bıdı bıdı!', 'Hıh hıh?', 'Vay be!', 'Ne diyorsun?', 'Aaa!',
-    'Şaka mı bu?', 'Bravo!', 'Hadi ya!', 'Tamam tamam…', 'Lalala ♪',
-    'Bak şimdi…', 'İnanılmaz!', 'Hı hı.', 'Bıdı bıdı bıdı…',
-  ];
-  static const _kidProps = {Prop.cartoon, Prop.puppet, Prop.lab, Prop.kidsStage};
-  static const _laughProps = {Prop.sitcom, Prop.standup, Prop.sketch, Prop.nightShow, Prop.couples, Prop.morning};
+  /// Sahneye göre karakter replikleri
+  static const _lines = <Prop, List<String>>{
+    Prop.livingRoom: ['Bu evde sır kalmadı!', 'Annem ne der şimdi?', 'Çay demledim, gel otur.', 'Sana güvenmiştim…'],
+    Prop.neighborhood: ['Komşu, duydun mu?', 'Bakkala uğradın mı?', 'Akşama bize gelin!', 'Bu mahalle beni büyüttü.'],
+    Prop.sitcom: ['Yine mi sen?!', 'Kapı açık kalmış!', 'Ben demiştim!', 'Şaka değil, ciddiyim!'],
+    Prop.police: ['Dur! Polis!', 'Ellerini göreyim!', 'Arka sokağa kaçtı!', 'Destek istiyorum!'],
+    Prop.palace: ['Fermanım böyle!', 'Huzura çıkın!', 'Saray entrikası bu!', 'Divan toplansın!'],
+    Prop.epic: ['Hücuuum!', 'Kale düşmeyecek!', 'Sancağı kaldırın!', 'Bu savaş bizim!'],
+    Prop.quiz: ['A şıkkı, son kararım!', 'Seyirciye soralım.', 'Telefon jokeri!', 'Doğru cevap…'],
+    Prop.couples: ['Eşim bunu bilmez!', 'Hayatım, emin misin?', 'Kalpler bizden yana!', 'İlk buluşmamız…'],
+    Prop.wheel: ['Çark dönüyor!', 'Bir sesli harf!', 'Pas geçiyorum.', 'İflas olmasın!'],
+    Prop.voice: ['Döndüm!', 'Bu ses bambaşka!', 'Takımıma gel!', 'Tüylerim diken diken!'],
+    Prop.talent: ['Bir dakika süren var!', 'Muhteşem!', 'Benden evet!', 'Sahne senin!'],
+    Prop.island: ['Ateşi yakın!', 'Dokunulmazlık bizde!', 'Oylama zamanı!', 'Kırmızı takım önde!'],
+    Prop.newsDesk: ['İyi akşamlar.', 'Şehirde trafik yoğun.', 'Hava yarın güneşli.', 'Haberin devamı…'],
+    Prop.globe: ['Son dakika!', 'Canlı bağlantı var.', 'Dünyadan haberler…', 'Ana haberdeyiz.'],
+    Prop.debate: ['Sözümü kesmeyin!', 'Ama efendim…', 'Rakamlar ortada!', 'Bir saniye, bir saniye!'],
+    Prop.field: ['Olay yerindeyiz.', 'Beni duyuyor musun?', 'Görüntüler biraz sonra.', 'Stüdyoya dönelim.'],
+    Prop.election: ['Sandıklar açılıyor!', 'Fark kapanıyor!', 'Son durum…', 'Gece uzun olacak.'],
+    Prop.gossip: ['Bomba bir haber!', 'Kimle görüldü?', 'Kulis kaynayıp duruyor!', 'Bunu kimse bilmiyordu!'],
+    Prop.redCarpet: ['Buraya bakın!', 'Kimin tasarımı?', 'Göz kamaştırıcı!', 'Flaşlar patlıyor!'],
+    Prop.paparazzi: ['Bir fotoğraf lütfen!', 'Yorum yok!', 'Arabaya bin, hadi!', 'Yeni aşk mı?'],
+    Prop.awards: ['Ve ödül gidiyor…', 'Teşekkür ederim!', 'Zarfı açıyorum…', 'Bu gece unutulmaz!'],
+    Prop.morning: ['Günaydın Türkiye!', 'Kahveler hazır!', 'Bugün tarifimiz…', 'Güne enerjik başlayın!'],
+    Prop.nightShow: ['Hoş geldin!', 'Anlat bakalım…', 'Alkışlar konuğumuza!', 'Bu hikâye efsane!'],
+    Prop.standup: ['Geçen gün dolmuşta…', 'Durun daha bitmedi!', 'Ön sıra hazır mı?', 'Kayınpederim dedi ki…'],
+    Prop.sketch: ['Kuyruk burada mı?', 'Yanlış kapı!', 'Kostüm kaşındırıyor!', 'Sahnede şaşırdım!'],
+    Prop.newYear: ['10, 9, 8…', 'Mutlu yıllar!', 'Havai fişekler!', 'Yeni yıl, yeni reyting!'],
+    Prop.nature: ['Şimdi sessizlik…', 'Kartal avlanıyor.', 'Dağların efendisi.', 'Doğa uyanıyor.'],
+    Prop.ocean: ['Mercanların arasında…', 'Ne renkli balıklar!', 'Derinlere iniyoruz.', 'Okyanusun sırrı.'],
+    Prop.history: ['Binlerce yıl önce…', 'Bu taşlar konuşuyor.', 'Antik bir kent.', 'Kayıp hazine…'],
+    Prop.space: ['Kalkışa 3, 2, 1…', 'Yörüngedeyiz!', 'Dünya ne kadar küçük.', 'Houston değil, Ankara!'],
+    Prop.sportsDesk: ['Maçın özeti…', 'Penaltı mıydı?', 'Hakem kararı tartışılır.', 'Haftanın golü!'],
+    Prop.football: ['Gooool!', 'Ofsayt!', 'Kaleci uçtu!', 'Son dakika!'],
+    Prop.basketball: ['Üçlük!', 'Smaç!', 'Mola istendi!', 'Son saniye basketi!'],
+    Prop.derby: ['Derbi ateşi!', 'Tribünler coştu!', 'Kırmızı kart!', 'Bu maç tarihe geçer!'],
+    Prop.tournament: ['Kupa bizim!', 'Uzatmalara gidiyoruz!', 'Penaltılar!', 'Şampiyon!'],
+    Prop.cartoon: ['Hop hop hop!', 'Yaşasın!', 'Hadi oynayalım!', 'Bir varmış bir yokmuş…'],
+    Prop.puppet: ['Merhaba çocuklar!', 'Arkanda arkanda!', 'Kim gizledi topu?', 'Hep birlikte!'],
+    Prop.lab: ['Dikkat, fokurduyor!', 'Hipotezimiz doğru!', 'Gözlükleri takalım.', 'Vay canına!'],
+    Prop.kidsStage: ['Hep bir ağızdan!', 'Lalala ♪', 'Alkışlar minik yıldıza!', 'Bir daha söyle!'],
+    Prop.film: ['Motor!', 'Kestik!', 'Bir daha alalım!', 'Işıklar hazır mı?', 'Sahne 12, çekim 3!'],
+    Prop.studio: ['Yayına 5 dakika!', 'Kameralar hazır!', 'Reji, beni duyuyor musun?', 'Reklamdan dönüyoruz.'],
+  };
   static const _applauseProps = {
     Prop.quiz, Prop.wheel, Prop.voice, Prop.talent, Prop.awards, Prop.kidsStage,
     Prop.newYear, Prop.redCarpet, Prop.gossip,
@@ -79,7 +116,7 @@ class _StageSceneState extends State<StageScene>
   }
 
   void _scheduleTalk() {
-    _talkTimer = Timer(Duration(milliseconds: 2200 + _rnd.nextInt(3200)), _speak);
+    _talkTimer = Timer(Duration(milliseconds: 3000 + _rnd.nextInt(4000)), _speak);
   }
 
   void _speak() {
@@ -87,18 +124,15 @@ class _StageSceneState extends State<StageScene>
     final visible = TickerMode.valuesOf(context).enabled;
     if (visible) {
       final p = widget.prop;
-      final kid = _kidProps.contains(p);
-      if (Sfx.voice(type: kid ? 'kid' : null)) {
-        setState(() {
-          _bubble = _lines[_rnd.nextInt(_lines.length)];
-          _bubbleX = 0.15 + _rnd.nextDouble() * 0.5;
-        });
-        Timer(const Duration(milliseconds: 1500), () {
-          if (mounted) setState(() => _bubble = null);
-        });
-      }
-      if (_rnd.nextDouble() < 0.3) {
-        if (_laughProps.contains(p)) Sfx.crowd('laugh');
+      final lines = _lines[p] ?? const ['Yayındayız!'];
+      setState(() {
+        _bubble = lines[_rnd.nextInt(lines.length)];
+        _bubbleX = 0.15 + _rnd.nextDouble() * 0.5;
+      });
+      Timer(const Duration(milliseconds: 1800), () {
+        if (mounted) setState(() => _bubble = null);
+      });
+      if (_rnd.nextDouble() < 0.2) {
         if (_applauseProps.contains(p)) Sfx.crowd('applause');
         if (_cheerProps.contains(p)) Sfx.crowd('cheer');
       }

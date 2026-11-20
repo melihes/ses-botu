@@ -3,8 +3,9 @@ import 'dart:math';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-/// Oyunun sesleri: karakter konuşmaları (bıdı bıdı) ve seyirci sesleri.
+/// Oyunun sesleri: hafif seyirci sesleri (alkış, tribün).
 /// Sesler tool/make_sounds.py ile sentezlenmiştir (telifsiz).
+/// Not: sentezlenmiş karakter sesleri kulağa hoş gelmediği için kaldırıldı.
 class Sfx {
   static bool enabled = true;
   static double volume = 0.7;
@@ -12,10 +13,7 @@ class Sfx {
   static final _rng = Random();
   static final List<AudioPlayer> _pool = [];
   static int _next = 0;
-  static DateTime _lastVoice = DateTime(2000);
   static DateTime _lastCrowd = DateTime(2000);
-
-  static const voiceTypes = ['low', 'mid', 'high', 'kid'];
 
   static Future<void> init() async {
     try {
@@ -51,21 +49,11 @@ class Sfx {
     player.play(AssetSource('sounds/$name.m4a'), volume: vol * volume).catchError((_) {});
   }
 
-  /// Bir karakterin konuşması. Üst üste binmesin diye aralıklı çalar.
-  static bool voice({String? type}) {
-    final now = DateTime.now();
-    if (now.difference(_lastVoice).inMilliseconds < 1500) return false;
-    _lastVoice = now;
-    final t = type ?? voiceTypes[_rng.nextInt(3)];
-    _play('voice_${t}_${_rng.nextInt(3)}', 0.8);
-    return true;
-  }
-
-  /// Seyirci: alkış, kahkaha ya da tribün coşkusu.
+  /// Seyirci: alkış ya da tribün coşkusu (seyrek ve kısık).
   static void crowd(String kind) {
     final now = DateTime.now();
-    if (now.difference(_lastCrowd).inSeconds < 6) return;
+    if (now.difference(_lastCrowd).inSeconds < 12) return;
     _lastCrowd = now;
-    _play(kind, 0.45);
+    _play(kind, 0.3 + _rng.nextDouble() * 0.1);
   }
 }

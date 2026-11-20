@@ -10,12 +10,14 @@ import 'package:reyting/engine/game.dart';
 import 'package:reyting/models/models.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-const bestGenre = {
-  SlotId.gunduz: [Genre.magazin, Genre.cocuk],
-  SlotId.aksam: [Genre.haber, Genre.yarisma],
-  SlotId.prime: [Genre.dizi, Genre.yarisma],
-  SlotId.gece: [Genre.talkShow, Genre.magazin],
+const bestGenreByBand = {
+  Band.sabah: [Genre.cocuk, Genre.talkShow, Genre.haber],
+  Band.ogle: [Genre.magazin, Genre.cocuk],
+  Band.aksam: [Genre.haber, Genre.yarisma],
+  Band.prime: [Genre.dizi, Genre.yarisma, Genre.spor],
+  Band.gece: [Genre.talkShow, Genre.magazin],
 };
+List<Genre> bestGenreFor(SlotId s) => bestGenreByBand[slotDefs[s]!.band]!;
 
 double burn(Game g) =>
     g.dailySalaries + g.dailyRent + g.dailyUpkeep + g.creatorSalaries;
@@ -50,12 +52,37 @@ void botDay(Game g) {
     if (naive) continue;
     g.setAdMinutes(s.slot!, adTolerance(s.quality).roundToDouble().clamp(0, 24));
   }
-  // hazır programları yayına koy
+  // hazır programları en uygun boş kuşağa koy (özensiz: ilk boş kuşağa)
   for (final s in g.shows.where((s) => s.status == ShowStatus.ready).toList()) {
-    final slot = SlotId.values.firstWhere(
-        (id) => g.slotUnlocked(id) && g.slots[id]!.showId == null,
-        orElse: () => SlotId.gece);
-    if (g.slotUnlocked(slot) && g.slots[slot]!.showId == null) g.putOnAir(s, slot);
+    final free = SlotId.values
+        .where((id) => g.slotUnlocked(id) && g.slots[id]!.showId == null)
+        .toList();
+    if (free.isEmpty) continue;
+    if (!naive) {
+      free.sort((a, b) => (g.previewRating(s, b) * slotDefs[b]!.poolMillions * slotDefs[b]!.adValue)
+          .compareTo(g.previewRating(s, a) * slotDefs[a]!.poolMillions * slotDefs[a]!.adValue));
+    }
+    g.putOnAir(s, free.first);
+  }
+  // en verimli yerleşim: kazancı artıran bir taşıma/yer değiştirme varsa yap
+  if (!naive) {
+    double v(Show s, SlotId id) =>
+        g.previewRating(s, id) * slotDefs[id]!.poolMillions * slotDefs[id]!.adValue;
+    for (final s in g.shows.where((s) => s.status == ShowStatus.onAir).toList()) {
+      final from = s.slot!;
+      SlotId? best;
+      var bestGain = 0.0;
+      for (final to in SlotId.values) {
+        if (to == from || !g.slotUnlocked(to)) continue;
+        final other = g.showById(g.slots[to]!.showId);
+        final gain = v(s, to) - v(s, from) + (other == null ? 0 : v(other, from) - v(other, to));
+        if (gain > bestGain * 1.0 + 1e-9) {
+          bestGain = gain;
+          best = to;
+        }
+      }
+      if (best != null) g.moveShow(s, best);
+    }
   }
   // boş kuşaklar için yapım
   for (final slot in SlotId.values) {
@@ -79,7 +106,7 @@ void botDay(Game g) {
     if (done) continue;
     final genres = naive
         ? (Genre.values.toList()..shuffle(_r))
-        : bestGenre[slot]!;
+        : bestGenreFor(slot);
     for (final genre in genres) {
       if (!g.genreUnlocked(genre)) continue;
       var tier = 0;
@@ -115,6 +142,12 @@ void botDay(Game g) {
   for (final b in bizDefs) {
     final lv = g.bizLevel(b.id);
     if (lv < bizMaxLevel && g.cash > bizUpgradeCost(b, lv) * 5) g.upgradeBiz(b);
+  }
+  // Genel Müdür
+  if (!naive && !g.autoManager && g.cash > g.managerSigningFee * 4) g.hireManager();
+  // günlük görev ödülleri
+  for (final m in g.missions) {
+    if (m.done && !m.claimed) g.claimMission(m);
   }
   // stüdyo yükselt
   if (g.studioLevel < studioLevels.length - 1) {

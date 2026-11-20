@@ -78,6 +78,7 @@ class _FilmCard extends StatelessWidget {
       padding: const EdgeInsets.all(12),
       child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
         StageScene(
+          talk: f.status == FilmStatus.producing,
           prop: Prop.film,
           color: f.def.color,
           tier: f.tier,

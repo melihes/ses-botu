@@ -61,7 +61,7 @@ double baseRating(double quality, Genre g) =>
 
 /// Programın o anki reytingi (%).
 double showRating(Show s, SlotId slot, double adMinutes) {
-  final fit = s.def.fit[slot] ?? 1.0;
+  final fit = s.def.fit[slotDefs[slot]!.band] ?? 1.0;
   return baseRating(s.quality, s.genre) *
       fit *
       freshness(s.genre, s.seasonProgress) *

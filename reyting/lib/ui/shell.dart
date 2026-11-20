@@ -13,6 +13,7 @@ import 'screens/cinema_screen.dart';
 import 'screens/digital_screen.dart';
 import 'dialogs/tutorial.dart';
 import 'dialogs/events_dialogs.dart';
+import 'dialogs/missions_dialog.dart';
 import 'screens/trophies_screen.dart';
 import 'screens/market_screen.dart';
 import 'screens/holding_screen.dart';
@@ -124,9 +125,14 @@ class _ShellState extends State<Shell> {
   void _maybeShowEvents() {
     if (_eventShowing || _offlineShowing || _introShowing) return;
     final game = GameScope.read(context);
-    if (game.pendingAwards == null) return;
+    if (game.pendingAwards == null && game.pendingLogin == null) return;
     _eventShowing = true;
     WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (!mounted) return;
+      if (game.pendingLogin != null) {
+        await showLoginReward(context, game.pendingLogin!);
+        game.dismissLogin();
+      }
       if (!mounted) return;
       if (game.pendingAwards != null) {
         await showAwardsDialog(context, game, game.pendingAwards!);
@@ -350,6 +356,21 @@ class _TopBar extends StatelessWidget {
             ],
           ),
           const SizedBox(width: 10),
+          GestureDetector(
+            onTap: () => showMissionsDialog(context),
+            child: Badge(
+              isLabelVisible: game.missions.any((m) => m.done && !m.claimed),
+              backgroundColor: AppColors.green,
+              label: const Text('!'),
+              child: _Chip(
+                icon: Icons.flag_rounded,
+                color: AppColors.accent,
+                text: '${game.missions.where((m) => m.claimed).length}/${game.missions.length}',
+                tooltip: 'Günlük görevler',
+              ),
+            ),
+          ),
+          const SizedBox(width: 6),
           GestureDetector(
             onTap: () => ShellNav.go(context, PageId.trophies),
             child: _Chip(

@@ -5,9 +5,10 @@ class Staff {
   final String id;
   final String name;
   final Role role;
-  final int skill; // 1..99
-  final double salary; // günlük maaş
+  int skill; // 1..99 (eğitimle artar)
+  double salary; // günlük maaş
   String? showId; // bağlı olduğu program
+  int trainedDay; // en son eğitim aldığı gün
 
   Staff({
     required this.id,
@@ -16,6 +17,7 @@ class Staff {
     required this.skill,
     required this.salary,
     this.showId,
+    this.trainedDay = -99,
   });
 
   bool get isStar => skill >= 85;
@@ -28,6 +30,7 @@ class Staff {
         'skill': skill,
         'salary': salary,
         'showId': showId,
+        'trainedDay': trainedDay,
       };
 
   factory Staff.fromJson(Map<String, dynamic> j) => Staff(
@@ -37,6 +40,7 @@ class Staff {
         skill: j['skill'],
         salary: (j['salary'] as num).toDouble(),
         showId: j['showId'],
+        trainedDay: j['trainedDay'] ?? -99,
       );
 }
 
@@ -493,4 +497,22 @@ class AwardResult {
   final String nominee;
   final bool won;
   AwardResult(this.category, this.nominee, this.won);
+}
+
+/// Günlük görev
+class Mission {
+  final String kind;
+  final String title;
+  final int target;
+  final int gems;
+  int progress;
+  bool claimed;
+  Mission(this.kind, this.title, this.target, this.gems,
+      {this.progress = 0, this.claimed = false});
+  bool get done => progress >= target;
+  Map<String, dynamic> toJson() => {
+        'k': kind, 't': title, 'n': target, 'g': gems, 'p': progress, 'c': claimed,
+      };
+  factory Mission.fromJson(Map<String, dynamic> j) =>
+      Mission(j['k'], j['t'], j['n'], j['g'], progress: j['p'], claimed: j['c']);
 }

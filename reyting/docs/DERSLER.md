@@ -59,3 +59,13 @@ Hedef oyuncu: günde ~1 saat (3 x 20 dk) oynar; aralarda kanal 8 saate kadar, ya
 ile ölçülür (~1 dk). Ölçülen: 1. gün 5. seviye, ~9. gün 7. seviye, ~1. ay ilk 100,
 ~341. gün son seviye (12), 1 yıl sonunda ~ilk 10-15. 1 numara ekstra emek ister
 (borsa, sinema, kanallar, daha sık oynamak). Online'da sıralamayı gerçek oyuncular belirler.
+
+## v0.10 notları
+- Sentezlenmiş karakter sesleri ve kahkaha kulağa kötü geldiği için kaldırıldı;
+  yerine sahneye özel konuşma balonları (film: "Motor!/Kestik!", bilgi yarışması:
+  "A şıkkı, son kararım!" …). Sadece kısık alkış/tribün sesi kaldı.
+- 10 kuşak (5 zaman dilimi x 2). Eski 4 kuşaklı kayıtlar otomatik taşınır.
+- Tuzak: önce biten program en iyi kuşağı kapıyor, Genel Müdür de herkesi aynı
+  yere geri koyuyordu → "Kuşak değiştir" (taşı/yer değiştir) ve "⭐ Önerilen" etiketi.
+- Genel Müdür maaşlı çalışan; maaşı günlük net hesabına dahil (hata düzeltildi).
+- Günlük görevler sadece oyuncunun yapabileceği türden seçilir.

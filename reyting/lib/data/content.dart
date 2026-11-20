@@ -26,24 +26,52 @@ extension RoleX on Role {
       ][index];
 }
 
-/// Yayın kuşakları
-enum SlotId { gunduz, aksam, prime, gece }
+/// Zaman dilimleri: her dilimde 2 kuşak var
+enum Band { sabah, ogle, aksam, prime, gece }
+
+extension BandX on Band {
+  String get label => const ['Sabah', 'Öğle', 'Akşam', 'Prime Time', 'Gece'][index];
+}
+
+/// Yayın kuşakları (10 adet). Stüdyo büyüdükçe kilitleri açılır.
+enum SlotId { sabah1, sabah2, ogle1, ogle2, aksam1, aksam2, prime1, prime2, gece1, gece2 }
 
 class SlotDef {
+  final Band band;
   final String label;
   final String hours;
   final double poolMillions; // bu saatte TV başındaki potansiyel izleyici
   final double adValue; // reklam dakikasının değer çarpanı
   final int unlockLevel; // hangi stüdyo seviyesinde açılır
-  const SlotDef(
-      this.label, this.hours, this.poolMillions, this.adValue, this.unlockLevel);
+  const SlotDef(this.band, this.label, this.hours, this.poolMillions,
+      this.adValue, this.unlockLevel);
 }
 
 const slotDefs = <SlotId, SlotDef>{
-  SlotId.gunduz: SlotDef('Gündüz', '10:00–17:00', 6, 0.6, 1),
-  SlotId.aksam: SlotDef('Akşam', '17:00–20:00', 9, 1.0, 2),
-  SlotId.prime: SlotDef('Prime Time', '20:00–23:00', 14, 1.6, 1),
-  SlotId.gece: SlotDef('Gece', '23:00–02:00', 5, 0.5, 3),
+  SlotId.sabah1: SlotDef(Band.sabah, 'Sabah 1', '07:00–09:30', 4, 0.7, 1),
+  SlotId.sabah2: SlotDef(Band.sabah, 'Sabah 2', '09:30–12:00', 5, 0.75, 2),
+  SlotId.ogle1: SlotDef(Band.ogle, 'Öğle 1', '12:00–14:30', 6, 0.8, 1),
+  SlotId.ogle2: SlotDef(Band.ogle, 'Öğle 2', '14:30–17:00', 7, 0.85, 3),
+  SlotId.aksam1: SlotDef(Band.aksam, 'Akşam 1', '17:00–18:30', 9, 1.0, 2),
+  SlotId.aksam2: SlotDef(Band.aksam, 'Akşam 2', '18:30–20:00', 11, 1.15, 3),
+  SlotId.prime1: SlotDef(Band.prime, 'Prime Time 1', '20:00–21:30', 14, 1.6, 1),
+  SlotId.prime2: SlotDef(Band.prime, 'Prime Time 2', '21:30–23:00', 12, 1.45, 4),
+  SlotId.gece1: SlotDef(Band.gece, 'Gece 1', '23:00–00:30', 7, 0.8, 3),
+  SlotId.gece2: SlotDef(Band.gece, 'Gece 2', '00:30–02:00', 4, 0.6, 4),
+};
+
+/// Eski kayıtlardaki 4 kuşağın yeni karşılıkları
+const legacySlotMap = {
+  0: SlotId.ogle1, // gündüz
+  1: SlotId.aksam1, // akşam
+  2: SlotId.prime1, // prime
+  3: SlotId.gece1, // gece
+};
+const legacySlotNames = {
+  'gunduz': SlotId.ogle1,
+  'aksam': SlotId.aksam1,
+  'prime': SlotId.prime1,
+  'gece': SlotId.gece1,
 };
 
 /// Program türleri
@@ -59,7 +87,7 @@ class GenreDef {
   final int seasonDays;
   final double baseCost;
   final double ratingMult;
-  final Map<SlotId, double> fit;
+  final Map<Band, double> fit;
   final String? reqEquip; // bu türü açmak için gereken ekipman
   const GenreDef({
     this.reqEquip,
@@ -88,10 +116,11 @@ const genreDefs = <Genre, GenreDef>{
     baseCost: 300000,
     ratingMult: 1.15,
     fit: {
-      SlotId.gunduz: 0.6,
-      SlotId.aksam: 0.9,
-      SlotId.prime: 1.2,
-      SlotId.gece: 0.7,
+      Band.sabah: 0.5,
+      Band.ogle: 0.6,
+      Band.aksam: 0.9,
+      Band.prime: 1.2,
+      Band.gece: 0.7,
     },
   ),
   Genre.yarisma: GenreDef(
@@ -105,10 +134,11 @@ const genreDefs = <Genre, GenreDef>{
     baseCost: 200000,
     ratingMult: 1.05,
     fit: {
-      SlotId.gunduz: 0.8,
-      SlotId.aksam: 1.1,
-      SlotId.prime: 1.05,
-      SlotId.gece: 0.7,
+      Band.sabah: 0.7,
+      Band.ogle: 0.8,
+      Band.aksam: 1.1,
+      Band.prime: 1.05,
+      Band.gece: 0.7,
     },
   ),
   Genre.haber: GenreDef(
@@ -122,10 +152,11 @@ const genreDefs = <Genre, GenreDef>{
     baseCost: 60000,
     ratingMult: 0.8,
     fit: {
-      SlotId.gunduz: 0.9,
-      SlotId.aksam: 1.2,
-      SlotId.prime: 0.85,
-      SlotId.gece: 1.0,
+      Band.sabah: 1.15,
+      Band.ogle: 0.9,
+      Band.aksam: 1.2,
+      Band.prime: 0.85,
+      Band.gece: 1.0,
     },
   ),
   Genre.magazin: GenreDef(
@@ -139,10 +170,11 @@ const genreDefs = <Genre, GenreDef>{
     baseCost: 50000,
     ratingMult: 0.85,
     fit: {
-      SlotId.gunduz: 1.2,
-      SlotId.aksam: 0.9,
-      SlotId.prime: 0.7,
-      SlotId.gece: 1.1,
+      Band.sabah: 1.0,
+      Band.ogle: 1.2,
+      Band.aksam: 0.9,
+      Band.prime: 0.7,
+      Band.gece: 1.1,
     },
   ),
   Genre.talkShow: GenreDef(
@@ -156,10 +188,11 @@ const genreDefs = <Genre, GenreDef>{
     baseCost: 120000,
     ratingMult: 0.95,
     fit: {
-      SlotId.gunduz: 0.8,
-      SlotId.aksam: 0.9,
-      SlotId.prime: 0.9,
-      SlotId.gece: 1.25,
+      Band.sabah: 1.15,
+      Band.ogle: 0.8,
+      Band.aksam: 0.9,
+      Band.prime: 0.9,
+      Band.gece: 1.25,
     },
   ),
   Genre.belgesel: GenreDef(
@@ -174,10 +207,11 @@ const genreDefs = <Genre, GenreDef>{
     ratingMult: 0.8,
     reqEquip: 'drone',
     fit: {
-      SlotId.gunduz: 1.0,
-      SlotId.aksam: 0.9,
-      SlotId.prime: 0.8,
-      SlotId.gece: 1.1,
+      Band.sabah: 0.9,
+      Band.ogle: 1.0,
+      Band.aksam: 0.9,
+      Band.prime: 0.8,
+      Band.gece: 1.1,
     },
   ),
   Genre.spor: GenreDef(
@@ -192,10 +226,11 @@ const genreDefs = <Genre, GenreDef>{
     ratingMult: 1.3,
     reqEquip: 'ob',
     fit: {
-      SlotId.gunduz: 0.7,
-      SlotId.aksam: 1.0,
-      SlotId.prime: 1.15,
-      SlotId.gece: 0.8,
+      Band.sabah: 0.6,
+      Band.ogle: 0.7,
+      Band.aksam: 1.0,
+      Band.prime: 1.15,
+      Band.gece: 0.8,
     },
   ),
   Genre.cocuk: GenreDef(
@@ -209,10 +244,11 @@ const genreDefs = <Genre, GenreDef>{
     baseCost: 90000,
     ratingMult: 0.85,
     fit: {
-      SlotId.gunduz: 1.3,
-      SlotId.aksam: 0.9,
-      SlotId.prime: 0.5,
-      SlotId.gece: 0.3,
+      Band.sabah: 1.3,
+      Band.ogle: 1.3,
+      Band.aksam: 0.9,
+      Band.prime: 0.5,
+      Band.gece: 0.3,
     },
   ),
 };

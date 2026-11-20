@@ -46,13 +46,20 @@ class _BroadcastScreenState extends State<BroadcastScreen> {
           const PageHint(
               'Reklam süresini kaydırarak ayarla: reklam uzadıkça gelir artar ama izleyici kaçar. '
               'Kaliteli programlar daha uzun reklamı kaldırır. En iyi noktayı bul!'),
-          AutoGrid(
-            minItemWidth: 360,
-            spacing: 12,
-            children: [
-              for (final id in SlotId.values) _SlotCard(id: id),
-            ],
-          ),
+          for (final band in Band.values) ...[
+            Padding(
+              padding: const EdgeInsets.only(top: 6, bottom: 6),
+              child: SectionLabel(band.label),
+            ),
+            AutoGrid(
+              minItemWidth: 360,
+              spacing: 12,
+              children: [
+                for (final id in SlotId.values)
+                  if (slotDefs[id]!.band == band) _SlotCard(id: id),
+              ],
+            ),
+          ],
         ] else
           const _Report(),
       ],
@@ -337,6 +344,11 @@ class _OnAir extends StatelessWidget {
                   color: AppColors.green)),
           Expanded(
               child: StatBlock('Sezon geliri', fmtShort(s.seasonRevenue))),
+          GhostButton('Kuşak değiştir',
+              compact: true,
+              icon: Icons.swap_horiz_rounded,
+              onTap: () => showMoveDialog(context, s)),
+          const SizedBox(width: 6),
           GhostButton('Yayından kaldır',
               compact: true,
               color: AppColors.red,
@@ -351,3 +363,74 @@ class _OnAir extends StatelessWidget {
     );
   }
 }
+
+
+/// Yayındaki programı başka kuşağa taşıma / yer değiştirme penceresi
+Future<void> showMoveDialog(BuildContext context, Show s) => showDialog(
+      context: context,
+      builder: (c) {
+        final game = GameScope.of(c);
+        return AlertDialog(
+          title: Text('"${s.name}" hangi kuşağa geçsin?'),
+          content: SizedBox(
+            width: 520,
+            child: SingleChildScrollView(
+              child: Column(mainAxisSize: MainAxisSize.min, children: [
+                const Text('Sezon kesilmez. Hedef kuşak doluysa iki program yer değiştirir.',
+                    style: TextStyle(color: AppColors.textDim, fontSize: 12)),
+                const SizedBox(height: 8),
+                for (final id in SlotId.values)
+                  if (id != s.slot)
+                    Builder(builder: (_) {
+                      final unlocked = game.slotUnlocked(id);
+                      final other = game.showById(game.slots[id]!.showId);
+                      final def = slotDefs[id]!;
+                      final gain = game.previewRating(s, id) * def.poolMillions * def.adValue;
+                      final now = game.previewRating(s, s.slot!) *
+                          slotDefs[s.slot!]!.poolMillions * slotDefs[s.slot!]!.adValue;
+                      return Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 3),
+                        child: Panel(
+                          padding: const EdgeInsets.all(8),
+                          color: AppColors.panelHi,
+                          onTap: unlocked
+                              ? () {
+                                  report(c, game.moveShow(s, id));
+                                  Navigator.pop(c);
+                                }
+                              : null,
+                          child: Opacity(
+                            opacity: unlocked ? 1 : 0.4,
+                            child: Row(children: [
+                              Expanded(
+                                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                                  Text('${def.label} · ${def.hours}',
+                                      style: const TextStyle(fontWeight: FontWeight.w800)),
+                                  Text(
+                                      !unlocked
+                                          ? 'Stüdyo seviyesi ${def.unlockLevel} gerekli'
+                                          : other == null
+                                              ? 'Boş'
+                                              : 'Yer değiştirir: ${other.name}',
+                                      style: const TextStyle(color: AppColors.textDim, fontSize: 12)),
+                                ]),
+                              ),
+                              if (unlocked)
+                                Tag(gain >= now ? '▲ daha iyi' : '▼ daha zayıf',
+                                    color: gain >= now ? AppColors.green : AppColors.orange),
+                              const SizedBox(width: 6),
+                              if (unlocked)
+                                Text('~${fmtPct(game.previewRating(s, id), 1)}',
+                                    style: const TextStyle(fontWeight: FontWeight.w900, color: AppColors.cyan)),
+                            ]),
+                          ),
+                        ),
+                      );
+                    }),
+              ]),
+            ),
+          ),
+          actions: [TextButton(onPressed: () => Navigator.pop(c), child: const Text('Kapat'))],
+        );
+      },
+    );

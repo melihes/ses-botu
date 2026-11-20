@@ -65,26 +65,15 @@ class _SettingsState extends State<_Settings> {
             const SizedBox(height: 14),
             SwitchListTile(
               contentPadding: EdgeInsets.zero,
-              value: game.autoManager,
-              onChanged: game.setAutoManager,
-              title: const Text('🤵 Genel Müdür',
-                  style: TextStyle(fontWeight: FontWeight.w800)),
-              subtitle: const Text(
-                  'Sezonu biten programları otomatik yeniler ve aynı kuşağa geri koyar '
-                  '(kasada yeterli para varsa).',
-                  style: TextStyle(fontSize: 12, color: AppColors.textDim)),
-            ),
-            SwitchListTile(
-              contentPadding: EdgeInsets.zero,
               value: Sfx.enabled,
               onChanged: (v) async {
                 await Sfx.setEnabled(v);
                 setState(() {});
-                if (v) Sfx.voice();
+                if (v) Sfx.crowd('applause');
               },
               title: const Text('🔊 Sesler',
                   style: TextStyle(fontWeight: FontWeight.w800)),
-              subtitle: const Text('Karakter konuşmaları, alkış ve tribün sesleri',
+              subtitle: const Text('Seyirci alkışı ve tribün sesleri',
                   style: TextStyle(fontSize: 12, color: AppColors.textDim)),
             ),
             if (Sfx.enabled)
@@ -96,7 +85,7 @@ class _SettingsState extends State<_Settings> {
                     onChanged: (v) => setState(() => Sfx.volume = v),
                     onChangeEnd: (v) {
                       Sfx.setVolume(v);
-                      Sfx.voice();
+                      Sfx.crowd('applause');
                     },
                   ),
                 ),

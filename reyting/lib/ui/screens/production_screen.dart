@@ -87,6 +87,7 @@ class _ShowCard extends StatelessWidget {
       padding: const EdgeInsets.all(12),
       child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
         StageScene(
+            talk: s.status == ShowStatus.onAir || s.status == ShowStatus.producing,
             prop: propFor(s.genre, s.tier),
             color: s.def.color,
             tier: s.tier,
@@ -212,11 +213,27 @@ Future<void> pickSlotFor(BuildContext context, Show s) {
   );
 }
 
+/// Bu program için kazancı en yüksek olacak boş kuşak
+SlotId? bestSlotFor(Game game, Show s) {
+  SlotId? best;
+  var bestV = -1.0;
+  for (final id in SlotId.values) {
+    if (!game.slotUnlocked(id) || game.slots[id]!.showId != null) continue;
+    final d = slotDefs[id]!;
+    final v = game.previewRating(s, id) * d.poolMillions * d.adValue;
+    if (v > bestV) {
+      bestV = v;
+      best = id;
+    }
+  }
+  return best;
+}
+
 Widget _slotOption(BuildContext c, Game game, Show s, SlotId id) {
   final def = slotDefs[id]!;
   final unlocked = game.slotUnlocked(id);
   final occupied = game.showById(game.slots[id]!.showId);
-  final fit = s.def.fit[id] ?? 1;
+  final fit = s.def.fit[def.band] ?? 1;
   final preview = game.previewRating(s, id);
   final enabled = unlocked && occupied == null;
   return Padding(
@@ -253,6 +270,11 @@ Widget _slotOption(BuildContext c, Game game, Show s, SlotId id) {
               ],
             ),
           ),
+          if (bestSlotFor(game, s) == id)
+            const Padding(
+              padding: EdgeInsets.only(right: 6),
+              child: Tag('⭐ Önerilen', color: AppColors.yellow),
+            ),
           if (unlocked)
             Text('~${fmtPct(preview, 1)}',
                 style: const TextStyle(
