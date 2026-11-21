@@ -7,6 +7,7 @@ import '../../engine/economy.dart';
 import '../../engine/game.dart';
 import '../../models/models.dart';
 import '../widgets/common.dart';
+import 'live_view.dart';
 import '../widgets/scene.dart';
 
 class BroadcastScreen extends StatefulWidget {
@@ -355,7 +356,7 @@ class _OnAir extends StatelessWidget {
         Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            StageScene(
+            WatchTap(show: s, child: StageScene(
               talk: true,
               prop: propFor(s.genre, s.tier),
               color: s.def.color,
@@ -363,7 +364,7 @@ class _OnAir extends StatelessWidget {
               live: true,
               width: 120,
               height: 78,
-            ),
+            )),
             const SizedBox(width: 10),
             Expanded(
               child: Column(

@@ -73,13 +73,23 @@ class _SplashScreenState extends State<SplashScreen>
                       ),
                     ),
                     const Spacer(flex: 2),
-                    Text(
-                      'ESM Games',
-                      style: TextStyle(
-                        color: Colors.white.withValues(alpha: 0.85),
-                        fontSize: 14,
-                        fontWeight: FontWeight.w800,
-                        letterSpacing: 2,
+                    TweenAnimationBuilder<double>(
+                      tween: Tween(begin: 0, end: 1),
+                      duration: const Duration(milliseconds: 1200),
+                      builder: (_, v, child) => Opacity(
+                        opacity: v,
+                        child: Transform.translate(
+                            offset: Offset(0, 8 * (1 - v)), child: child),
+                      ),
+                      child: const Text(
+                        'ESM GAMES',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 22,
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: 5,
+                          shadows: [Shadow(color: Color(0xAAFFC857), blurRadius: 14)],
+                        ),
                       ),
                     ),
                     const SizedBox(height: 2),

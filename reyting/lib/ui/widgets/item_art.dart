@@ -1528,7 +1528,8 @@ class _AvatarPainter extends CustomPainter {
       Color(0xFF2A2440),
     ];
     d.person(
-      0.5,
+      // çok küçük kaydırma: her kişiye farklı saç/gözlük/sakal düşsün
+      0.5 + (r.nextInt(41) - 20) * 0.0011,
       1.85,
       1.75,
       shirt: shirts[r.nextInt(shirts.length)],

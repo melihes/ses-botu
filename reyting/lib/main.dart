@@ -61,14 +61,19 @@ class _ReytingAppState extends State<ReytingApp> with WidgetsBindingObserver {
     step(0.25, 'Kayıtların okunuyor…');
     final game = Game();
     await game.start();
-    step(0.6, 'Yayın akışı hazırlanıyor…');
-    await Future<void>.delayed(const Duration(milliseconds: 350));
-    step(0.85, 'Reytingler hesaplanıyor…');
-    // Logo en az ~1,8 sn görünsün
-    final rest = 1800 - sw.elapsedMilliseconds;
-    if (rest > 0) await Future<void>.delayed(Duration(milliseconds: rest));
+    // Açılış ekranı okunabilsin: logo ve "ESM Games" ~4 sn görünür
+    Future<void> until(int ms) async {
+      final rest = ms - sw.elapsedMilliseconds;
+      if (rest > 0) await Future<void>.delayed(Duration(milliseconds: rest));
+    }
+
+    await until(1200);
+    step(0.55, 'Yayın akışı hazırlanıyor…');
+    await until(2300);
+    step(0.8, 'Reytingler hesaplanıyor…');
+    await until(3400);
     step(1.0, 'Yayındasın!');
-    await Future<void>.delayed(const Duration(milliseconds: 300));
+    await until(4000);
     if (mounted) setState(() => _game = game);
   }
 

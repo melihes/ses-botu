@@ -11,6 +11,7 @@ import '../../models/models.dart';
 import '../shell.dart';
 import '../widgets/cash_chart.dart';
 import '../widgets/common.dart';
+import 'live_view.dart';
 import '../widgets/item_art.dart';
 import '../widgets/scene.dart';
 import 'cinema_screen.dart';
@@ -225,10 +226,12 @@ class _TileGrid extends StatelessWidget {
             ? 'Ekranda program yok'
             : '${onAir.length} yayında · ${fmtPct(avgRating, 1)}',
         alert: ready.isNotEmpty ? '${ready.length} hazır' : null,
-        action: ready.isNotEmpty ? 'Yayına koy' : null,
+        action: ready.isNotEmpty
+            ? 'Yayına koy'
+            : (onAir.isNotEmpty ? '▶ İzle' : null),
         onAction: ready.isNotEmpty
             ? () => pickSlotFor(context, ready.first)
-            : null,
+            : (onAir.isNotEmpty ? () => openLiveView(context, onAir.first) : null),
         onTap: () => ShellNav.go(context, PageId.broadcast),
       ),
       _Tile(

@@ -7,6 +7,7 @@ import 'package:reyting/data/content2.dart';
 import 'package:reyting/engine/game.dart';
 import 'package:reyting/models/models.dart';
 import 'package:reyting/ui/dialogs/identity_dialog.dart';
+import 'package:reyting/ui/screens/live_view.dart';
 import 'package:reyting/ui/screens/production_screen.dart';
 import 'package:reyting/ui/shell.dart';
 import 'package:reyting/ui/widgets/common.dart';
@@ -101,6 +102,17 @@ Future<void> _main() async {
           if (p == 'identity') showIdentityDialog(ctx, first: true);
           if (p == 'wizard') openNewShowWizard(ctx);
           if (p == 'sting') g.sting.value = 'Konaktaki Sır';
+          if (p == 'live' || p == 'live2') {
+            openLiveView(ctx, g.shows.firstWhere((s) => s.status == ShowStatus.onAir && (p == 'live2' ? s.genre == Genre.dizi : s.genre == Genre.talkShow)));
+          }
+          if (p == 'live3') {
+            final cr = [for (final e in genreDefs[Genre.yarisma]!.needs.entries) ...g.freeStaff(e.key).take(e.value)];
+            g.ownedEquip.add('drone');
+            g.createShow('Adada Kalan', Genre.yarisma, 5, cr, budget: 4, guest: 4);
+            g.speedUp(g.shows.first);
+            g.putOnAir(g.shows.first, SlotId.aksam1);
+            openLiveView(ctx, g.shows.first);
+          }
         });
         return Shell(initial: page);
       }),

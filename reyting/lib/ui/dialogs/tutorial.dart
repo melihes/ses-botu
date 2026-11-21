@@ -184,7 +184,7 @@ class CoachBubble extends StatefulWidget {
 }
 
 class _CoachBubbleState extends State<CoachBubble> {
-  bool _open = true;
+  bool _open = false; // alt şeritte yer kaplamasın; dokununca açılır
 
   @override
   Widget build(BuildContext context) {

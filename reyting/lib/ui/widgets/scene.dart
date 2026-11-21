@@ -43,9 +43,13 @@ class StageScene extends StatefulWidget {
 
   /// Karakterler konuşsun mu (balon + ses)? Sadece öne çıkan sahnelerde açılır.
   final bool talk;
+
+  /// Seyirci tepkisi (canlı izleme ekranında): 0 yok, 1 kahkaha, 2 coşku, 3 şaşkınlık
+  final int reaction;
   const StageScene({
     super.key,
     this.talk = false,
+    this.reaction = 0,
     required this.prop,
     required this.color,
     this.tier = 1,
@@ -346,9 +350,86 @@ class _StageSceneState extends State<StageScene>
 
   void _scheduleTalk() {
     _talkTimer = Timer(
-      Duration(milliseconds: 3000 + _rnd.nextInt(4000)),
+      Duration(milliseconds: 4200 + _rnd.nextInt(3000)),
       _speak,
     );
+  }
+
+  /// Karşılıklı kısa konuşmalar; son eleman seyirci tepkisi (0 yok, 1 kahkaha, 2 alkış, 3 şaşkınlık)
+  static const _dialogs = <Prop, List<(String, String, int)>>{
+    Prop.nightShow: [
+      ('Diyete başladım…', 'Buzdolabı geri çağırdı! 😂', 1),
+      ('Sette ne oldu?', 'Kostümüm yırtıldı!', 1),
+      ('Yeni projen ne?', 'Şimdilik sır! 🤫', 2),
+    ],
+    Prop.morning: [
+      ('Günaydın Türkiye!', 'Kahveler hazır mı? ☕', 2),
+      ('Bugün tarifimiz ne?', 'Fırında mantı!', 2),
+    ],
+    Prop.standup: [
+      ('Telefonumu sessize aldım…', 'Şimdi o bana küs! 😂', 1),
+      ('Spor salonuna yazıldım.', 'En çok kartım çalıştı!', 1),
+    ],
+    Prop.sketch: [
+      ('Doktor bey, unutkanım.', 'Ne zamandan beri?', 0),
+      ('Ne zamandan beri ne?', 'Bilmem ki! 😂', 1),
+    ],
+    Prop.island: [
+      ('Mavi takım dubayı düşürdü!', 'Skor 3-2, Mavi önde!', 2),
+      ('Kırmızı takım geri döndü!', 'Eşitlik! 4-4!', 2),
+      ('Dokunulmazlık kimin?', 'MAVİ TAKIMIN! 🏆', 2),
+    ],
+    Prop.quiz: [
+      ('Gökkuşağında kaç renk var?', 'C şıkkı, 7! Son kararım.', 0),
+      ('Doğru cevap… C!', 'Kazandım! 🎉', 2),
+    ],
+    Prop.wheel: [
+      ('Çark dönüyor…', '5.000 puan! 🎉', 2),
+      ('Bir harf alayım: R!', 'Tahtada 2 tane R var!', 2),
+      ('Çark dönüyor…', 'İFLAS! 😱', 3),
+    ],
+    Prop.couples: [
+      ('Eşinin en sevdiği yemek?', 'Mantı!', 0),
+      ('Kartı açıyoruz…', 'Karnıyarık! 😂', 1),
+    ],
+    Prop.voice: [('♪ Uzun ince bir yoldayım ♪', '3 jüri döndü! 🔥', 2)],
+    Prop.talent: [('Gözlerinizi kapatmayın!', 'Vay canına! 😱', 3)],
+    Prop.livingRoom: [('Bu evden gidiyorum!', 'Gidemezsin… bir sır var.', 3)],
+    Prop.neighborhood: [('Mektubu sen mi sakladın?', 'Seni korumak için!', 3)],
+    Prop.sitcom: [('Anahtarı kim aldı?', 'Ben… ama içeride kaldı! 😂', 1)],
+    Prop.palace: [('Kapılar kapansın!', 'Hünkârım, ihanet var!', 3)],
+    Prop.police: [('Kıpırdama, polis!', 'Yanlış adamı yakaladınız!', 3)],
+    Prop.football: [('34. dakika… şut!', 'GOOOL! 1-0! ⚽', 2)],
+    Prop.derby: [('Son dakika, penaltı!', 'GOL! Tribünler yıkılıyor!', 2)],
+    Prop.basketball: [('Son saniye… üçlük!', 'Ve basket! 🏀', 2)],
+    Prop.debate: [('Bakın, rakamlar ortada!', 'Hangi rakamlar? 😤', 3)],
+    Prop.gossip: [('Ünlü çift barıştı mı?', 'Kaynaklar evet diyor! 😍', 3)],
+    Prop.redCarpet: [('Bu elbise kimin?', 'Yerli bir tasarımcı! ✨', 2)],
+    Prop.kidsStage: [('Hep bir ağızdan!', '♪ La la la ♪', 2)],
+    Prop.puppet: [('Topu kim sakladı?', 'Arkanda, arkanda! 😂', 1)],
+  };
+
+  int _reaction = 0;
+  Timer? _reactTimer;
+  Timer? _seqTimer;
+
+  void _say(String text, double x, {int react = 0}) {
+    if (!mounted) return;
+    setState(() {
+      _bubble = text;
+      _bubbleX = x;
+      if (react > 0) _reaction = react;
+    });
+    _hideTimer?.cancel();
+    _hideTimer = Timer(const Duration(milliseconds: 1900), () {
+      if (mounted) setState(() => _bubble = null);
+    });
+    if (react > 0) {
+      _reactTimer?.cancel();
+      _reactTimer = Timer(const Duration(milliseconds: 1700), () {
+        if (mounted) setState(() => _reaction = 0);
+      });
+    }
   }
 
   void _speak() {
@@ -356,15 +437,18 @@ class _StageSceneState extends State<StageScene>
     final visible = TickerMode.valuesOf(context).enabled;
     if (visible) {
       final p = widget.prop;
-      final lines = _lines[p] ?? const ['Yayındayız!'];
-      setState(() {
-        _bubble = lines[_rnd.nextInt(lines.length)];
-        _bubbleX = 0.15 + _rnd.nextDouble() * 0.5;
-      });
-      _hideTimer?.cancel();
-      _hideTimer = Timer(const Duration(milliseconds: 1800), () {
-        if (mounted) setState(() => _bubble = null);
-      });
+      final dlg = _dialogs[p];
+      if (dlg != null && _rnd.nextDouble() < 0.6) {
+        // iki karakter karşılıklı konuşur, sonunda seyirci tepki verir
+        final d = dlg[_rnd.nextInt(dlg.length)];
+        _say(d.$1, 0.18);
+        _seqTimer?.cancel();
+        _seqTimer = Timer(const Duration(milliseconds: 2000),
+            () => _say(d.$2, 0.55, react: d.$3));
+      } else {
+        final lines = _lines[p] ?? const ['Yayındayız!'];
+        _say(lines[_rnd.nextInt(lines.length)], 0.15 + _rnd.nextDouble() * 0.5);
+      }
       if (_rnd.nextDouble() < 0.2) {
         if (_applauseProps.contains(p)) Sfx.crowd('applause');
         if (_cheerProps.contains(p)) Sfx.crowd('cheer');
@@ -377,6 +461,8 @@ class _StageSceneState extends State<StageScene>
   void dispose() {
     _talkTimer?.cancel();
     _hideTimer?.cancel();
+    _reactTimer?.cancel();
+    _seqTimer?.cancel();
     _c.dispose();
     super.dispose();
   }
@@ -399,6 +485,7 @@ class _StageSceneState extends State<StageScene>
                   widget.color,
                   widget.tier,
                   widget.live,
+                  reaction: max(widget.reaction, _reaction),
                 ),
               ),
               if (_bubble != null)
@@ -442,6 +529,14 @@ const skinTones = [
   Color(0xFFC68B59),
   Color(0xFF8D5A3B),
 ];
+const tieColors = [
+  Color(0xFFE53935),
+  Color(0xFF1E88E5),
+  Color(0xFFFFD25C),
+  Color(0xFF7C5CFF),
+  Color(0xFF263238),
+];
+
 const hairColors = [
   Color(0xFF2B1B12),
   Color(0xFF5A3A22),
@@ -454,7 +549,14 @@ const hairColors = [
 class Draw {
   final Canvas c;
   final Size s;
-  Draw(this.c, this.s);
+  Draw(this.c, this.s, {this.clock = 0, this.reaction = 0});
+
+  /// Animasyon zamanı (0..1, 8 sn) – göz kırpma, konuşma, gülme
+  final double clock;
+
+  /// Seyirci tepkisi: 0 yok, 1 kahkaha, 2 alkış/coşku, 3 şaşkınlık
+  final int reaction;
+  int get mood => 0;
   double get W => s.width;
   double get H => s.height;
   Paint p(Color col) => Paint()..color = col;
@@ -570,6 +672,8 @@ class Draw {
     Color? hat,
     bool sunglasses = false,
     double walk = 0,
+    bool talking = false,
+    int moodOverride = -1,
   }) {
     final px = x * W, fy = feet * H, ph = h * H;
     final skinC = skinTones[skin % skinTones.length];
@@ -620,6 +724,22 @@ class Draw {
         shoe,
       );
     }
+    // ---- kişiye özel görünüm (konuma göre sabit) ----
+    final sd = ((x * 997).round() * 31 + (h * 1000).round() * 7 + skin * 13 + hair * 17).abs();
+    final female = longHair || sd % 5 == 2;
+    var mood = this.mood;
+    if (moodOverride >= 0) mood = moodOverride;
+    // seyirci tepkisi: mikrofonsuz herkes güler / şaşırır
+    if (moodOverride < 0 && !mic) {
+      if (reaction == 1) mood = 1;
+      if (reaction == 3) mood = 2;
+      if (reaction == 2) mood = 1;
+    }
+    final bounce = mood == 1 ? sin(clock * 2 * pi * 18 + sd) * ph * 0.012 : 0.0;
+    final talkingNow = talking || mic;
+    final outfit = female ? (sd % 2 == 0 ? 3 : (sd ~/ 2) % 3) : sd % 3;
+    final shade = Color.lerp(shirt, Colors.black, 0.28)!;
+
     // gövde
     final torso = Path()
       ..moveTo(px - ph * 0.15, shoulder + ph * 0.03)
@@ -636,25 +756,84 @@ class Draw {
         px + ph * 0.15,
         shoulder + ph * 0.03,
       )
-      ..lineTo(px + ph * 0.11, hip + ph * 0.02)
-      ..lineTo(px - ph * 0.11, hip + ph * 0.02)
+      ..lineTo(px + ph * (outfit == 3 ? 0.15 : 0.11), hip + ph * (outfit == 3 ? 0.1 : 0.02))
+      ..lineTo(px - ph * (outfit == 3 ? 0.15 : 0.11), hip + ph * (outfit == 3 ? 0.1 : 0.02))
       ..close();
     c.drawPath(torso, p(shirt));
-    // kollar
+    // gölge (sağ yan)
+    c.save();
+    c.clipPath(torso);
+    c.drawRect(Rect.fromLTRB(px + ph * 0.05, shoulder - ph * 0.05, px + ph * 0.2, hip + ph * 0.12),
+        p(shade.withValues(alpha: 0.45)));
+    c.restore();
+    final neckTop = shoulder - ph * 0.01;
+    switch (outfit) {
+      case 1: // ceket + gömlek + kravat
+        c.drawPath(
+            Path()
+              ..moveTo(px - ph * 0.05, neckTop)
+              ..lineTo(px + ph * 0.05, neckTop)
+              ..lineTo(px, hip - ph * 0.05)
+              ..close(),
+            p(Colors.white.withValues(alpha: 0.92)));
+        c.drawPath(
+            Path()
+              ..moveTo(px - ph * 0.012, neckTop + ph * 0.02)
+              ..lineTo(px + ph * 0.012, neckTop + ph * 0.02)
+              ..lineTo(px + ph * 0.02, hip - ph * 0.09)
+              ..lineTo(px, hip - ph * 0.06)
+              ..lineTo(px - ph * 0.02, hip - ph * 0.09)
+              ..close(),
+            p(tieColors[sd % tieColors.length]));
+        final lapel = p(shade);
+        c.drawPath(
+            Path()
+              ..moveTo(px - ph * 0.06, neckTop)
+              ..lineTo(px - ph * 0.01, hip - ph * 0.08)
+              ..lineTo(px - ph * 0.07, shoulder + ph * 0.08)
+              ..close(),
+            lapel);
+        c.drawPath(
+            Path()
+              ..moveTo(px + ph * 0.06, neckTop)
+              ..lineTo(px + ph * 0.01, hip - ph * 0.08)
+              ..lineTo(px + ph * 0.07, shoulder + ph * 0.08)
+              ..close(),
+            lapel);
+      case 2: // tişört şeridi
+        c.drawRect(Rect.fromLTRB(px - ph * 0.12, shoulder + ph * 0.13, px + ph * 0.12, shoulder + ph * 0.16),
+            p(Colors.white.withValues(alpha: 0.5)));
+      case 3: // elbise: kemer + kolye
+        c.drawRect(Rect.fromLTRB(px - ph * 0.115, hip - ph * 0.07, px + ph * 0.115, hip - ph * 0.05), p(shade));
+        c.drawArc(Rect.fromCenter(center: Offset(px, neckTop + ph * 0.01), width: ph * 0.1, height: ph * 0.08),
+            0, pi, false, p(const Color(0xFFFFD25C))..style = PaintingStyle.stroke..strokeWidth = ph * 0.008);
+      default: // yaka
+        c.drawPath(
+            Path()
+              ..moveTo(px - ph * 0.05, neckTop)
+              ..lineTo(px, neckTop + ph * 0.05)
+              ..lineTo(px + ph * 0.05, neckTop)
+              ..close(),
+            p(Colors.white.withValues(alpha: 0.85)));
+        for (int b = 1; b <= 3; b++) {
+          c.drawCircle(Offset(px, neckTop + ph * 0.05 + b * ph * 0.07), ph * 0.008, p(shade));
+        }
+    }
+    // kollar: dirsekli, kol ucunda el
     void arm(double sx, double ang, double side) {
-      final len = ph * 0.33;
-      final end = Offset(
-        sx + side * sin(ang) * len,
-        shoulder + ph * 0.03 + cos(ang) * len,
-      );
-      c.drawLine(
-        Offset(sx, shoulder + ph * 0.04),
-        end,
-        p(shirt)
-          ..strokeWidth = ph * 0.075
-          ..strokeCap = StrokeCap.round,
-      );
-      c.drawCircle(end, ph * 0.04, p(skinC));
+      final upper = ph * 0.17, fore = ph * 0.16;
+      final sh = Offset(sx, shoulder + ph * 0.04);
+      final elbow = sh + Offset(side * sin(ang) * upper, cos(ang) * upper);
+      final a2 = ang + (ang > 1.2 ? 0.25 : 0.35);
+      final end = elbow + Offset(side * sin(a2) * fore, cos(a2) * fore);
+      final sleeve = p(shirt)
+        ..strokeWidth = ph * 0.075
+        ..strokeCap = StrokeCap.round;
+      c.drawLine(sh, elbow, sleeve);
+      c.drawLine(elbow, end, sleeve..color = outfit == 2 ? skinC : shirt);
+      c.drawCircle(end, ph * 0.042, p(skinC));
+      c.drawCircle(end + Offset(side * ph * 0.015, -ph * 0.01), ph * 0.015,
+          p(Color.lerp(skinC, Colors.black, 0.15)!));
       if (mic && side > 0) {
         c.drawLine(
           end,
@@ -678,29 +857,84 @@ class Draw {
         width: ph * 0.07,
         height: ph * 0.06,
       ),
-      p(skinC),
+      p(Color.lerp(skinC, Colors.black, 0.12)!),
     );
-    final head = Offset(px, fy - ph * 0.9);
+    final head = Offset(px, fy - ph * 0.9 + bounce);
     final hr = ph * 0.1;
-    if (longHair) {
+    final hairP = p(hairC);
+    final style = longHair ? 6 : (female ? [4, 5, 6][sd % 3] : [0, 1, 2, 3, 7][sd % 5]);
+    // arkadaki saç
+    if (style == 6) {
       c.drawRRect(
         RRect.fromRectAndRadius(
           Rect.fromLTWH(head.dx - hr * 1.15, head.dy - hr, hr * 2.3, hr * 2.6),
           Radius.circular(hr),
         ),
-        p(hairC),
+        hairP,
       );
+    } else if (style == 5) {
+      c.drawOval(Rect.fromCenter(center: head + Offset(hr * 1.05, hr * 0.5), width: hr * 0.7, height: hr * 1.6), hairP);
+    } else if (style == 4) {
+      c.drawCircle(head - Offset(0, hr * 1.1), hr * 0.45, hairP);
+    }
+    // kulaklar
+    c.drawCircle(head + Offset(-hr * 0.98, hr * 0.12), hr * 0.2, p(skinC));
+    c.drawCircle(head + Offset(hr * 0.98, hr * 0.12), hr * 0.2, p(skinC));
+    if (female && sd % 3 == 0) {
+      c.drawCircle(head + Offset(-hr * 0.98, hr * 0.38), hr * 0.1, p(const Color(0xFFFFD25C)));
+      c.drawCircle(head + Offset(hr * 0.98, hr * 0.38), hr * 0.1, p(const Color(0xFFFFD25C)));
     }
     c.drawCircle(head, hr, p(skinC));
-    c.drawArc(
-      Rect.fromCircle(center: head - Offset(0, hr * 0.15), radius: hr * 1.05),
-      pi,
-      pi,
-      true,
-      p(hairC),
-    );
+    // ön saç
+    switch (style) {
+      case 2: // kıvırcık
+        for (int k = 0; k < 7; k++) {
+          final a = pi + k * pi / 6;
+          c.drawCircle(head + Offset(cos(a) * hr * 0.9, sin(a) * hr * 0.9 - hr * 0.1), hr * 0.32, hairP);
+        }
+      case 3: // kel, yanlar
+        c.drawArc(Rect.fromCircle(center: head, radius: hr * 1.02), pi * 0.85, pi * 0.35, false,
+            hairP..style = PaintingStyle.stroke..strokeWidth = hr * 0.3);
+        c.drawArc(Rect.fromCircle(center: head, radius: hr * 1.02), -pi * 0.2, pi * 0.35, false, hairP);
+        hairP.style = PaintingStyle.fill;
+      case 7: // dik saç
+        final spikes = Path()..moveTo(head.dx - hr, head.dy - hr * 0.1);
+        for (int k = 0; k <= 6; k++) {
+          final xx = head.dx - hr + k * hr / 3;
+          spikes.lineTo(xx + hr / 6, head.dy - hr * (k.isEven ? 1.45 : 0.95));
+        }
+        spikes.lineTo(head.dx + hr, head.dy - hr * 0.1);
+        spikes.close();
+        c.drawPath(spikes, hairP);
+      case 1: // yandan ayrık
+        c.drawArc(Rect.fromCircle(center: head - Offset(0, hr * 0.15), radius: hr * 1.05), pi, pi, true, hairP);
+        c.drawOval(Rect.fromCenter(center: head + Offset(-hr * 0.45, -hr * 0.55), width: hr * 1.2, height: hr * 0.6), hairP);
+      default:
+        c.drawArc(
+          Rect.fromCircle(center: head - Offset(0, hr * 0.15), radius: hr * 1.05),
+          pi,
+          pi,
+          true,
+          hairP,
+        );
+        if (style == 4 || style == 5 || style == 6) {
+          // kâkül
+          c.drawOval(Rect.fromCenter(center: head + Offset(hr * 0.35, -hr * 0.55), width: hr * 1.1, height: hr * 0.55), hairP);
+        }
+    }
+    // sakal
+    if (!female && sd % 4 == 1) {
+      c.drawArc(Rect.fromCircle(center: head + Offset(0, hr * 0.1), radius: hr * 0.92), 0.15, pi - 0.3, true,
+          p(Color.lerp(hairC, skinC, 0.25)!));
+    }
+    // yanaklar
+    if (female || mood == 1) {
+      c.drawCircle(head + Offset(-hr * 0.55, hr * 0.42), hr * 0.17, p(const Color(0x55FF6F8A)));
+      c.drawCircle(head + Offset(hr * 0.55, hr * 0.42), hr * 0.17, p(const Color(0x55FF6F8A)));
+    }
     // gözler
     final eye = p(const Color(0xFF1A1A1A));
+    final blink = ((clock * 8 + (sd % 7) * 0.37) % 3.0) < 0.05;
     if (sunglasses) {
       c.drawRRect(
         RRect.fromRectAndRadius(
@@ -713,9 +947,50 @@ class Draw {
         ),
         eye,
       );
+    } else if (mood == 1 || blink) {
+      // gülerken / göz kırparken kapalı gözler
+      for (final sx in [-1.0, 1.0]) {
+        c.drawArc(Rect.fromCenter(center: head + Offset(sx * hr * 0.36, hr * 0.18), width: hr * 0.38, height: hr * 0.28),
+            pi, pi, false, eye..style = PaintingStyle.stroke..strokeWidth = max(1, hr * 0.09));
+      }
+      eye.style = PaintingStyle.fill;
     } else {
-      c.drawCircle(head + Offset(-hr * 0.35, hr * 0.15), hr * 0.12, eye);
-      c.drawCircle(head + Offset(hr * 0.35, hr * 0.15), hr * 0.12, eye);
+      final big = mood == 2 ? 1.3 : 1.0;
+      for (final sx in [-1.0, 1.0]) {
+        c.drawOval(Rect.fromCenter(center: head + Offset(sx * hr * 0.36, hr * 0.15), width: hr * 0.36 * big, height: hr * 0.42 * big),
+            p(Colors.white));
+        c.drawCircle(head + Offset(sx * hr * 0.36 + hr * 0.04, hr * 0.18), hr * 0.12 * big, eye);
+      }
+    }
+    // kaşlar
+    final brow = p(Color.lerp(hairC, Colors.black, 0.3)!)
+      ..strokeWidth = max(1, hr * 0.1)
+      ..strokeCap = StrokeCap.round;
+    final by = mood == 2 ? -hr * 0.32 : -hr * 0.18;
+    c.drawLine(head + Offset(-hr * 0.55, by), head + Offset(-hr * 0.18, by - hr * 0.05), brow);
+    c.drawLine(head + Offset(hr * 0.18, by - hr * 0.05), head + Offset(hr * 0.55, by), brow);
+    // gözlük
+    if (!sunglasses && sd % 6 == 0) {
+      final gl = p(const Color(0xFF222222))..style = PaintingStyle.stroke..strokeWidth = max(1, hr * 0.08);
+      c.drawCircle(head + Offset(-hr * 0.36, hr * 0.16), hr * 0.27, gl);
+      c.drawCircle(head + Offset(hr * 0.36, hr * 0.16), hr * 0.27, gl);
+      c.drawLine(head + Offset(-hr * 0.1, hr * 0.14), head + Offset(hr * 0.1, hr * 0.14), gl);
+    }
+    // ağız
+    final mouthC = head + Offset(0, hr * 0.58);
+    if (mood == 1) {
+      // kahkaha: açık D ağız
+      c.drawArc(Rect.fromCenter(center: mouthC - Offset(0, hr * 0.06), width: hr * 0.75, height: hr * 0.55), 0, pi, true,
+          p(const Color(0xFF6B1F2A)));
+      c.drawRect(Rect.fromLTWH(mouthC.dx - hr * 0.3, mouthC.dy - hr * 0.06, hr * 0.6, hr * 0.1), p(Colors.white));
+    } else if (mood == 2) {
+      c.drawOval(Rect.fromCenter(center: mouthC, width: hr * 0.3, height: hr * 0.38), p(const Color(0xFF6B1F2A)));
+    } else if (talkingNow) {
+      final o = (sin(clock * 2 * pi * 22 + sd) + 1) / 2;
+      c.drawOval(Rect.fromCenter(center: mouthC, width: hr * 0.42, height: hr * (0.08 + 0.28 * o)), p(const Color(0xFF6B1F2A)));
+    } else {
+      c.drawArc(Rect.fromCenter(center: mouthC - Offset(0, hr * 0.12), width: hr * 0.5, height: hr * 0.3), 0.2, pi - 0.4, false,
+          p(const Color(0xFF6B1F2A))..style = PaintingStyle.stroke..strokeWidth = max(1, hr * 0.08)..strokeCap = StrokeCap.round);
     }
     if (hat != null) {
       c.drawRect(
@@ -737,20 +1012,43 @@ class Draw {
     }
   }
 
-  /// Ön sırada alkışlayan seyirci kafaları
+  /// Ön sırada seyirci: renkli kıyafetler, saçlar; kahkahada sallanır,
+  /// coşkuda kollar havaya kalkar.
   void audience(double w, {int n = 18, double y = 0.97}) {
+    const shirts = [
+      Color(0xFF3B2F5C), Color(0xFF5C2F3B), Color(0xFF2F4A5C), Color(0xFF4A5C2F),
+      Color(0xFF5C4A2F), Color(0xFF2F2F5C),
+    ];
     for (int k = 0; k < n; k++) {
       final x = (k + 0.5) / n;
-      final clap = sin(w * 10 + k * 0.9) > 0.3 ? 0.02 : 0.0;
-      circle(x, y - clap, 0.05, Colors.black.withValues(alpha: 0.8));
-      rrect(
-        x - 0.025,
-        y + 0.02 - clap,
-        0.05,
-        0.1,
-        4,
-        Colors.black.withValues(alpha: 0.8),
-      );
+      final clapAmp = reaction == 2 ? 0.035 : (reaction == 1 ? 0.025 : 0.0);
+      final idle = sin(w * 10 + k * 0.9) > 0.3 ? 0.012 : 0.0;
+      final jump = (reaction == 0 ? idle : clapAmp * (sin(w * 30 + k * 1.3) + 1) / 2);
+      final hy = y - jump;
+      final skinC = skinTones[k % skinTones.length];
+      final shirtC = shirts[(k * 7) % shirts.length];
+      rrect(x - 0.032, hy + 0.025, 0.064, 0.12, 6, shirtC);
+      if (reaction == 2 || (reaction == 1 && k % 3 == 0)) {
+        final up = sin(w * 30 + k) > 0 ? 0.0 : 0.02;
+        circle(x - 0.03, hy - 0.06 + up, 0.018, skinC);
+        circle(x + 0.03, hy - 0.06 - up, 0.018, skinC);
+      }
+      circle(x, hy, 0.045, skinC);
+      c.drawArc(
+          Rect.fromCircle(center: Offset(x * W, (hy - 0.008) * H), radius: 0.047 * H),
+          pi, pi, true, p(hairColors[(k * 3) % hairColors.length]));
+      if (H > 160) {
+        if (reaction == 1) {
+          rrect(x - 0.012, hy + 0.012, 0.024, 0.016, 3, const Color(0xFF6B1F2A));
+        }
+        circle(x - 0.012, hy - 0.004, 0.006, const Color(0xFF1A1A1A));
+        circle(x + 0.012, hy - 0.004, 0.006, const Color(0xFF1A1A1A));
+      }
+      rect(x - 0.04, y + 0.09, 0.08, 0.1, Colors.black.withValues(alpha: 0.35));
+    }
+    if (reaction == 1 && H > 60) {
+      text('HA HA HA', 0.5 + sin(w * 6) * 0.02, y - 0.2, 0.06,
+          Colors.white.withValues(alpha: 0.85), center: true);
     }
   }
 
@@ -848,12 +1146,14 @@ class ScenePainter extends CustomPainter {
   final Color color;
   final int tier;
   final bool live;
-  ScenePainter(this.a, this.prop, this.color, this.tier, this.live)
+  final int reaction;
+  ScenePainter(this.a, this.prop, this.color, this.tier, this.live,
+      {this.reaction = 0})
     : super(repaint: a);
 
   @override
   void paint(Canvas canvas, Size size) {
-    final d = Draw(canvas, size);
+    final d = Draw(canvas, size, clock: a.value, reaction: reaction);
     final t = a.value, w = t * 2 * pi;
     final floor = 0.78;
 
@@ -2710,7 +3010,8 @@ class ScenePainter extends CustomPainter {
       old.prop != prop ||
       old.color != color ||
       old.tier != tier ||
-      old.live != live;
+      old.live != live ||
+      old.reaction != reaction;
 }
 
 /// Konuşma balonu (kuyruklu, hafif büyüyerek belirir)

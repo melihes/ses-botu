@@ -265,6 +265,8 @@ class _ChartPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     if (pts.length < 2) return;
+    // hiçbir çizim grafik kutusunun dışına taşmasın
+    canvas.clipRect(Offset.zero & size);
     final barH = pts.first.intraday ? 0.0 : size.height * 0.22;
     final chartH = size.height - barH - 4;
     final lo = pts.map((e) => e.cash).reduce(min);
@@ -322,15 +324,16 @@ class _ChartPainter extends CustomPainter {
     // günlük net çubukları
     if (barH > 0) {
       final maxNet = pts.map((e) => e.net.abs()).fold(1.0, max);
-      final bw = max(2.0, size.width / pts.length * 0.6);
+      // az veri varken çubuklar dev olmasın (en fazla 14 px)
+      final bw = (size.width / pts.length * 0.6).clamp(2.0, 14.0);
       final base = size.height - barH / 2;
       for (int i = 0; i < pts.length; i++) {
         final h = pts[i].net / maxNet * barH / 2;
         canvas.drawRect(
           Rect.fromLTRB(
-            x(i) - bw / 2,
+            (x(i) - bw / 2).clamp(0.0, size.width - bw),
             base - max(0, h),
-            x(i) + bw / 2,
+            (x(i) + bw / 2).clamp(bw, size.width),
             base - min(0, h),
           ),
           Paint()

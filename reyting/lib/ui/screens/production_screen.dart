@@ -10,6 +10,7 @@ import '../../engine/economy.dart';
 import '../../engine/game.dart';
 import '../../models/models.dart';
 import '../widgets/common.dart';
+import 'live_view.dart';
 import '../widgets/item_art.dart';
 import '../widgets/scene.dart';
 
@@ -95,7 +96,7 @@ class _ShowCard extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          StageScene(
+          WatchTap(show: s, child: StageScene(
             talk:
                 s.status == ShowStatus.onAir ||
                 s.status == ShowStatus.producing,
@@ -106,7 +107,7 @@ class _ShowCard extends StatelessWidget {
             width: 130,
             height: 96,
             badge: '${s.season}. SEZON',
-          ),
+          )),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
