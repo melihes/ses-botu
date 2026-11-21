@@ -23,26 +23,34 @@ class HomeScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final game = GameScope.of(context);
-    return LayoutBuilder(builder: (context, c) {
-      final wide = c.maxWidth > 680;
-      final cash = _CashCard(game: game);
-      final grid = _TileGrid(game: game);
-      if (!wide || c.maxHeight < 260) {
-        return ListView(padding: const EdgeInsets.all(10), children: [
-          SizedBox(height: 260, child: cash),
-          const SizedBox(height: 10),
-          SizedBox(height: 330, child: grid),
-        ]);
-      }
-      return Padding(
-        padding: const EdgeInsets.all(10),
-        child: Row(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-          Expanded(flex: 5, child: cash),
-          const SizedBox(width: 10),
-          Expanded(flex: 6, child: grid),
-        ]),
-      );
-    });
+    return LayoutBuilder(
+      builder: (context, c) {
+        final wide = c.maxWidth > 680;
+        final cash = _CashCard(game: game);
+        final grid = _TileGrid(game: game);
+        if (!wide || c.maxHeight < 260) {
+          return ListView(
+            padding: const EdgeInsets.all(10),
+            children: [
+              SizedBox(height: 260, child: cash),
+              const SizedBox(height: 10),
+              SizedBox(height: 330, child: grid),
+            ],
+          );
+        }
+        return Padding(
+          padding: const EdgeInsets.all(10),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Expanded(flex: 5, child: cash),
+              const SizedBox(width: 10),
+              Expanded(flex: 6, child: grid),
+            ],
+          ),
+        );
+      },
+    );
   }
 }
 
@@ -53,7 +61,8 @@ class _CashCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final net = game.netPerDay;
-    final income = game.adIncomePerDay +
+    final income =
+        game.adIncomePerDay +
         game.channelIncomePerDay +
         game.platformIncomePerDay +
         game.bizIncomePerDay +
@@ -71,64 +80,97 @@ class _CashCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Row(children: [
-            const SectionLabel('Kasa', color: AppColors.textDim),
-            const SizedBox(width: 6),
-            Flexible(
-                child: Tag(game.studio.name,
-                    color: AppColors.cyan, icon: Icons.domain_rounded)),
-            const Spacer(),
-            Text('${net >= 0 ? '▲' : '▼'} ${fmtSigned(net)}/gün',
+          Row(
+            children: [
+              const SectionLabel('Kasa', color: AppColors.textDim),
+              const SizedBox(width: 6),
+              Flexible(
+                child: Tag(
+                  game.studio.name,
+                  color: AppColors.cyan,
+                  icon: Icons.domain_rounded,
+                ),
+              ),
+              const Spacer(),
+              Text(
+                '${net >= 0 ? '▲' : '▼'} ${fmtSigned(net)}/gün',
                 style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w800,
-                    color: net >= 0 ? AppColors.green : AppColors.red)),
-          ]),
+                  fontSize: 12,
+                  fontWeight: FontWeight.w800,
+                  color: net >= 0 ? AppColors.green : AppColors.red,
+                ),
+              ),
+            ],
+          ),
           FittedBox(
             alignment: Alignment.centerLeft,
             fit: BoxFit.scaleDown,
-            child: Text(fmtFull(game.cash),
-                style: TextStyle(
-                    fontSize: 28,
-                    fontWeight: FontWeight.w900,
-                    color: game.cash < 0 ? AppColors.red : AppColors.text)),
+            child: Text(
+              fmtFull(game.cash),
+              style: TextStyle(
+                fontSize: 28,
+                fontWeight: FontWeight.w900,
+                color: game.cash < 0 ? AppColors.red : AppColors.text,
+              ),
+            ),
           ),
           const SizedBox(height: 4),
           const Expanded(child: CashChart()),
           const SizedBox(height: 6),
-          Row(children: [
-            Expanded(
-              child: GestureDetector(
-                onTap: () => ShellNav.go(context, PageId.trophies),
-                child: StatBlock('#${game.richRank} değer', fmtShort(game.netWorth),
-                    color: AppColors.yellow),
+          Row(
+            children: [
+              Expanded(
+                child: GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTap: () => ShellNav.go(context, PageId.trophies),
+                  child: StatBlock(
+                    '#${game.richRank} değer',
+                    fmtShort(game.netWorth),
+                    color: AppColors.yellow,
+                  ),
+                ),
               ),
-            ),
-            Expanded(
-                child: StatBlock('Gelir/gün', fmtSigned(income),
-                    color: AppColors.green)),
-            Expanded(
-                child: StatBlock('Gider/gün', fmtSigned(-expense),
-                    color: AppColors.orange)),
-            Expanded(
-              child: GestureDetector(
-                onTap: () => ShellNav.go(context, PageId.bank),
-                child: StatBlock('Borç ›', fmtShort(game.debt),
-                    color: game.debt > 0 ? AppColors.red : AppColors.textDim),
+              Expanded(
+                child: StatBlock(
+                  'Gelir/gün',
+                  fmtSigned(income),
+                  color: AppColors.green,
+                ),
               ),
-            ),
-          ]),
+              Expanded(
+                child: StatBlock(
+                  'Gider/gün',
+                  fmtSigned(-expense),
+                  color: AppColors.orange,
+                ),
+              ),
+              Expanded(
+                child: GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTap: () => ShellNav.go(context, PageId.bank),
+                  child: StatBlock(
+                    'Borç ›',
+                    fmtShort(game.debt),
+                    color: game.debt > 0 ? AppColors.red : AppColors.textDim,
+                  ),
+                ),
+              ),
+            ],
+          ),
           if (game.currentGoal >= 0) ...[
             const SizedBox(height: 4),
             _GoalRow(game: game),
           ] else if (ev != null) ...[
             const SizedBox(height: 4),
-            Text('${ev.title} — ${ev.body}',
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                    fontSize: 11,
-                    color: ev.good ? AppColors.green : AppColors.orange)),
+            Text(
+              '${ev.title} — ${ev.body}',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                fontSize: 11,
+                color: ev.good ? AppColors.green : AppColors.orange,
+              ),
+            ),
           ],
         ],
       ),
@@ -145,17 +187,21 @@ class _TileGrid extends StatelessWidget {
     final g = game;
     final onAir = g.shows.where((s) => s.status == ShowStatus.onAir).toList();
     final ready = g.shows.where((s) => s.status == ShowStatus.ready).toList();
-    final producing =
-        g.shows.where((s) => s.status == ShowStatus.producing).length;
+    final producing = g.shows
+        .where((s) => s.status == ShowStatus.producing)
+        .length;
     final avgRating = onAir.isEmpty
         ? 0.0
         : onAir.map(g.currentRating).reduce((a, b) => a + b) / onAir.length;
     final nextLevel = g.studioLevel < studioLevels.length - 1
         ? studioLevels[g.studioLevel + 1]
         : null;
-    final filmsLive =
-        g.films.where((f) => f.status == FilmStatus.inTheaters).length;
-    final filmsReady = g.films.where((f) => f.status == FilmStatus.ready).length;
+    final filmsLive = g.films
+        .where((f) => f.status == FilmStatus.inTheaters)
+        .length;
+    final filmsReady = g.films
+        .where((f) => f.status == FilmStatus.ready)
+        .length;
     final bizCount = bizDefs.where((b) => g.bizLevel(b.id) > 0).length;
 
     final tiles = <Widget>[
@@ -167,25 +213,33 @@ class _TileGrid extends StatelessWidget {
                 color: onAir.first.def.color,
                 tier: onAir.first.tier,
                 live: true,
-                height: 200)
-            : const StageScene(prop: Prop.globe, color: AppColors.blue, height: 200),
+                height: 200,
+              )
+            : const StageScene(
+                prop: Prop.globe,
+                color: AppColors.blue,
+                height: 200,
+              ),
         title: 'Yayın',
         status: onAir.isEmpty
             ? 'Ekranda program yok'
             : '${onAir.length} yayında · ${fmtPct(avgRating, 1)}',
         alert: ready.isNotEmpty ? '${ready.length} hazır' : null,
         action: ready.isNotEmpty ? 'Yayına koy' : null,
-        onAction: ready.isNotEmpty ? () => pickSlotFor(context, ready.first) : null,
+        onAction: ready.isNotEmpty
+            ? () => pickSlotFor(context, ready.first)
+            : null,
         onTap: () => ShellNav.go(context, PageId.broadcast),
       ),
       _Tile(
         art: StageScene(
-            prop: g.shows.isNotEmpty
-                ? propFor(g.shows.first.genre, g.shows.first.tier)
-                : Prop.wheel,
-            color: AppColors.accent,
-            tier: 2,
-            height: 200),
+          prop: g.shows.isNotEmpty
+              ? propFor(g.shows.first.genre, g.shows.first.tier)
+              : Prop.wheel,
+          color: AppColors.accent,
+          tier: 2,
+          height: 200,
+        ),
         title: 'Yapım',
         status: '$producing çekimde · ${g.shows.length} program',
         action: '+ Yeni',
@@ -193,7 +247,11 @@ class _TileGrid extends StatelessWidget {
         onTap: () => ShellNav.go(context, PageId.production),
       ),
       _Tile(
-        art: const StageScene(prop: Prop.debate, color: AppColors.pink, height: 200),
+        art: const StageScene(
+          prop: Prop.debate,
+          color: AppColors.pink,
+          height: 200,
+        ),
         title: 'Kadro',
         status:
             '${g.staff.length}/${g.studio.maxStaff} kişi · ${fmtShort(g.dailySalaries)}/gün',
@@ -203,7 +261,12 @@ class _TileGrid extends StatelessWidget {
         onTap: () => ShellNav.go(context, PageId.staff),
       ),
       _Tile(
-        art: const StageScene(prop: Prop.film, color: AppColors.orange, tier: 2, height: 200),
+        art: const StageScene(
+          prop: Prop.film,
+          color: AppColors.orange,
+          tier: 2,
+          height: 200,
+        ),
         title: 'Sinema',
         status: '${g.films.length} film · $filmsLive vizyonda',
         alert: filmsReady > 0 ? '$filmsReady hazır' : null,
@@ -212,7 +275,12 @@ class _TileGrid extends StatelessWidget {
         onTap: () => ShellNav.go(context, PageId.cinema),
       ),
       _Tile(
-        art: const ItemArt(id: 'videom', color: AppColors.accent, width: 300, height: 200),
+        art: const ItemArt(
+          id: 'videom',
+          color: AppColors.accent,
+          width: 300,
+          height: 200,
+        ),
         title: 'Dijital',
         status: g.creators.isEmpty
             ? 'YouTuber transfer et'
@@ -223,10 +291,11 @@ class _TileGrid extends StatelessWidget {
       ),
       _Tile(
         art: StageScene(
-            prop: Prop.studio,
-            color: AppColors.purple,
-            tier: min(g.studioLevel, 4),
-            height: 200),
+          prop: Prop.studio,
+          color: AppColors.purple,
+          tier: min(g.studioLevel, 4),
+          height: 200,
+        ),
         title: 'Stüdyo',
         status: 'Seviye ${g.studioLevel + 1} · ${g.ownedEquip.length} ekipman',
         alert: nextLevel != null && g.cash >= nextLevel.upgradeCost
@@ -235,41 +304,77 @@ class _TileGrid extends StatelessWidget {
         onTap: () => ShellNav.go(context, PageId.studio),
       ),
       _Tile(
-        art: const StageScene(prop: Prop.globe, color: AppColors.cyan, tier: 2, height: 200),
+        art: const StageScene(
+          prop: Prop.globe,
+          color: AppColors.cyan,
+          tier: 2,
+          height: 200,
+        ),
         title: 'Harita',
-        status: '${g.ownedLocations.length} set · ${locationDefs.length} lokasyon',
+        status:
+            '${g.ownedLocations.length} set · ${locationDefs.length} lokasyon',
         onTap: () => ShellNav.go(context, PageId.map),
       ),
       _Tile(
-        art: const StageScene(prop: Prop.talent, color: AppColors.pink, tier: 2, height: 200),
+        art: const StageScene(
+          prop: Prop.talent,
+          color: AppColors.pink,
+          tier: 2,
+          height: 200,
+        ),
         title: 'Ajans',
         status: g.agencyOpen
             ? '${g.academy.length} genç · sv ${g.agencyLevel}'
             : 'Genç yetenek keşfet',
-        alert: g.transferOffers.isNotEmpty ? '${g.transferOffers.length} teklif' : null,
+        alert: g.transferOffers.isNotEmpty
+            ? '${g.transferOffers.length} teklif'
+            : null,
         onTap: () => ShellNav.go(context, PageId.agency),
       ),
       _Tile(
-        art: const StageScene(prop: Prop.election, color: AppColors.purple, tier: 2, height: 200),
+        art: const StageScene(
+          prop: Prop.election,
+          color: AppColors.purple,
+          tier: 2,
+          height: 200,
+        ),
         title: 'Yönetim',
         status: '${g.execs.length} yönetici · ${fmtShort(g.execSalaries)}/gün',
         onTap: () => ShellNav.go(context, PageId.board),
       ),
       _Tile(
-        art: const StageScene(prop: Prop.redCarpet, color: AppColors.yellow, tier: 2, height: 200),
+        art: const StageScene(
+          prop: Prop.redCarpet,
+          color: AppColors.yellow,
+          tier: 2,
+          height: 200,
+        ),
         title: 'Markalar',
-        status: '${g.deals.length + g.shows.where((s) => s.sponsorDays > 0).length} anlaşma',
-        alert: g.brandOffers.isNotEmpty ? '${g.brandOffers.length} teklif' : null,
+        status:
+            '${g.deals.length + g.shows.where((s) => s.sponsorDays > 0).length} anlaşma',
+        alert: g.brandOffers.isNotEmpty
+            ? '${g.brandOffers.length} teklif'
+            : null,
         onTap: () => ShellNav.go(context, PageId.brands),
       ),
       _Tile(
-        art: const ItemArt(id: 'otel', color: AppColors.green, width: 300, height: 200),
+        art: const ItemArt(
+          id: 'otel',
+          color: AppColors.green,
+          width: 300,
+          height: 200,
+        ),
         title: 'Holding',
         status: '$bizCount işletme · ${fmtSigned(g.bizIncomePerDay)}/gün',
         onTap: () => ShellNav.go(context, PageId.holding),
       ),
       _Tile(
-        art: const ItemArt(id: 'pazar', color: AppColors.orange, width: 300, height: 200),
+        art: const ItemArt(
+          id: 'pazar',
+          color: AppColors.orange,
+          width: 300,
+          height: 200,
+        ),
         title: 'Pazar',
         status:
             '${g.ownedChannels.length} kanal · ${g.ownedPlatforms.length} platform',
@@ -277,19 +382,21 @@ class _TileGrid extends StatelessWidget {
       ),
     ];
 
-    return LayoutBuilder(builder: (ctx, c) {
-      const cols = 4, gap = 8.0;
-      final rows = (tiles.length / cols).ceil();
-      final tw = (c.maxWidth - gap * (cols - 1)) / cols;
-      final th = (c.maxHeight - gap * (rows - 1)) / rows;
-      return Wrap(
-        spacing: gap,
-        runSpacing: gap,
-        children: [
-          for (final t in tiles) SizedBox(width: tw, height: th, child: t)
-        ],
-      );
-    });
+    return LayoutBuilder(
+      builder: (ctx, c) {
+        const cols = 4, gap = 8.0;
+        final rows = (tiles.length / cols).ceil();
+        final tw = (c.maxWidth - gap * (cols - 1)) / cols;
+        final th = (c.maxHeight - gap * (rows - 1)) / rows;
+        return Wrap(
+          spacing: gap,
+          runSpacing: gap,
+          children: [
+            for (final t in tiles) SizedBox(width: tw, height: th, child: t),
+          ],
+        );
+      },
+    );
   }
 }
 
@@ -319,82 +426,107 @@ class _Tile extends StatelessWidget {
       clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: onTap,
-        child: Stack(fit: StackFit.expand, children: [
-          FittedBox(
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            FittedBox(
               fit: BoxFit.cover,
               clipBehavior: Clip.hardEdge,
-              child: SizedBox(width: 300, height: 200, child: art)),
-          const DecoratedBox(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                stops: [0.3, 1],
-                colors: [Colors.transparent, Color(0xE6130F1D)],
-              ),
+              child: SizedBox(width: 300, height: 200, child: art),
             ),
-          ),
-          Positioned(
-            left: 8,
-            right: 8,
-            bottom: 6,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(title,
-                    style: const TextStyle(
-                        fontSize: 14, fontWeight: FontWeight.w900)),
-                Text(status,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                        fontSize: 10.5,
-                        color: AppColors.textDim,
-                        fontWeight: FontWeight.w600)),
-              ],
-            ),
-          ),
-          if (alert != null)
-            Positioned(
-              left: 6,
-              top: 6,
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                decoration: BoxDecoration(
-                    color: AppColors.green,
-                    borderRadius: BorderRadius.circular(8)),
-                child: Text(alert!,
-                    style: const TextStyle(
-                        fontSize: 10,
-                        fontWeight: FontWeight.w900,
-                        color: Colors.black)),
-              ),
-            ),
-          if (action != null)
-            Positioned(
-              right: 6,
-              top: 6,
-              child: GestureDetector(
-                onTap: onAction,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  decoration: BoxDecoration(
-                    gradient: AppColors.accentGradient,
-                    borderRadius: BorderRadius.circular(10),
-                    boxShadow: const [
-                      BoxShadow(color: Colors.black45, blurRadius: 6)
-                    ],
-                  ),
-                  child: Text(action!,
-                      style: const TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w900,
-                          color: Colors.white)),
+            const DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  stops: [0.3, 1],
+                  colors: [Colors.transparent, Color(0xE6130F1D)],
                 ),
               ),
             ),
-        ]),
+            Positioned(
+              left: 8,
+              right: 8,
+              bottom: 6,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    title,
+                    style: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                  Text(
+                    status,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontSize: 10.5,
+                      color: AppColors.textDim,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            if (alert != null)
+              Positioned(
+                left: 6,
+                top: 6,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 6,
+                    vertical: 2,
+                  ),
+                  decoration: BoxDecoration(
+                    color: AppColors.green,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Text(
+                    alert!,
+                    style: const TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w900,
+                      color: Colors.black,
+                    ),
+                  ),
+                ),
+              ),
+            if (action != null)
+              Positioned(
+                right: 6,
+                top: 6,
+                child: GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTap: onAction,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 4,
+                    ),
+                    decoration: BoxDecoration(
+                      gradient: AppColors.accentGradient,
+                      borderRadius: BorderRadius.circular(10),
+                      boxShadow: const [
+                        BoxShadow(color: Colors.black45, blurRadius: 6),
+                      ],
+                    ),
+                    child: Text(
+                      action!,
+                      style: const TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w900,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+          ],
+        ),
       ),
     );
   }
@@ -416,16 +548,29 @@ class _GoalRow extends StatelessWidget {
           borderRadius: BorderRadius.circular(10),
           border: Border.all(color: AppColors.accent.withValues(alpha: 0.6)),
         ),
-        child: Row(children: [
-          Expanded(
-            child: Text('🎯 Görev ${i + 1}/${game.goals.length}: ${g.$1} · ${g.$4} 💎',
+        child: Row(
+          children: [
+            Expanded(
+              child: Text(
+                '🎯 Görev ${i + 1}/${game.goals.length}: ${g.$1} · ${g.$4} 💎',
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800)),
-          ),
-          const Text('Git ›',
-              style: TextStyle(color: AppColors.accent, fontWeight: FontWeight.w900, fontSize: 12)),
-        ]),
+                style: const TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+            ),
+            const Text(
+              'Git ›',
+              style: TextStyle(
+                color: AppColors.accent,
+                fontWeight: FontWeight.w900,
+                fontSize: 12,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -433,7 +578,12 @@ class _GoalRow extends StatelessWidget {
 
 class _ShellGoal {
   static const pages = [
-    PageId.staff, PageId.production, PageId.broadcast, PageId.broadcast,
-    PageId.digital, PageId.cinema, PageId.studio,
+    PageId.staff,
+    PageId.production,
+    PageId.broadcast,
+    PageId.broadcast,
+    PageId.digital,
+    PageId.cinema,
+    PageId.studio,
   ];
 }

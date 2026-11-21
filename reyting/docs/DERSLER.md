@@ -99,3 +99,18 @@ ile ölçülür (~1 dk). Ölçülen: 1. gün 5. seviye, ~9. gün 7. seviye, ~1. 
   tabanı 2e13 → 5,4e13 yapıldı. Ölçülen (her şeyi kullanan, günde ~1 saat): 30. gün #98,
   90. gün #65, 180. gün #38, 300. gün #15, 365. gün #8. Yeni özellikleri hiç kullanmayan oyuncu yıl sonunda
   ~#25 civarında kalır.
+
+## v0.12.1: Stres testleri
+- Sunucu pazarı (server/functions/src/trade.ts): oyuncular arası ilan, hemen al, pazarlık teklifi
+  (bloke para), açık artırma. test/stress.test.ts: 10.000 oyuncu, 600 bin (elle 5 milyon) işlem,
+  oyuncular "eski ekrana" bakarak karar verir (aynı ilana iki kişi basar, fiyat değişmiş olabilir,
+  başkasının oyuncusunu satma denemesi, NaN/eksi tutar). Her 50 bin işlemde: para korunumu,
+  bloke = açık teklifler, emanet tutarlılığı. Kasıtlı hata eklenince test yakalıyor (doğrulandı).
+- Kaos testi 80 yeni tohumla (480 bin hamle) temiz. SEED0/SEEDS ile genişletilebilir.
+- Arayüz maymun testi (test/ui_monkey_test.dart): her sayfadaki her butona basar, zengin ve fakir
+  oyunda. DERS: test yazı tipi kare harfli ve çok geniş → sahte taşma; gerçek Roboto yükle.
+  Bulunanlar: görev balonu butonların üstünü kapatıyordu (artık kendi şeridinde), bildirim
+  dokunuşları yutuyordu (artık geçirgen), boş alanı olan butonlar kenardan basılmıyordu
+  (HitTestBehavior.opaque), uzun etiketler taşıyordu, sahne konuşma zamanlayıcısı kapanınca
+  iptal edilmiyordu, pasif butonlar sebep söylemiyordu, haritada üst üste binen iğneler (çip listesi eklendi).
+- Performans (test/perf_test.dart): geç oyunda adım 0,01 ms, kayıt ~300 KB, açılış ~50 ms.

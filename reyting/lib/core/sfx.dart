@@ -46,7 +46,9 @@ class Sfx {
   static void _play(String name, double vol) {
     if (!enabled || _paused || _pool.isEmpty || volume <= 0) return;
     final player = _pool[_next++ % _pool.length];
-    player.play(AssetSource('sounds/$name.m4a'), volume: vol * volume).catchError((_) {});
+    player
+        .play(AssetSource('sounds/$name.m4a'), volume: vol * volume)
+        .catchError((_) {});
   }
 
   /// Seyirci: alkış ya da tribün coşkusu (seyrek ve kısık).

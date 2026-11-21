@@ -64,42 +64,126 @@ class _NavItem {
 
 const _nav = [
   _NavItem(PageId.home, 'Ana ekran', 'KANAL', '', Icons.home_rounded),
-  _NavItem(PageId.staff, 'Kadro', 'İNSAN KAYNAKLARI', 'Kadro',
-      Icons.groups_rounded),
-  _NavItem(PageId.production, 'Yapım', 'STÜDYO', 'Yapımlar',
-      Icons.movie_creation_rounded),
-  _NavItem(PageId.broadcast, 'Yayın', 'CANLI', 'Yayın akışı',
-      Icons.live_tv_rounded),
-  _NavItem(PageId.cinema, 'Sinema', 'FİLM YAPIM', 'Sinema & haklar',
-      Icons.theaters_rounded),
-  _NavItem(PageId.digital, 'Dijital', 'VİDEOM', 'Dijital · YouTuber\'lar',
-      Icons.smart_display_rounded),
-  _NavItem(PageId.map, 'Harita', 'ÇEKİM LOKASYONLARI', 'Türkiye & dünya haritası',
-      Icons.map_rounded),
-  _NavItem(PageId.agency, 'Ajans', 'GENÇ YETENEKLER', 'Yetenek ajansı',
-      Icons.star_rounded),
-  _NavItem(PageId.board, 'Yönetim', 'YÖNETİM KURULU', 'Yönetim kurulu',
-      Icons.groups_3_rounded),
-  _NavItem(PageId.brands, 'Markalar', 'REKLAM VERENLER', 'Marka teklifleri',
-      Icons.handshake_rounded),
-  _NavItem(PageId.studio, 'Stüdyo', 'TESİSLER', 'Stüdyo & ekipman',
-      Icons.domain_rounded),
-  _NavItem(PageId.holding, 'Holding', 'YAN İŞLER', 'Holding',
-      Icons.business_center_rounded),
-  _NavItem(PageId.channels, 'Pazar', 'SATIN ALMA', 'Kanal & platform pazarı',
-      Icons.connected_tv_rounded),
-  _NavItem(PageId.tenders, 'İhaleler', 'DEVLET PROJELERİ', 'Devlet ihaleleri',
-      Icons.gavel_rounded),
-  _NavItem(PageId.market, 'Borsa', 'MEDYA BORSASI', 'Borsa',
-      Icons.candlestick_chart_rounded),
-  _NavItem(PageId.bank, 'Banka', 'FİNANS', 'Banka',
-      Icons.account_balance_rounded),
-  _NavItem(PageId.luxury, 'Lüks', 'YAŞAM', 'Lüks yaşam',
-      Icons.diamond_rounded),
-  _NavItem(PageId.trophies, 'Kupalar', 'BAŞARIMLAR', 'Kupalar & koleksiyon',
-      Icons.emoji_events_rounded),
-  _NavItem(PageId.online, 'Online', 'YAKINDA', 'Online arena',
-      Icons.public_rounded),
+  _NavItem(
+    PageId.staff,
+    'Kadro',
+    'İNSAN KAYNAKLARI',
+    'Kadro',
+    Icons.groups_rounded,
+  ),
+  _NavItem(
+    PageId.production,
+    'Yapım',
+    'STÜDYO',
+    'Yapımlar',
+    Icons.movie_creation_rounded,
+  ),
+  _NavItem(
+    PageId.broadcast,
+    'Yayın',
+    'CANLI',
+    'Yayın akışı',
+    Icons.live_tv_rounded,
+  ),
+  _NavItem(
+    PageId.cinema,
+    'Sinema',
+    'FİLM YAPIM',
+    'Sinema & haklar',
+    Icons.theaters_rounded,
+  ),
+  _NavItem(
+    PageId.digital,
+    'Dijital',
+    'VİDEOM',
+    'Dijital · YouTuber\'lar',
+    Icons.smart_display_rounded,
+  ),
+  _NavItem(
+    PageId.map,
+    'Harita',
+    'ÇEKİM LOKASYONLARI',
+    'Türkiye & dünya haritası',
+    Icons.map_rounded,
+  ),
+  _NavItem(
+    PageId.agency,
+    'Ajans',
+    'GENÇ YETENEKLER',
+    'Yetenek ajansı',
+    Icons.star_rounded,
+  ),
+  _NavItem(
+    PageId.board,
+    'Yönetim',
+    'YÖNETİM KURULU',
+    'Yönetim kurulu',
+    Icons.groups_3_rounded,
+  ),
+  _NavItem(
+    PageId.brands,
+    'Markalar',
+    'REKLAM VERENLER',
+    'Marka teklifleri',
+    Icons.handshake_rounded,
+  ),
+  _NavItem(
+    PageId.studio,
+    'Stüdyo',
+    'TESİSLER',
+    'Stüdyo & ekipman',
+    Icons.domain_rounded,
+  ),
+  _NavItem(
+    PageId.holding,
+    'Holding',
+    'YAN İŞLER',
+    'Holding',
+    Icons.business_center_rounded,
+  ),
+  _NavItem(
+    PageId.channels,
+    'Pazar',
+    'SATIN ALMA',
+    'Kanal & platform pazarı',
+    Icons.connected_tv_rounded,
+  ),
+  _NavItem(
+    PageId.tenders,
+    'İhaleler',
+    'DEVLET PROJELERİ',
+    'Devlet ihaleleri',
+    Icons.gavel_rounded,
+  ),
+  _NavItem(
+    PageId.market,
+    'Borsa',
+    'MEDYA BORSASI',
+    'Borsa',
+    Icons.candlestick_chart_rounded,
+  ),
+  _NavItem(
+    PageId.bank,
+    'Banka',
+    'FİNANS',
+    'Banka',
+    Icons.account_balance_rounded,
+  ),
+  _NavItem(PageId.luxury, 'Lüks', 'YAŞAM', 'Lüks yaşam', Icons.diamond_rounded),
+  _NavItem(
+    PageId.trophies,
+    'Kupalar',
+    'BAŞARIMLAR',
+    'Kupalar & koleksiyon',
+    Icons.emoji_events_rounded,
+  ),
+  _NavItem(
+    PageId.online,
+    'Online',
+    'YAKINDA',
+    'Online arena',
+    Icons.public_rounded,
+  ),
 ];
 
 /// Ekranlar arası geçiş için
@@ -125,26 +209,26 @@ class _ShellState extends State<Shell> {
   bool _offlineShowing = false;
 
   Widget _body() => switch (_page) {
-        PageId.home => const HomeScreen(),
-        PageId.map => const MapScreen(),
-        PageId.agency => const AgencyScreen(),
-        PageId.board => const BoardScreen(),
-        PageId.brands => const BrandsScreen(),
-        PageId.staff => const StaffScreen(),
-        PageId.production => const ProductionScreen(),
-        PageId.broadcast => const BroadcastScreen(),
-        PageId.cinema => const CinemaScreen(),
-        PageId.digital => const DigitalScreen(),
-        PageId.studio => const StudioScreen(),
-        PageId.holding => const HoldingScreen(),
-        PageId.bank => const BankScreen(),
-        PageId.channels => const ChannelsScreen(),
-        PageId.luxury => const LuxuryScreen(),
-        PageId.market => const MarketScreen(),
-        PageId.tenders => const TendersScreen(),
-        PageId.trophies => const TrophiesScreen(),
-        PageId.online => const OnlineScreen(),
-      };
+    PageId.home => const HomeScreen(),
+    PageId.map => const MapScreen(),
+    PageId.agency => const AgencyScreen(),
+    PageId.board => const BoardScreen(),
+    PageId.brands => const BrandsScreen(),
+    PageId.staff => const StaffScreen(),
+    PageId.production => const ProductionScreen(),
+    PageId.broadcast => const BroadcastScreen(),
+    PageId.cinema => const CinemaScreen(),
+    PageId.digital => const DigitalScreen(),
+    PageId.studio => const StudioScreen(),
+    PageId.holding => const HoldingScreen(),
+    PageId.bank => const BankScreen(),
+    PageId.channels => const ChannelsScreen(),
+    PageId.luxury => const LuxuryScreen(),
+    PageId.market => const MarketScreen(),
+    PageId.tenders => const TendersScreen(),
+    PageId.trophies => const TrophiesScreen(),
+    PageId.online => const OnlineScreen(),
+  };
 
   bool _introShowing = false;
   bool _eventShowing = false;
@@ -169,7 +253,6 @@ class _ShellState extends State<Shell> {
     });
   }
 
-
   void _maybeShowIntro() {
     if (_introShowing || _offlineShowing) return;
     _introShowing = true;
@@ -185,8 +268,13 @@ class _ShellState extends State<Shell> {
   }
 
   static const goalPages = [
-    PageId.staff, PageId.production, PageId.broadcast, PageId.broadcast,
-    PageId.digital, PageId.cinema, PageId.studio,
+    PageId.staff,
+    PageId.production,
+    PageId.broadcast,
+    PageId.broadcast,
+    PageId.digital,
+    PageId.cinema,
+    PageId.studio,
   ];
 
   void _maybeShowOffline() {
@@ -217,54 +305,72 @@ class _ShellState extends State<Shell> {
       goTo: (p) => setState(() => _page = p),
       child: Scaffold(
         body: SafeArea(
-          child: Stack(children: [
-            Row(children: [
-              _Sidebar(
-                  selected: _page, onTap: (p) => setState(() => _page = p)),
-              Expanded(
-                child: Column(children: [
-                  _TopBar(
-                    section: item.section,
-                    title: item.id == PageId.home ? game.channelName : item.title,
+          child: Stack(
+            children: [
+              Row(
+                children: [
+                  _Sidebar(
+                    selected: _page,
+                    onTap: (p) => setState(() => _page = p),
                   ),
                   Expanded(
-                    child: AnimatedSwitcher(
-                      duration: const Duration(milliseconds: 180),
-                      child: KeyedSubtree(key: ValueKey(_page), child: _body()),
+                    child: Column(
+                      children: [
+                        _TopBar(
+                          section: item.section,
+                          title: item.id == PageId.home
+                              ? game.channelName
+                              : item.title,
+                        ),
+                        Expanded(
+                          child: AnimatedSwitcher(
+                            duration: const Duration(milliseconds: 180),
+                            child: KeyedSubtree(
+                              key: ValueKey(_page),
+                              child: _body(),
+                            ),
+                          ),
+                        ),
+                        // Görev balonu içeriğin üstüne binmesin: sayfanın altında kendi şeridinde durur
+                        if (_page != PageId.home && game.currentGoal >= 0)
+                          Padding(
+                            padding: const EdgeInsets.fromLTRB(10, 2, 10, 6),
+                            child: Align(
+                              alignment: Alignment.centerRight,
+                              child: CoachBubble(
+                                onGo: (i) =>
+                                    setState(() => _page = goalPages[i]),
+                              ),
+                            ),
+                          ),
+                      ],
                     ),
                   ),
-                ]),
+                ],
               ),
-            ]),
-            if (_page != PageId.home)
-              Positioned(
-              right: 10,
-              bottom: 10,
-              child: CoachBubble(
-                  onGo: (i) => setState(() => _page = goalPages[i])),
-            ),
-            const Positioned(
-              top: 64,
-              left: 94,
-              right: 10,
-              child: Center(child: DecisionCard()),
-            ),
-            const _ToastHost(),
-            Positioned.fill(
-              child: ValueListenableBuilder<String?>(
-                valueListenable: game.sting,
-                builder: (_, title, _) => title == null
-                    ? const SizedBox.shrink()
-                    : StingOverlay(
-                        key: ValueKey(title),
-                        logo: game.logo,
-                        company: game.companyFullName,
-                        title: title,
-                        onDone: () => game.sting.value = null,
-                      ),
+              const Positioned(
+                top: 64,
+                left: 94,
+                right: 10,
+                child: Center(child: DecisionCard()),
               ),
-            ),
-          ]),
+              const _ToastHost(),
+              Positioned.fill(
+                child: ValueListenableBuilder<String?>(
+                  valueListenable: game.sting,
+                  builder: (_, title, _) => title == null
+                      ? const SizedBox.shrink()
+                      : StingOverlay(
+                          key: ValueKey(title),
+                          logo: game.logo,
+                          company: game.companyFullName,
+                          title: title,
+                          onDone: () => game.sting.value = null,
+                        ),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -281,39 +387,49 @@ class _Sidebar extends StatelessWidget {
     return Container(
       width: 84,
       color: AppColors.sidebar,
-      child: Column(children: [
-        // Logo: kayıt ışığı
-        Padding(
-          padding: const EdgeInsets.symmetric(vertical: 10),
-          child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-            Container(
-              width: 9,
-              height: 9,
-              decoration: const BoxDecoration(
-                  color: AppColors.accent, shape: BoxShape.circle),
-            ),
-            const SizedBox(width: 5),
-            const Text('REYTİNG',
-                style: TextStyle(
+      child: Column(
+        children: [
+          // Logo: kayıt ışığı
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 10),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Container(
+                  width: 9,
+                  height: 9,
+                  decoration: const BoxDecoration(
+                    color: AppColors.accent,
+                    shape: BoxShape.circle,
+                  ),
+                ),
+                const SizedBox(width: 5),
+                const Text(
+                  'REYTİNG',
+                  style: TextStyle(
                     fontWeight: FontWeight.w900,
                     fontSize: 11,
-                    letterSpacing: 1.2)),
-          ]),
-        ),
-        Expanded(
-          child: ListView(
-            padding: const EdgeInsets.only(bottom: 8),
-            children: [
-              for (final n in _nav)
-                _SideButton(
-                  item: n,
-                  active: n.id == selected,
-                  onTap: () => onTap(n.id),
+                    letterSpacing: 1.2,
+                  ),
                 ),
-            ],
+              ],
+            ),
           ),
-        ),
-      ]),
+          Expanded(
+            child: ListView(
+              padding: const EdgeInsets.only(bottom: 8),
+              children: [
+                for (final n in _nav)
+                  _SideButton(
+                    item: n,
+                    active: n.id == selected,
+                    onTap: () => onTap(n.id),
+                  ),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -322,8 +438,11 @@ class _SideButton extends StatelessWidget {
   final _NavItem item;
   final bool active;
   final VoidCallback onTap;
-  const _SideButton(
-      {required this.item, required this.active, required this.onTap});
+  const _SideButton({
+    required this.item,
+    required this.active,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -340,16 +459,21 @@ class _SideButton extends StatelessWidget {
               ? Border.all(color: AppColors.accent.withValues(alpha: 0.4))
               : null,
         ),
-        child: Column(children: [
-          Icon(item.icon, color: color, size: 24),
-          const SizedBox(height: 2),
-          Text(item.label,
+        child: Column(
+          children: [
+            Icon(item.icon, color: color, size: 24),
+            const SizedBox(height: 2),
+            Text(
+              item.label,
               textAlign: TextAlign.center,
               style: TextStyle(
-                  fontSize: 11,
-                  fontWeight: active ? FontWeight.w800 : FontWeight.w600,
-                  color: active ? AppColors.text : AppColors.textDim)),
-        ]),
+                fontSize: 11,
+                fontWeight: active ? FontWeight.w800 : FontWeight.w600,
+                color: active ? AppColors.text : AppColors.textDim,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -363,91 +487,112 @@ class _TopBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final game = GameScope.of(context);
-    return LayoutBuilder(builder: (context, c) {
-      final narrow = c.maxWidth < 720;
-      return Container(
-        height: 58,
-        padding: const EdgeInsets.symmetric(horizontal: 14),
-        decoration: const BoxDecoration(
-          border: Border(bottom: BorderSide(color: AppColors.border)),
-        ),
-        child: Row(children: [
-          Expanded(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                SectionLabel(section),
-                Text(title,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                        fontSize: 19, fontWeight: FontWeight.w800)),
-              ],
-            ),
+    return LayoutBuilder(
+      builder: (context, c) {
+        final narrow = c.maxWidth < 720;
+        return Container(
+          height: 58,
+          padding: const EdgeInsets.symmetric(horizontal: 14),
+          decoration: const BoxDecoration(
+            border: Border(bottom: BorderSide(color: AppColors.border)),
           ),
-          // Kasa
-          Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.end,
+          child: Row(
             children: [
-              const SectionLabel('Kasa', color: AppColors.textDim),
-              Text(narrow ? fmtShort(game.cash) : fmtFull(game.cash),
-                  style: TextStyle(
+              Expanded(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    SectionLabel(section),
+                    Text(
+                      title,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontSize: 19,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              // Kasa
+              Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  const SectionLabel('Kasa', color: AppColors.textDim),
+                  Text(
+                    narrow ? fmtShort(game.cash) : fmtFull(game.cash),
+                    style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.w900,
-                      color: game.cash < 0 ? AppColors.red : AppColors.text)),
+                      color: game.cash < 0 ? AppColors.red : AppColors.text,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(width: 10),
+              GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: () => showMissionsDialog(context),
+                child: Badge(
+                  isLabelVisible: game.missions.any(
+                    (m) => m.done && !m.claimed,
+                  ),
+                  backgroundColor: AppColors.green,
+                  label: const Text('!'),
+                  child: _Chip(
+                    icon: Icons.flag_rounded,
+                    color: AppColors.accent,
+                    text:
+                        '${game.missions.where((m) => m.claimed).length}/${game.missions.length}',
+                    tooltip: 'Günlük görevler',
+                  ),
+                ),
+              ),
+              const SizedBox(width: 6),
+              GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: () => ShellNav.go(context, PageId.trophies),
+                child: _Chip(
+                  icon: Icons.star_rounded,
+                  color: AppColors.yellow,
+                  text: fmtInt(game.prestige),
+                  tooltip: 'Prestij',
+                ),
+              ),
+              const SizedBox(width: 6),
+              _Chip(
+                icon: Icons.diamond_outlined,
+                color: AppColors.cyan,
+                text: '${game.diamonds}',
+                tooltip: 'Elmas',
+              ),
+              const SizedBox(width: 6),
+              AccentButton(
+                narrow ? '' : 'Mağaza',
+                icon: Icons.storefront_rounded,
+                compact: true,
+                onTap: () => game.showToast(
+                  '🛍️ Mağaza (elmas, VIP, dekorlar) Aşama 5\'te açılacak.',
+                ),
+              ),
+              const SizedBox(width: 6),
+              IconButton(
+                onPressed: () => showSettingsDialog(context),
+                icon: const Icon(
+                  Icons.settings_rounded,
+                  color: AppColors.textDim,
+                ),
+                tooltip: 'Ayarlar',
+              ),
+              _DayChip(day: game.day, progress: game.dayProgress),
             ],
           ),
-          const SizedBox(width: 10),
-          GestureDetector(
-            onTap: () => showMissionsDialog(context),
-            child: Badge(
-              isLabelVisible: game.missions.any((m) => m.done && !m.claimed),
-              backgroundColor: AppColors.green,
-              label: const Text('!'),
-              child: _Chip(
-                icon: Icons.flag_rounded,
-                color: AppColors.accent,
-                text: '${game.missions.where((m) => m.claimed).length}/${game.missions.length}',
-                tooltip: 'Günlük görevler',
-              ),
-            ),
-          ),
-          const SizedBox(width: 6),
-          GestureDetector(
-            onTap: () => ShellNav.go(context, PageId.trophies),
-            child: _Chip(
-            icon: Icons.star_rounded,
-            color: AppColors.yellow,
-            text: fmtInt(game.prestige),
-            tooltip: 'Prestij',
-          )),
-          const SizedBox(width: 6),
-          _Chip(
-            icon: Icons.diamond_outlined,
-            color: AppColors.cyan,
-            text: '${game.diamonds}',
-            tooltip: 'Elmas',
-          ),
-          const SizedBox(width: 6),
-          AccentButton(
-            narrow ? '' : 'Mağaza',
-            icon: Icons.storefront_rounded,
-            compact: true,
-            onTap: () => game.showToast(
-                '🛍️ Mağaza (elmas, VIP, dekorlar) Aşama 5\'te açılacak.'),
-          ),
-          const SizedBox(width: 6),
-          IconButton(
-            onPressed: () => showSettingsDialog(context),
-            icon: const Icon(Icons.settings_rounded, color: AppColors.textDim),
-            tooltip: 'Ayarlar',
-          ),
-          _DayChip(day: game.day, progress: game.dayProgress),
-        ]),
-      );
-    });
+        );
+      },
+    );
   }
 }
 
@@ -456,30 +601,35 @@ class _Chip extends StatelessWidget {
   final Color color;
   final String text;
   final String tooltip;
-  const _Chip(
-      {required this.icon,
-      required this.color,
-      required this.text,
-      required this.tooltip});
+  const _Chip({
+    required this.icon,
+    required this.color,
+    required this.text,
+    required this.tooltip,
+  });
   @override
   Widget build(BuildContext context) => Tooltip(
-        message: tooltip,
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-          decoration: BoxDecoration(
-            color: AppColors.panel,
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: AppColors.border),
+    message: tooltip,
+    child: Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: AppColors.panel,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 16, color: color),
+          const SizedBox(width: 4),
+          Text(
+            text,
+            style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13),
           ),
-          child: Row(mainAxisSize: MainAxisSize.min, children: [
-            Icon(icon, size: 16, color: color),
-            const SizedBox(width: 4),
-            Text(text,
-                style:
-                    const TextStyle(fontWeight: FontWeight.w800, fontSize: 13)),
-          ]),
-        ),
-      );
+        ],
+      ),
+    ),
+  );
 }
 
 class _DayChip extends StatelessWidget {
@@ -488,27 +638,38 @@ class _DayChip extends StatelessWidget {
   const _DayChip({required this.day, required this.progress});
   @override
   Widget build(BuildContext context) => Container(
-        padding: const EdgeInsets.fromLTRB(10, 6, 10, 5),
-        decoration: BoxDecoration(
-          color: AppColors.panel,
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: AppColors.border),
-        ),
-        child: Column(mainAxisSize: MainAxisSize.min, children: [
-          Row(mainAxisSize: MainAxisSize.min, children: [
-            const Icon(Icons.calendar_month_rounded,
-                size: 15, color: AppColors.cyan),
+    padding: const EdgeInsets.fromLTRB(10, 6, 10, 5),
+    decoration: BoxDecoration(
+      color: AppColors.panel,
+      borderRadius: BorderRadius.circular(14),
+      border: Border.all(color: AppColors.border),
+    ),
+    child: Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(
+              Icons.calendar_month_rounded,
+              size: 15,
+              color: AppColors.cyan,
+            ),
             const SizedBox(width: 5),
-            Text('Gün $day · ${weekdayOf(day)}',
-                style:
-                    const TextStyle(fontWeight: FontWeight.w800, fontSize: 13)),
-          ]),
-          const SizedBox(height: 4),
-          SizedBox(
-              width: 110,
-              child: Bar(progress, color: AppColors.accent, height: 3)),
-        ]),
-      );
+            Text(
+              'Gün $day · ${weekdayOf(day)}',
+              style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13),
+            ),
+          ],
+        ),
+        const SizedBox(height: 4),
+        SizedBox(
+          width: 110,
+          child: Bar(progress, color: AppColors.accent, height: 3),
+        ),
+      ],
+    ),
+  );
 }
 
 /// Alt ortada beliren bildirimler
@@ -555,30 +716,32 @@ class _ToastHostState extends State<_ToastHost> {
       left: 100,
       right: 16,
       bottom: 14,
+      // bildirim butonların üstünü kapatmasın: dokunuşlar alttaki butona geçer
       child: IgnorePointer(
-        ignoring: _msg == null,
+        ignoring: true,
         child: AnimatedOpacity(
           opacity: _msg == null ? 0 : 1,
           duration: const Duration(milliseconds: 200),
           child: Center(
-            child: GestureDetector(
-              onTap: () => setState(() => _msg = null),
-              child: Container(
-                constraints: const BoxConstraints(maxWidth: 640),
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
-                decoration: BoxDecoration(
-                  color: const Color(0xF0241C34),
-                  borderRadius: BorderRadius.circular(14),
-                  border: const Border(
-                      left: BorderSide(color: AppColors.accent, width: 4)),
-                  boxShadow: const [
-                    BoxShadow(color: Colors.black54, blurRadius: 16)
-                  ],
+            child: Container(
+              constraints: const BoxConstraints(maxWidth: 640),
+              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+              decoration: BoxDecoration(
+                color: const Color(0xF0241C34),
+                borderRadius: BorderRadius.circular(14),
+                border: const Border(
+                  left: BorderSide(color: AppColors.accent, width: 4),
                 ),
-                child: Text(_msg ?? '',
-                    style: const TextStyle(
-                        fontSize: 14, fontWeight: FontWeight.w600)),
+                boxShadow: const [
+                  BoxShadow(color: Colors.black54, blurRadius: 16),
+                ],
+              ),
+              child: Text(
+                _msg ?? '',
+                style: const TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
             ),
           ),

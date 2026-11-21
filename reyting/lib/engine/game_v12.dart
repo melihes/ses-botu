@@ -30,27 +30,27 @@ extension GameV12 on Game {
   }
 
   Map<String, dynamic> _v12ToJson() => {
-        'companyName': companyName,
-        'companySuffix': companySuffix,
-        'logo': logo.toJson(),
-        'identitySet': identitySet,
-        'stingOn': stingOn,
-        'locations': ownedLocations.toList(),
-        'eventReady': eventReadyDay,
-        'agencyLevel': agencyLevel,
-        'academy': academy.map((e) => e.toJson()).toList(),
-        'youthMarket': youthMarket.map((e) => e.toJson()).toList(),
-        'transferMarket': transferMarket.map((e) => e.toJson()).toList(),
-        'transferOffers': transferOffers.map((e) => e.toJson()).toList(),
-        'talentsSold': talentsSold,
-        'transferProfit': transferProfit,
-        'execs': execs.values.map((e) => e.toJson()).toList(),
-        'execCandidates': execCandidates.map((e) => e.toJson()).toList(),
-        'brandOffers': brandOffers.map((e) => e.toJson()).toList(),
-        'deals': deals.map((e) => e.toJson()).toList(),
-        'storyChoices': storyChoices,
-        'eventsHeld': eventsHeld,
-      };
+    'companyName': companyName,
+    'companySuffix': companySuffix,
+    'logo': logo.toJson(),
+    'identitySet': identitySet,
+    'stingOn': stingOn,
+    'locations': ownedLocations.toList(),
+    'eventReady': eventReadyDay,
+    'agencyLevel': agencyLevel,
+    'academy': academy.map((e) => e.toJson()).toList(),
+    'youthMarket': youthMarket.map((e) => e.toJson()).toList(),
+    'transferMarket': transferMarket.map((e) => e.toJson()).toList(),
+    'transferOffers': transferOffers.map((e) => e.toJson()).toList(),
+    'talentsSold': talentsSold,
+    'transferProfit': transferProfit,
+    'execs': execs.values.map((e) => e.toJson()).toList(),
+    'execCandidates': execCandidates.map((e) => e.toJson()).toList(),
+    'brandOffers': brandOffers.map((e) => e.toJson()).toList(),
+    'deals': deals.map((e) => e.toJson()).toList(),
+    'storyChoices': storyChoices,
+    'eventsHeld': eventsHeld,
+  };
 
   void _v12Load(Map<String, dynamic> j) {
     companyName = j['companyName'] ?? channelName;
@@ -78,8 +78,11 @@ extension GameV12 on Game {
       ..addAll(ppl('transferMarket'));
     transferOffers
       ..clear()
-      ..addAll((j['transferOffers'] as List? ?? [])
-          .map((e) => TransferOffer.fromJson(e)));
+      ..addAll(
+        (j['transferOffers'] as List? ?? []).map(
+          (e) => TransferOffer.fromJson(e),
+        ),
+      );
     talentsSold = j['talentsSold'] ?? 0;
     transferProfit = (j['transferProfit'] as num? ?? 0).toDouble();
     execs.clear();
@@ -90,15 +93,24 @@ extension GameV12 on Game {
     // eski kayıt: tek Genel Müdür
     if (j['execs'] == null && (j['managerHired'] ?? false) == true) {
       execs[ExecRole.genelMudur] = Exec(
-          _newId('e'), 'Kemal Ardıç', ExecRole.genelMudur, 55, managerSalary);
+        _newId('e'),
+        'Kemal Ardıç',
+        ExecRole.genelMudur,
+        55,
+        managerSalary,
+      );
     }
     execCandidates
       ..clear()
-      ..addAll((j['execCandidates'] as List? ?? []).map((e) => Exec.fromJson(e)));
+      ..addAll(
+        (j['execCandidates'] as List? ?? []).map((e) => Exec.fromJson(e)),
+      );
     if (execCandidates.isEmpty) _refreshExecCandidates();
     brandOffers
       ..clear()
-      ..addAll((j['brandOffers'] as List? ?? []).map((e) => BrandOffer.fromJson(e)));
+      ..addAll(
+        (j['brandOffers'] as List? ?? []).map((e) => BrandOffer.fromJson(e)),
+      );
     deals
       ..clear()
       ..addAll((j['deals'] as List? ?? []).map((e) => Deal.fromJson(e)));
@@ -205,7 +217,12 @@ extension GameV12 on Game {
   }
 
   double fullShowQuality(
-      List<Staff> crew, Genre g, int tier, int budget, String? loc) {
+    List<Staff> crew,
+    Genre g,
+    int tier,
+    int budget,
+    String? loc,
+  ) {
     final l = locationById(loc);
     final locMult = l != null && locationFits(l, g) ? 1 + l.bonus : 1.0;
     return (showQuality(crew, g, tier, ownedEquip) *
@@ -252,7 +269,8 @@ extension GameV12 on Game {
   }
 
   String? upgradeShowBudget(Show s) {
-    if (s.status == ShowStatus.ended) return 'Biten programın bütçesi artırılamaz.';
+    if (s.status == ShowStatus.ended)
+      return 'Biten programın bütçesi artırılamaz.';
     if (s.budget >= prodBudgets.length - 1) return 'Zaten en yüksek bütçede.';
     final nb = s.budget + 1;
     if (!budgetUnlocked(nb)) {
@@ -262,12 +280,15 @@ extension GameV12 on Game {
     final cost = upgradeBudgetCost(s);
     if (cash < cost) return 'Yükseltme için ${fmtShort(cost)} gerekli.';
     cash -= cost;
-    s.quality = (s.quality *
-            prodBudgets[nb].qualityMult /
-            prodBudgets[s.budget].qualityMult)
-        .clamp(0.0, 1.8);
+    s.quality =
+        (s.quality *
+                prodBudgets[nb].qualityMult /
+                prodBudgets[s.budget].qualityMult)
+            .clamp(0.0, 1.8);
     s.budget = nb;
-    _notify('💎 "${s.name}" artık ${prodBudgets[nb].label} bütçeli! Dekor ve ışıklar büyüdü.');
+    _notify(
+      '💎 "${s.name}" artık ${prodBudgets[nb].label} bütçeli! Dekor ve ışıklar büyüdü.',
+    );
     _changed();
     return null;
   }
@@ -280,7 +301,8 @@ extension GameV12 on Game {
     if (!guestUnlocked(ng)) {
       return '${guestTiers[ng].label} stüdyo seviyesi ${guestTiers[ng].unlockLevel} ile açılır.';
     }
-    final cost = guestFee(s.genre, s.tier, ng) - guestFee(s.genre, s.tier, s.guest);
+    final cost =
+        guestFee(s.genre, s.tier, ng) - guestFee(s.genre, s.tier, s.guest);
     if (cash < cost) return 'Konuk ücreti için ${fmtShort(cost)} gerekli.';
     cash -= cost;
     s.guest = ng;
@@ -293,7 +315,8 @@ extension GameV12 on Game {
 
   double upgradeGuestCost(Show s) => s.guest >= guestTiers.length - 1
       ? 0
-      : guestFee(s.genre, s.tier, s.guest + 1) - guestFee(s.genre, s.tier, s.guest);
+      : guestFee(s.genre, s.tier, s.guest + 1) -
+            guestFee(s.genre, s.tier, s.guest);
 
   // =================================================================
   // Senaryo kararları
@@ -306,10 +329,12 @@ extension GameV12 on Game {
 
   bool _offerStory() {
     final pool = shows
-        .where((s) =>
-            s.status == ShowStatus.onAir &&
-            storyTemplates.containsKey(s.genre) &&
-            s.buffDays == 0)
+        .where(
+          (s) =>
+              s.status == ShowStatus.onAir &&
+              storyTemplates.containsKey(s.genre) &&
+              s.buffDays == 0,
+        )
         .toList();
     if (pool.isEmpty) return false;
     final s = pool[_rng.nextInt(pool.length)];
@@ -329,28 +354,32 @@ extension GameV12 on Game {
     for (int i = 1; i < t.options.length; i++) {
       if (t.options[i].chance > t.options[safest].chance) safest = i;
     }
-    _setDecision(Decision(
-      kind: 'story',
-      title: t.title,
-      body: fill(t.body),
-      options: [for (final o in t.options) fill(o.label)],
-      hints: [
-        for (final o in t.options)
-          '%${o.chance}: ${o.days} gün +%${((o.win - 1) * 100).round()} · '
-              'değilse ${o.lose >= 1 ? 'etkisiz' : '-%${((1 - o.lose) * 100).round()}'}'
-      ],
-      chances: [for (final o in t.options) o.chance],
-      targetId: s.id,
-      extra: '${s.genre.index}:$ti',
-      defaultOption: safest,
-    ));
+    _setDecision(
+      Decision(
+        kind: 'story',
+        title: t.title,
+        body: fill(t.body),
+        options: [for (final o in t.options) fill(o.label)],
+        hints: [
+          for (final o in t.options)
+            '%${o.chance}: ${o.days} gün +%${((o.win - 1) * 100).round()} · '
+                'değilse ${o.lose >= 1 ? 'etkisiz' : '-%${((1 - o.lose) * 100).round()}'}',
+        ],
+        chances: [for (final o in t.options) o.chance],
+        targetId: s.id,
+        extra: '${s.genre.index}:$ti',
+        defaultOption: safest,
+      ),
+    );
     return true;
   }
 
   String _resolveStory(Decision d, int option, Show? s) {
-    if (s == null || s.status != ShowStatus.onAir) return 'Program artık yayında değil.';
+    if (s == null || s.status != ShowStatus.onAir)
+      return 'Program artık yayında değil.';
     final parts = d.extra.split(':');
-    final t = storyTemplates[Genre.values[int.parse(parts[0])]]![int.parse(parts[1])];
+    final t =
+        storyTemplates[Genre.values[int.parse(parts[0])]]![int.parse(parts[1])];
     final o = t.options[option];
     storyChoices++;
     if (_rng.nextInt(100) < o.chance) {
@@ -377,7 +406,8 @@ extension GameV12 on Game {
       .fold(0.0, (a, l) => a + l.upkeep);
 
   String? locationLockReason(LocationDef l) {
-    if (studioLevel + 1 < l.reqLevel) return 'Stüdyo seviyesi ${l.reqLevel} gerekli';
+    if (studioLevel + 1 < l.reqLevel)
+      return 'Stüdyo seviyesi ${l.reqLevel} gerekli';
     if (l.reqEquip != null && !ownedEquip.contains(l.reqEquip)) {
       return '${equipById(l.reqEquip!)!.name} gerekli';
     }
@@ -399,14 +429,15 @@ extension GameV12 on Game {
 
   double eventCost(LocationDef l) => l.price * (l.event?.costMult ?? 0);
 
-  int eventDaysLeft(LocationDef l) =>
-      max(0, (eventReadyDay[l.id] ?? 0) - day);
+  int eventDaysLeft(LocationDef l) => max(0, (eventReadyDay[l.id] ?? 0) - day);
 
   /// Etkinliğin tahmini getirisi (aralık ortası)
   double eventExpected(LocationDef l) {
     var m = 1.45;
     if (l.id == 'seul') {
-      final dizi = shows.where((s) => s.genre == Genre.dizi && s.season >= 1).length;
+      final dizi = shows
+          .where((s) => s.genre == Genre.dizi && s.season >= 1)
+          .length;
       m += min(0.6, dizi * 0.12);
     }
     return eventCost(l) * m * (1 + prestigeAdBonus(prestige));
@@ -416,7 +447,8 @@ extension GameV12 on Game {
     final ev = l.event;
     if (ev == null) return 'Bu lokasyonda etkinlik yok.';
     if (!ownedLocations.contains(l.id)) return 'Önce set kur.';
-    if (eventDaysLeft(l) > 0) return '${eventDaysLeft(l)} gün sonra tekrar düzenlenebilir.';
+    if (eventDaysLeft(l) > 0)
+      return '${eventDaysLeft(l)} gün sonra tekrar düzenlenebilir.';
     final cost = eventCost(l);
     if (cash < cost) return 'Etkinlik için ${fmtShort(cost)} gerekli.';
     cash -= cost;
@@ -425,9 +457,15 @@ extension GameV12 on Game {
     bonusPrestige += ev.prestige;
     eventReadyDay[l.id] = day + ev.cooldown;
     eventsHeld++;
-    _log('🎪 ${ev.name}', '${l.city}: +${fmtShort(reward - cost)} kâr, +${ev.prestige} prestij', true);
-    _notify('🎪 ${ev.name} (${l.city}) büyük ilgi gördü! '
-        'Net +${fmtShort(reward - cost)}, +${ev.prestige} prestij');
+    _log(
+      '🎪 ${ev.name}',
+      '${l.city}: +${fmtShort(reward - cost)} kâr, +${ev.prestige} prestij',
+      true,
+    );
+    _notify(
+      '🎪 ${ev.name} (${l.city}) büyük ilgi gördü! '
+      'Net +${fmtShort(reward - cost)}, +${ev.prestige} prestij',
+    );
     _changed();
     return null;
   }
@@ -437,8 +475,9 @@ extension GameV12 on Game {
   // =================================================================
   AgencyLevel get agency => agencyLevels[agencyLevel];
   bool get agencyOpen => agencyLevel > 0;
-  AgencyLevel? get nextAgency =>
-      agencyLevel + 1 < agencyLevels.length ? agencyLevels[agencyLevel + 1] : null;
+  AgencyLevel? get nextAgency => agencyLevel + 1 < agencyLevels.length
+      ? agencyLevels[agencyLevel + 1]
+      : null;
 
   String? upgradeAgency() {
     final n = nextAgency;
@@ -478,8 +517,10 @@ extension GameV12 on Game {
     final age = 16 + _rng.nextInt(5);
     final skill = 12 + _rng.nextInt(22) + agencyLevel * 2;
     final maxP = min(99, agency.maxPotential + bonus);
-    final pot = max(skill + 10,
-        min(maxP, 45 + _rng.nextInt(max(1, maxP - 44)) + bonus ~/ 2));
+    final pot = max(
+      skill + 10,
+      min(maxP, 45 + _rng.nextInt(max(1, maxP - 44)) + bonus ~/ 2),
+    );
     final p = Staff(
       id: _newId('y'),
       name: _name(),
@@ -610,7 +651,9 @@ extension GameV12 on Game {
     transferOffers.removeWhere((x) => x.staffId == p.id);
     deals.removeWhere((d) => d.targetId == p.id);
     _count('transfer');
-    _notify('💸 ${p.name}, ${o.from} kanalına transfer oldu: +${fmtShort(o.amount)}');
+    _notify(
+      '💸 ${p.name}, ${o.from} kanalına transfer oldu: +${fmtShort(o.amount)}',
+    );
     _changed();
     return null;
   }
@@ -642,17 +685,19 @@ extension GameV12 on Game {
       final role = Role.values[_rng.nextInt(4)];
       final skill = min(99, 55 + studioLevel * 3 + _rng.nextInt(30));
       final fame = 15.0 + _rng.nextInt(60);
-      transferMarket.add(Staff(
-        id: _newId('t'),
-        name: _name(),
-        role: role,
-        skill: skill,
-        salary: (salaryFor(skill) * (1 + fame / 100) / 100).round() * 100.0,
-        age: 20 + _rng.nextInt(16),
-        fame: fame,
-        trait: _randTrait(),
-        spec: _rng.nextInt(specsByRole[role]!.length),
-      ));
+      transferMarket.add(
+        Staff(
+          id: _newId('t'),
+          name: _name(),
+          role: role,
+          skill: skill,
+          salary: (salaryFor(skill) * (1 + fame / 100) / 100).round() * 100.0,
+          age: 20 + _rng.nextInt(16),
+          fame: fame,
+          trait: _randTrait(),
+          spec: _rng.nextInt(specsByRole[role]!.length),
+        ),
+      );
     }
   }
 
@@ -665,7 +710,9 @@ extension GameV12 on Game {
     cash -= price;
     transferMarket.remove(p);
     staff.add(p);
-    _notify('✍️ Yıldız transfer: ${p.name} kadroda! (şöhret ${p.fame.round()})');
+    _notify(
+      '✍️ Yıldız transfer: ${p.name} kadroda! (şöhret ${p.fame.round()})',
+    );
     _changed();
     return null;
   }
@@ -692,7 +739,10 @@ extension GameV12 on Game {
       final s = showById(p.showId);
       if (s != null && s.status == ShowStatus.onAir) {
         final r = currentRating(s);
-        p.fame = min(100, p.fame + r / 12 * (p.trait == 2 ? 2 : 1) * (p.trait == 4 ? 1.5 : 1));
+        p.fame = min(
+          100,
+          p.fame + r / 12 * (p.trait == 2 ? 2 : 1) * (p.trait == 4 ? 1.5 : 1),
+        );
       } else {
         p.fame = max(0, p.fame - 0.15);
       }
@@ -706,14 +756,23 @@ extension GameV12 on Game {
     _refreshYouth();
     if (day % 3 == 0) _refreshTransferMarket();
     // satıştaki oyunculara teklifler
-    transferOffers.removeWhere((o) => o.expires < day || _anyPerson(o.staffId) == null);
+    transferOffers.removeWhere(
+      (o) => o.expires < day || _anyPerson(o.staffId) == null,
+    );
     final rivals = rivalDefs.map((r) => r.name).toList();
     for (final p in [...staff, ...academy]) {
       if (!p.forSale) continue;
       if (_rng.nextDouble() < 0.55) {
-        transferOffers.add(TransferOffer(p.id, rivals[_rng.nextInt(rivals.length)],
-            (talentValue(p) * (0.75 + _rng.nextDouble() * 0.45) / 1000).round() * 1000.0,
-            day + 3));
+        transferOffers.add(
+          TransferOffer(
+            p.id,
+            rivals[_rng.nextInt(rivals.length)],
+            (talentValue(p) * (0.75 + _rng.nextDouble() * 0.45) / 1000)
+                    .round() *
+                1000.0,
+            day + 3,
+          ),
+        );
       }
     }
     final aj = execs[ExecRole.ajans];
@@ -751,22 +810,32 @@ extension GameV12 on Game {
       if (!execUnlocked(r)) continue;
       for (final band in const [(35, 20), (60, 18), (82, 17)]) {
         final skill = min(99, band.$1 + _rng.nextInt(band.$2));
-        execCandidates.add(Exec(_newId('e'), _name(), r, skill,
-            (execSalaryFor(r, skill) / 100).round() * 100.0));
+        execCandidates.add(
+          Exec(
+            _newId('e'),
+            _name(),
+            r,
+            skill,
+            (execSalaryFor(r, skill) / 100).round() * 100.0,
+          ),
+        );
       }
     }
   }
 
   String? hireExec(Exec e) {
     if (!execUnlocked(e.role)) return 'Bu koltuk henüz açılmadı.';
-    if (cash < e.signingFee) return 'İmza ücreti için ${fmtShort(e.signingFee)} gerekli.';
+    if (cash < e.signingFee)
+      return 'İmza ücreti için ${fmtShort(e.signingFee)} gerekli.';
     final old = execs[e.role];
     cash -= e.signingFee;
     execs[e.role] = e;
     execCandidates.remove(e);
-    _notify(old == null
-        ? '🤵 ${e.name}, ${e.def.label} olarak göreve başladı!'
-        : '🤵 ${old.name} gitti, yerine ${e.name} geldi.');
+    _notify(
+      old == null
+          ? '🤵 ${e.name}, ${e.def.label} olarak göreve başladı!'
+          : '🤵 ${old.name} gitti, yerine ${e.name} geldi.',
+    );
     _changed();
     return null;
   }
@@ -782,12 +851,16 @@ extension GameV12 on Game {
     // Yayın planlama: hazır programları en iyi boş kuşağa koy, reklamı ayarla
     final yp = execs[ExecRole.yayin];
     if (yp != null) {
-      for (final s in shows.where((s) => s.status == ShowStatus.ready).toList()) {
+      for (final s
+          in shows.where((s) => s.status == ShowStatus.ready).toList()) {
         SlotId? best;
         var bestV = 0.0;
         for (final id in SlotId.values) {
           if (!slotUnlocked(id) || slots[id]!.showId != null) continue;
-          final v = previewRating(s, id) * slotDefs[id]!.poolMillions * slotDefs[id]!.adValue;
+          final v =
+              previewRating(s, id) *
+              slotDefs[id]!.poolMillions *
+              slotDefs[id]!.adValue;
           if (v > bestV) {
             bestV = v;
             best = id;
@@ -799,8 +872,9 @@ extension GameV12 on Game {
         final s = showById(e.value.showId);
         if (s == null) continue;
         final err = (1 - yp.power) * 0.3 * (_rng.nextBool() ? 1 : -1);
-        e.value.adMinutes =
-            (adTolerance(s.quality) * (1 + err)).clamp(2.0, 20.0).roundToDouble();
+        e.value.adMinutes = (adTolerance(s.quality) * (1 + err))
+            .clamp(2.0, 20.0)
+            .roundToDouble();
       }
     }
     // İK: kadroyu eğitime gönder
@@ -839,7 +913,8 @@ extension GameV12 on Game {
     }
     // Pazarlama: en iyi marka tekliflerini kabul et
     if (execs.containsKey(ExecRole.pazarlama)) {
-      final offers = brandOffers.toList()..sort((a, b) => b.total.compareTo(a.total));
+      final offers = brandOffers.toList()
+        ..sort((a, b) => b.total.compareTo(a.total));
       for (final o in offers) {
         acceptBrandOffer(o, silent: true);
       }
@@ -862,10 +937,15 @@ extension GameV12 on Game {
     for (final d in deals) {
       d.daysLeft--;
     }
-    deals.removeWhere((d) =>
-        d.daysLeft <= 0 ||
-        (d.kind == DealKind.starFace && d.targetId != null && _anyPerson(d.targetId!) == null));
-    final p = 0.22 +
+    deals.removeWhere(
+      (d) =>
+          d.daysLeft <= 0 ||
+          (d.kind == DealKind.starFace &&
+              d.targetId != null &&
+              _anyPerson(d.targetId!) == null),
+    );
+    final p =
+        0.22 +
         min(0.3, prestige / 3000) +
         (execs.containsKey(ExecRole.pazarlama) ? 0.15 : 0);
     if (brandOffers.length < 4 && _rng.nextDouble() < p) _spawnBrandOffer();
@@ -876,24 +956,35 @@ extension GameV12 on Game {
     final brand = tierBrands[_rng.nextInt(tierBrands.length)];
     final kinds = <DealKind>[];
     final freeShows = shows
-        .where((s) =>
-            s.status == ShowStatus.onAir &&
-            s.sponsorDays == 0 &&
-            !brandOffers.any((o) => o.targetId == s.id))
+        .where(
+          (s) =>
+              s.status == ShowStatus.onAir &&
+              s.sponsorDays == 0 &&
+              !brandOffers.any((o) => o.targetId == s.id),
+        )
         .toList();
-    if (freeShows.isNotEmpty) kinds.addAll([DealKind.placement, DealKind.placement]);
+    if (freeShows.isNotEmpty)
+      kinds.addAll([DealKind.placement, DealKind.placement]);
     if (adIncomePerDay > 0 &&
         !deals.any((d) => d.kind == DealKind.adBlock) &&
         !brandOffers.any((o) => o.kind == DealKind.adBlock)) {
       kinds.add(DealKind.adBlock);
     }
-    final famous = staff.where((s) => s.fame >= 30 &&
-        !deals.any((d) => d.targetId == s.id) &&
-        !brandOffers.any((o) => o.targetId == s.id)).toList();
+    final famous = staff
+        .where(
+          (s) =>
+              s.fame >= 30 &&
+              !deals.any((d) => d.targetId == s.id) &&
+              !brandOffers.any((o) => o.targetId == s.id),
+        )
+        .toList();
     if (famous.isNotEmpty) kinds.add(DealKind.starFace);
-    final prodFilms = films.where((f) => f.status == FilmStatus.producing).toList();
+    final prodFilms = films
+        .where((f) => f.status == FilmStatus.producing)
+        .toList();
     if (prodFilms.isNotEmpty) kinds.add(DealKind.filmPlacement);
-    if (prestige >= 300 && adIncomePerDay > 0 &&
+    if (prestige >= 300 &&
+        adIncomePerDay > 0 &&
         !deals.any((d) => d.kind == DealKind.channelSponsor) &&
         !brandOffers.any((o) => o.kind == DealKind.channelSponsor)) {
       kinds.add(DealKind.channelSponsor);
@@ -907,22 +998,67 @@ extension GameV12 on Game {
     switch (k) {
       case DealKind.placement:
         final s = freeShows[_rng.nextInt(freeShows.length)];
-        o = BrandOffer(_newId('b'), brand, k, s.id,
-            max(5000.0, revenuePerDay(s) * (0.2 + r * 0.15)) * m, 0, 10, 0.03, exp);
+        o = BrandOffer(
+          _newId('b'),
+          brand,
+          k,
+          s.id,
+          max(5000.0, revenuePerDay(s) * (0.2 + r * 0.15)) * m,
+          0,
+          10,
+          0.03,
+          exp,
+        );
       case DealKind.adBlock:
-        o = BrandOffer(_newId('b'), brand, k, null,
-            adIncomePerDay * (0.04 + r * 0.03) * m, 0, 14, 0, exp);
+        o = BrandOffer(
+          _newId('b'),
+          brand,
+          k,
+          null,
+          adIncomePerDay * (0.04 + r * 0.03) * m,
+          0,
+          14,
+          0,
+          exp,
+        );
       case DealKind.starFace:
         final p = famous[_rng.nextInt(famous.length)];
-        o = BrandOffer(_newId('b'), brand, k, p.id,
-            p.salary * (0.5 + p.fame / 50) * m, 0, 20, 0, exp);
+        o = BrandOffer(
+          _newId('b'),
+          brand,
+          k,
+          p.id,
+          p.salary * (0.5 + p.fame / 50) * m,
+          0,
+          20,
+          0,
+          exp,
+        );
       case DealKind.filmPlacement:
         final f = prodFilms[_rng.nextInt(prodFilms.length)];
-        o = BrandOffer(_newId('b'), brand, k, f.id, 0,
-            f.cost * (0.1 + r * 0.1) * m, 0, 0, exp);
+        o = BrandOffer(
+          _newId('b'),
+          brand,
+          k,
+          f.id,
+          0,
+          f.cost * (0.1 + r * 0.1) * m,
+          0,
+          0,
+          exp,
+        );
       case DealKind.channelSponsor:
-        o = BrandOffer(_newId('b'), brand, k, null,
-            adIncomePerDay * (0.06 + r * 0.04) * m, 0, 30, 0, exp);
+        o = BrandOffer(
+          _newId('b'),
+          brand,
+          k,
+          null,
+          adIncomePerDay * (0.06 + r * 0.04) * m,
+          0,
+          30,
+          0,
+          exp,
+        );
     }
     brandOffers.add(o);
     if (!execs.containsKey(ExecRole.pazarlama)) {

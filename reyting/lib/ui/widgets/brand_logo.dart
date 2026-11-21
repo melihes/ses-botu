@@ -10,42 +10,53 @@ class BrandLogo extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Column(mainAxisSize: MainAxisSize.min, children: [
-      Image.asset(
-        'assets/brand/logo.png',
-        width: size,
-        height: size,
-        errorBuilder: (_, _, _) => SizedBox(
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Image.asset(
+          'assets/brand/logo.png',
           width: size,
           height: size,
-          child: const CustomPaint(painter: CrestPainter()),
+          errorBuilder: (_, _, _) => SizedBox(
+            width: size,
+            height: size,
+            child: const CustomPaint(painter: CrestPainter()),
+          ),
         ),
-      ),
-      if (showTitle) ...[
-        SizedBox(height: size * 0.04),
-        ShaderMask(
-          shaderCallback: (r) => const LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [Color(0xFFFFF1B8), Color(0xFFE8B04A), Color(0xFFB07A22)],
-          ).createShader(r),
-          child: Text('REYTİNG',
+        if (showTitle) ...[
+          SizedBox(height: size * 0.04),
+          ShaderMask(
+            shaderCallback: (r) => const LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [Color(0xFFFFF1B8), Color(0xFFE8B04A), Color(0xFFB07A22)],
+            ).createShader(r),
+            child: Text(
+              'REYTİNG',
               style: TextStyle(
-                  fontSize: size * 0.3,
-                  height: 1,
-                  fontWeight: FontWeight.w900,
-                  letterSpacing: size * 0.02,
-                  color: Colors.white,
-                  shadows: const [Shadow(color: Color(0x88FFC857), blurRadius: 18)])),
-        ),
-        SizedBox(height: size * 0.03),
-        Text('TV Kanalı İmparatorluğu',
+                fontSize: size * 0.3,
+                height: 1,
+                fontWeight: FontWeight.w900,
+                letterSpacing: size * 0.02,
+                color: Colors.white,
+                shadows: const [
+                  Shadow(color: Color(0x88FFC857), blurRadius: 18),
+                ],
+              ),
+            ),
+          ),
+          SizedBox(height: size * 0.03),
+          Text(
+            'TV Kanalı İmparatorluğu',
             style: TextStyle(
-                fontSize: size * 0.1,
-                fontWeight: FontWeight.w600,
-                color: const Color(0xFFEDE6FF))),
+              fontSize: size * 0.1,
+              fontWeight: FontWeight.w600,
+              color: const Color(0xFFEDE6FF),
+            ),
+          ),
+        ],
       ],
-    ]);
+    );
   }
 }
 
@@ -60,11 +71,13 @@ class CrestPainter extends CustomPainter {
 
     // ışık halesi
     c.drawCircle(
-        p(0.5, 0.5),
-        w * 0.5,
-        Paint()
-          ..shader = const RadialGradient(colors: [Color(0x667B5CFF), Color(0x007B5CFF)])
-              .createShader(Rect.fromCircle(center: p(0.5, 0.5), radius: w * 0.5)));
+      p(0.5, 0.5),
+      w * 0.5,
+      Paint()
+        ..shader = const RadialGradient(
+          colors: [Color(0x667B5CFF), Color(0x007B5CFF)],
+        ).createShader(Rect.fromCircle(center: p(0.5, 0.5), radius: w * 0.5)),
+    );
 
     // kalkan
     final shield = Path()
@@ -75,23 +88,25 @@ class CrestPainter extends CustomPainter {
       ..quadraticBezierTo(w * 0.3, h * 0.2, w * 0.5, h * 0.12)
       ..close();
     c.drawPath(
-        shield,
-        Paint()
-          ..shader = const LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [Color(0xFF3B2A8C), Color(0xFF1A1250)],
-          ).createShader(Offset.zero & s));
+      shield,
+      Paint()
+        ..shader = const LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [Color(0xFF3B2A8C), Color(0xFF1A1250)],
+        ).createShader(Offset.zero & s),
+    );
     c.drawPath(
-        shield,
-        Paint()
-          ..style = PaintingStyle.stroke
-          ..strokeWidth = w * 0.045
-          ..shader = const LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [Color(0xFFFFF1B8), Color(0xFFE8B04A), Color(0xFF9C6A1C)],
-          ).createShader(Offset.zero & s));
+      shield,
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = w * 0.045
+        ..shader = const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color(0xFFFFF1B8), Color(0xFFE8B04A), Color(0xFF9C6A1C)],
+        ).createShader(Offset.zero & s),
+    );
 
     // yükselen ok (grafik çizgisi)
     final arrow = Path()
@@ -126,10 +141,14 @@ class CrestPainter extends CustomPainter {
     }
     star.close();
     c.drawPath(
-        star,
-        Paint()
-          ..shader = const RadialGradient(colors: [Color(0xFFFFF7DA), Color(0xFFE8A93A)])
-              .createShader(Rect.fromCircle(center: p(0.46, 0.27), radius: w * 0.13)));
+      star,
+      Paint()
+        ..shader =
+            const RadialGradient(colors: [Color(0xFFFFF7DA), Color(0xFFE8A93A)])
+                .createShader(
+                  Rect.fromCircle(center: p(0.46, 0.27), radius: w * 0.13),
+                ),
+    );
 
     // parıltılar
     final spark = Paint()..color = const Color(0xFFFFF4C8);

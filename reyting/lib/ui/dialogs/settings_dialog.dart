@@ -47,43 +47,64 @@ class _SettingsState extends State<_Settings> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('Ayarlar',
-                style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900)),
+            const Text(
+              'Ayarlar',
+              style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900),
+            ),
             const SizedBox(height: 14),
             const SectionLabel('Kanal adı'),
             const SizedBox(height: 6),
-            Row(children: [
-              Expanded(
-                child: TextField(
-                  controller: _name,
-                  maxLength: 20,
-                  decoration: const InputDecoration(
-                      counterText: '', isDense: true),
+            Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    controller: _name,
+                    maxLength: 20,
+                    decoration: const InputDecoration(
+                      counterText: '',
+                      isDense: true,
+                    ),
+                  ),
                 ),
-              ),
-              const SizedBox(width: 10),
-              GhostButton('Kaydet',
-                  compact: true, onTap: () => game.rename(_name.text)),
-            ]),
+                const SizedBox(width: 10),
+                GhostButton(
+                  'Kaydet',
+                  compact: true,
+                  onTap: () => game.rename(_name.text),
+                ),
+              ],
+            ),
             const SizedBox(height: 10),
-            Row(children: [
-              CompanyLogoView(logo: game.logo, size: 40),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(game.companyFullName,
-                    style: const TextStyle(fontWeight: FontWeight.w900)),
-              ),
-              GhostButton('Logo ve isim', compact: true, icon: Icons.brush_rounded,
-                  onTap: () => showIdentityDialog(context)),
-            ]),
+            Row(
+              children: [
+                CompanyLogoView(logo: game.logo, size: 40),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    game.companyFullName,
+                    style: const TextStyle(fontWeight: FontWeight.w900),
+                  ),
+                ),
+                GhostButton(
+                  'Logo ve isim',
+                  compact: true,
+                  icon: Icons.brush_rounded,
+                  onTap: () => showIdentityDialog(context),
+                ),
+              ],
+            ),
             SwitchListTile(
               contentPadding: EdgeInsets.zero,
               value: game.stingOn,
               onChanged: (v) => game.setSting(v),
-              title: const Text('🎬 Açılış logosu',
-                  style: TextStyle(fontWeight: FontWeight.w800)),
-              subtitle: const Text('Yeni yapım başlarken şirket logon ekrana gelsin',
-                  style: TextStyle(fontSize: 12, color: AppColors.textDim)),
+              title: const Text(
+                '🎬 Açılış logosu',
+                style: TextStyle(fontWeight: FontWeight.w800),
+              ),
+              subtitle: const Text(
+                'Yeni yapım başlarken şirket logon ekrana gelsin',
+                style: TextStyle(fontSize: 12, color: AppColors.textDim),
+              ),
             ),
             SwitchListTile(
               contentPadding: EdgeInsets.zero,
@@ -93,28 +114,40 @@ class _SettingsState extends State<_Settings> {
                 setState(() {});
                 if (v) Sfx.crowd('applause');
               },
-              title: const Text('🔊 Sesler',
-                  style: TextStyle(fontWeight: FontWeight.w800)),
-              subtitle: const Text('Seyirci alkışı ve tribün sesleri',
-                  style: TextStyle(fontSize: 12, color: AppColors.textDim)),
+              title: const Text(
+                '🔊 Sesler',
+                style: TextStyle(fontWeight: FontWeight.w800),
+              ),
+              subtitle: const Text(
+                'Seyirci alkışı ve tribün sesleri',
+                style: TextStyle(fontSize: 12, color: AppColors.textDim),
+              ),
             ),
             if (Sfx.enabled)
-              Row(children: [
-                const Icon(Icons.volume_down_rounded, color: AppColors.textDim),
-                Expanded(
-                  child: Slider(
-                    value: Sfx.volume,
-                    onChanged: (v) => setState(() => Sfx.volume = v),
-                    onChangeEnd: (v) {
-                      Sfx.setVolume(v);
-                      Sfx.crowd('applause');
-                    },
+              Row(
+                children: [
+                  const Icon(
+                    Icons.volume_down_rounded,
+                    color: AppColors.textDim,
                   ),
-                ),
-                const Icon(Icons.volume_up_rounded, color: AppColors.textDim),
-              ]),
+                  Expanded(
+                    child: Slider(
+                      value: Sfx.volume,
+                      onChanged: (v) => setState(() => Sfx.volume = v),
+                      onChangeEnd: (v) {
+                        Sfx.setVolume(v);
+                        Sfx.crowd('applause');
+                      },
+                    ),
+                  ),
+                  const Icon(Icons.volume_up_rounded, color: AppColors.textDim),
+                ],
+              ),
             const SizedBox(height: 8),
-            const SectionLabel('Test modu · zaman hızı', color: AppColors.yellow),
+            const SectionLabel(
+              'Test modu · zaman hızı',
+              color: AppColors.yellow,
+            ),
             const SizedBox(height: 4),
             const Text(
               'Denemeyi kolaylaştırmak için. Normalde 1 oyun günü = 1 dakika.',
@@ -133,9 +166,12 @@ class _SettingsState extends State<_Settings> {
               color: AppColors.red,
               compact: true,
               onTap: () async {
-                final ok = await confirm(context, 'Oyunu sıfırla?',
-                    'Tüm ilerlemen silinecek ve Gün 1\'den başlayacaksın.',
-                    ok: 'Sıfırla');
+                final ok = await confirm(
+                  context,
+                  'Oyunu sıfırla?',
+                  'Tüm ilerlemen silinecek ve Gün 1\'den başlayacaksın.',
+                  ok: 'Sıfırla',
+                );
                 if (ok) {
                   await game.resetGame();
                   if (context.mounted) Navigator.pop(context);
@@ -143,8 +179,10 @@ class _SettingsState extends State<_Settings> {
               },
             ),
             const SizedBox(height: 12),
-            const Text('Reyting · v0.12',
-                style: TextStyle(color: AppColors.textFaint, fontSize: 11)),
+            const Text(
+              'Reyting · v0.12.1',
+              style: TextStyle(color: AppColors.textFaint, fontSize: 11),
+            ),
           ],
         ),
       ),

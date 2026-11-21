@@ -7,15 +7,19 @@ import '../../models/models.dart';
 import '../widgets/common.dart';
 
 Future<void> showOfflineDialog(
-    BuildContext context, PeriodSummary s, Game game) {
+  BuildContext context,
+  PeriodSummary s,
+  Game game,
+) {
   return showDialog(
     context: context,
     barrierDismissible: false,
     builder: (c) => Dialog(
       insetPadding: const EdgeInsets.symmetric(horizontal: 40, vertical: 20),
       shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(22),
-          side: const BorderSide(color: AppColors.border)),
+        borderRadius: BorderRadius.circular(22),
+        side: const BorderSide(color: AppColors.border),
+      ),
       child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 900),
         child: SingleChildScrollView(
@@ -42,8 +46,10 @@ class _OfflineBody extends StatelessWidget {
       children: [
         const SectionLabel('Sen yokken', color: AppColors.green),
         const SizedBox(height: 4),
-        Text('${s.days} gün geçti',
-            style: const TextStyle(fontSize: 30, fontWeight: FontWeight.w900)),
+        Text(
+          '${s.days} gün geçti',
+          style: const TextStyle(fontSize: 30, fontWeight: FontWeight.w900),
+        ),
         const SizedBox(height: 4),
         Text(
           '${fmtDec(s.minutesAway, 0)} dk uzaktaydın'
@@ -59,13 +65,18 @@ class _OfflineBody extends StatelessWidget {
             children: [
               const SectionLabel('Kasa değişimi', color: AppColors.textDim),
               const SizedBox(height: 4),
-              Text(fmtSigned(delta),
-                  style: TextStyle(
-                      fontSize: 28,
-                      fontWeight: FontWeight.w900,
-                      color: delta >= 0 ? AppColors.green : AppColors.red)),
-              Text('${fmtShort(s.cashBefore)} → ${fmtShort(s.cashAfter)}',
-                  style: const TextStyle(fontWeight: FontWeight.w700)),
+              Text(
+                fmtSigned(delta),
+                style: TextStyle(
+                  fontSize: 28,
+                  fontWeight: FontWeight.w900,
+                  color: delta >= 0 ? AppColors.green : AppColors.red,
+                ),
+              ),
+              Text(
+                '${fmtShort(s.cashBefore)} → ${fmtShort(s.cashAfter)}',
+                style: const TextStyle(fontWeight: FontWeight.w700),
+              ),
             ],
           ),
         ),
@@ -84,8 +95,11 @@ class _OfflineBody extends StatelessWidget {
           ),
         ],
         const SizedBox(height: 14),
-        AccentButton('Tamam',
-            expand: true, onTap: () => Navigator.of(context).pop()),
+        AccentButton(
+          'Tamam',
+          expand: true,
+          onTap: () => Navigator.of(context).pop(),
+        ),
       ],
     );
 
@@ -109,18 +123,23 @@ class _OfflineBody extends StatelessWidget {
       _tile('Genel Müdür yeniledi', '${s.autoRenewed}', true, neutral: true),
     ];
 
-    return LayoutBuilder(builder: (ctx, c) {
-      final wide = c.maxWidth > 640;
-      final grid = AutoGrid(minItemWidth: 190, spacing: 10, children: tiles);
-      if (!wide) {
-        return Column(children: [left, const SizedBox(height: 16), grid]);
-      }
-      return Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        SizedBox(width: 300, child: left),
-        const SizedBox(width: 20),
-        Expanded(child: grid),
-      ]);
-    });
+    return LayoutBuilder(
+      builder: (ctx, c) {
+        final wide = c.maxWidth > 640;
+        final grid = AutoGrid(minItemWidth: 190, spacing: 10, children: tiles);
+        if (!wide) {
+          return Column(children: [left, const SizedBox(height: 16), grid]);
+        }
+        return Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SizedBox(width: 300, child: left),
+            const SizedBox(width: 20),
+            Expanded(child: grid),
+          ],
+        );
+      },
+    );
   }
 
   Widget _tile(String label, String value, bool good, {bool neutral = false}) {
@@ -137,12 +156,19 @@ class _OfflineBody extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(label,
-              style: const TextStyle(color: AppColors.textDim, fontSize: 12)),
+          Text(
+            label,
+            style: const TextStyle(color: AppColors.textDim, fontSize: 12),
+          ),
           const SizedBox(height: 2),
-          Text(value,
-              style: TextStyle(
-                  fontSize: 18, fontWeight: FontWeight.w900, color: color)),
+          Text(
+            value,
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w900,
+              color: color,
+            ),
+          ),
         ],
       ),
     );

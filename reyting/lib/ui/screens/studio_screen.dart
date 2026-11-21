@@ -26,76 +26,114 @@ class StudioScreen extends StatelessWidget {
       children: [
         Panel(
           gradient: const LinearGradient(
-              colors: [Color(0xFF2E1F45), AppColors.panel]),
-          child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            StageScene(
+            colors: [Color(0xFF2E1F45), AppColors.panel],
+          ),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              StageScene(
                 prop: Prop.studio,
                 color: AppColors.purple,
                 tier: (game.studioLevel / 2).floor().clamp(0, 2),
                 width: 150,
-                height: 110),
-            const SizedBox(width: 14),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  SectionLabel('Seviye ${game.studioLevel + 1}/${studioLevels.length}'),
-                  Text(cur.name,
-                      style: const TextStyle(
-                          fontSize: 22, fontWeight: FontWeight.w900)),
-                  const SizedBox(height: 8),
-                  Wrap(spacing: 20, runSpacing: 8, children: [
-                    StatBlock('Erişim', fmtPct(game.reach * 100, 0),
-                        color: AppColors.cyan),
-                    StatBlock('Kira/gün', fmtShort(cur.rentPerDay),
-                        color: AppColors.orange),
-                    StatBlock('Kadro sınırı', '${cur.maxStaff}'),
-                    StatBlock(
-                        'Açık kuşak',
-                        '${SlotId.values.where(game.slotUnlocked).length}/4'),
-                  ]),
-                ],
+                height: 110,
               ),
-            ),
-            const SizedBox(width: 14),
-            SizedBox(
-              width: 260,
-              child: next == null
-                  ? const Text('🏆 Medya imparatorluğunun zirvesindesin!',
-                      style: TextStyle(fontWeight: FontWeight.w800))
-                  : Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    SectionLabel(
+                      'Seviye ${game.studioLevel + 1}/${studioLevels.length}',
+                    ),
+                    Text(
+                      cur.name,
+                      style: const TextStyle(
+                        fontSize: 22,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Wrap(
+                      spacing: 20,
+                      runSpacing: 8,
                       children: [
-                        const SectionLabel('Sonraki seviye',
-                            color: AppColors.accent),
-                        Text(next.name,
+                        StatBlock(
+                          'Erişim',
+                          fmtPct(game.reach * 100, 0),
+                          color: AppColors.cyan,
+                        ),
+                        StatBlock(
+                          'Kira/gün',
+                          fmtShort(cur.rentPerDay),
+                          color: AppColors.orange,
+                        ),
+                        StatBlock('Kadro sınırı', '${cur.maxStaff}'),
+                        StatBlock(
+                          'Açık kuşak',
+                          '${SlotId.values.where(game.slotUnlocked).length}/4',
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 14),
+              SizedBox(
+                width: 260,
+                child: next == null
+                    ? const Text(
+                        '🏆 Medya imparatorluğunun zirvesindesin!',
+                        style: TextStyle(fontWeight: FontWeight.w800),
+                      )
+                    : Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const SectionLabel(
+                            'Sonraki seviye',
+                            color: AppColors.accent,
+                          ),
+                          Text(
+                            next.name,
                             style: const TextStyle(
-                                fontWeight: FontWeight.w900, fontSize: 16)),
-                        Text(
+                              fontWeight: FontWeight.w900,
+                              fontSize: 16,
+                            ),
+                          ),
+                          Text(
                             'Erişim ${fmtPct(next.reach * 100, 0)} · '
                             'kadro ${next.maxStaff} · kira ${fmtShort(next.rentPerDay)}'
                             '${nextSlots.isEmpty ? '' : ' · ${nextSlots.join(', ')} kuşağı açılır'}',
                             style: const TextStyle(
-                                color: AppColors.textDim, fontSize: 12)),
-                        const SizedBox(height: 8),
-                        AccentButton('Yükselt · ${fmtShort(next.upgradeCost)}',
+                              color: AppColors.textDim,
+                              fontSize: 12,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          AccentButton(
+                            'Yükselt · ${fmtShort(next.upgradeCost)}',
                             expand: true,
                             icon: Icons.upgrade_rounded,
-                            onTap: () => report(context, game.upgradeStudio())),
-                      ],
-                    ),
-            ),
-          ]),
+                            onTap: () => report(context, game.upgradeStudio()),
+                          ),
+                        ],
+                      ),
+              ),
+            ],
+          ),
         ),
         const SizedBox(height: 16),
         const SectionLabel('Ekipman, araç ve tesisler'),
         const SizedBox(height: 4),
         const PageHint(
-            'Kalıcı yatırımlar. Bir kez alınır, her gün küçük bir bakım gideri vardır. '
-            'Bazıları yeni program türlerinin kilidini açar.'),
-        AutoGrid(minItemWidth: 280, spacing: 10, children: [
-          for (final e in equipDefs) _EquipCard(e: e),
-        ]),
+          'Kalıcı yatırımlar. Bir kez alınır, her gün küçük bir bakım gideri vardır. '
+          'Bazıları yeni program türlerinin kilidini açar.',
+        ),
+        AutoGrid(
+          minItemWidth: 280,
+          spacing: 10,
+          children: [for (final e in equipDefs) _EquipCard(e: e)],
+        ),
       ],
     );
   }
@@ -135,46 +173,68 @@ class _EquipCard extends StatelessWidget {
     return Panel(
       padding: const EdgeInsets.all(12),
       borderColor: owned ? AppColors.green.withValues(alpha: 0.6) : null,
-      child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        ItemArt(
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          ItemArt(
             id: e.id,
             color: owned ? AppColors.green : AppColors.cyan,
             width: 96,
-            height: 84),
-        const SizedBox(width: 10),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(e.name,
-                  style: const TextStyle(fontWeight: FontWeight.w800)),
-              Text(e.desc,
-                  style:
-                      const TextStyle(color: AppColors.textDim, fontSize: 12)),
-              const SizedBox(height: 4),
-              for (final f in effects)
-                Text('• $f',
-                    style: const TextStyle(
-                        color: AppColors.green,
-                        fontSize: 12,
-                        fontWeight: FontWeight.w700)),
-              Text('Bakım: ${fmtShort(e.upkeepPerDay)}/gün',
-                  style: const TextStyle(
-                      color: AppColors.textFaint, fontSize: 11)),
-              const SizedBox(height: 8),
-              if (owned)
-                const Tag('SAHİPSİN ✓', color: AppColors.green)
-              else if (locked)
-                Tag('Stüdyo seviyesi ${e.reqLevel}',
-                    color: AppColors.textDim, icon: Icons.lock_rounded)
-              else
-                AccentButton('Satın al · ${fmtShort(e.price)}',
-                    compact: true,
-                    onTap: () => report(context, game.buyEquip(e))),
-            ],
+            height: 84,
           ),
-        ),
-      ]),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  e.name,
+                  style: const TextStyle(fontWeight: FontWeight.w800),
+                ),
+                Text(
+                  e.desc,
+                  style: const TextStyle(
+                    color: AppColors.textDim,
+                    fontSize: 12,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                for (final f in effects)
+                  Text(
+                    '• $f',
+                    style: const TextStyle(
+                      color: AppColors.green,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                Text(
+                  'Bakım: ${fmtShort(e.upkeepPerDay)}/gün',
+                  style: const TextStyle(
+                    color: AppColors.textFaint,
+                    fontSize: 11,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                if (owned)
+                  const Tag('SAHİPSİN ✓', color: AppColors.green)
+                else if (locked)
+                  Tag(
+                    'Stüdyo seviyesi ${e.reqLevel}',
+                    color: AppColors.textDim,
+                    icon: Icons.lock_rounded,
+                  )
+                else
+                  AccentButton(
+                    'Satın al · ${fmtShort(e.price)}',
+                    compact: true,
+                    onTap: () => report(context, game.buyEquip(e)),
+                  ),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

@@ -53,38 +53,38 @@ class Staff {
       specDef.films.contains(g) ? 1 : (trait == 7 ? 0.5 : 0);
 
   Map<String, dynamic> toJson() => {
-        'id': id,
-        'name': name,
-        'role': role.index,
-        'skill': skill,
-        'salary': salary,
-        'showId': showId,
-        'trainedDay': trainedDay,
-        'spec': spec,
-        'trait': trait,
-        'age': age,
-        'pot': potential,
-        'fame': fame,
-        'xp': xp,
-        'sale': forSale,
-      };
+    'id': id,
+    'name': name,
+    'role': role.index,
+    'skill': skill,
+    'salary': salary,
+    'showId': showId,
+    'trainedDay': trainedDay,
+    'spec': spec,
+    'trait': trait,
+    'age': age,
+    'pot': potential,
+    'fame': fame,
+    'xp': xp,
+    'sale': forSale,
+  };
 
   factory Staff.fromJson(Map<String, dynamic> j) => Staff(
-        id: j['id'],
-        name: j['name'],
-        role: Role.values[j['role']],
-        skill: j['skill'],
-        salary: (j['salary'] as num).toDouble(),
-        showId: j['showId'],
-        trainedDay: j['trainedDay'] ?? -99,
-        spec: j['spec'] ?? -1,
-        trait: j['trait'] ?? 0,
-        age: j['age'] ?? 30,
-        potential: j['pot'] ?? 0,
-        fame: (j['fame'] as num? ?? 0).toDouble(),
-        xp: (j['xp'] as num? ?? 0).toDouble(),
-        forSale: j['sale'] ?? false,
-      );
+    id: j['id'],
+    name: j['name'],
+    role: Role.values[j['role']],
+    skill: j['skill'],
+    salary: (j['salary'] as num).toDouble(),
+    showId: j['showId'],
+    trainedDay: j['trainedDay'] ?? -99,
+    spec: j['spec'] ?? -1,
+    trait: j['trait'] ?? 0,
+    age: j['age'] ?? 30,
+    potential: j['pot'] ?? 0,
+    fame: (j['fame'] as num? ?? 0).toDouble(),
+    xp: (j['xp'] as num? ?? 0).toDouble(),
+    forSale: j['sale'] ?? false,
+  );
 }
 
 enum ShowStatus { producing, ready, onAir, ended }
@@ -151,64 +151,64 @@ class Show {
   double get seasonProgress => (episodesAired / seasonDays).clamp(0.0, 1.0);
 
   Map<String, dynamic> toJson() => {
-        'id': id,
-        'name': name,
-        'genre': genre.index,
-        'tier': tier,
-        'staffIds': staffIds,
-        'status': status.index,
-        'prodLeft': prodLeft,
-        'episodesAired': episodesAired,
-        'season': season,
-        'quality': quality,
-        'slot': slot?.index,
-        'noise': noise,
-        'ratingHistory': ratingHistory,
-        'totalRevenue': totalRevenue,
-        'seasonRevenue': seasonRevenue,
-        'buff': buff,
-        'buffDays': buffDays,
-        'lastAiredDay': lastAiredDay,
-        'autoSlot': autoSlot?.index,
-        'sponsor': sponsor,
-        'sponsorPerDay': sponsorPerDay,
-        'sponsorDays': sponsorDays,
-        'budget': budget,
-        'guest': guest,
-        'guestName': guestName,
-        'loc': location,
-      };
+    'id': id,
+    'name': name,
+    'genre': genre.index,
+    'tier': tier,
+    'staffIds': staffIds,
+    'status': status.index,
+    'prodLeft': prodLeft,
+    'episodesAired': episodesAired,
+    'season': season,
+    'quality': quality,
+    'slot': slot?.index,
+    'noise': noise,
+    'ratingHistory': ratingHistory,
+    'totalRevenue': totalRevenue,
+    'seasonRevenue': seasonRevenue,
+    'buff': buff,
+    'buffDays': buffDays,
+    'lastAiredDay': lastAiredDay,
+    'autoSlot': autoSlot?.index,
+    'sponsor': sponsor,
+    'sponsorPerDay': sponsorPerDay,
+    'sponsorDays': sponsorDays,
+    'budget': budget,
+    'guest': guest,
+    'guestName': guestName,
+    'loc': location,
+  };
 
   factory Show.fromJson(Map<String, dynamic> j) => Show(
-        id: j['id'],
-        name: j['name'],
-        genre: Genre.values[j['genre']],
-        tier: j['tier'],
-        staffIds: List<String>.from(j['staffIds']),
-        status: ShowStatus.values[j['status']],
-        prodLeft: (j['prodLeft'] as num).toDouble(),
-        episodesAired: j['episodesAired'],
-        season: j['season'],
-        quality: (j['quality'] as num).toDouble(),
-        slot: j['slot'] == null ? null : SlotId.values[j['slot']],
-        noise: (j['noise'] as num).toDouble(),
-        ratingHistory: (j['ratingHistory'] as List)
-            .map((e) => (e as num).toDouble())
-            .toList(),
-        totalRevenue: (j['totalRevenue'] as num).toDouble(),
-        seasonRevenue: (j['seasonRevenue'] as num? ?? 0).toDouble(),
-        buff: (j['buff'] as num? ?? 1).toDouble(),
-        buffDays: j['buffDays'] ?? 0,
-        lastAiredDay: j['lastAiredDay'] ?? 0,
-        autoSlot: j['autoSlot'] == null ? null : SlotId.values[j['autoSlot']],
-        sponsor: j['sponsor'],
-        sponsorPerDay: (j['sponsorPerDay'] as num? ?? 0).toDouble(),
-        sponsorDays: j['sponsorDays'] ?? 0,
-        budget: j['budget'] ?? 1,
-        guest: j['guest'] ?? 0,
-        guestName: j['guestName'],
-        location: j['loc'],
-      );
+    id: j['id'],
+    name: j['name'],
+    genre: Genre.values[j['genre']],
+    tier: j['tier'],
+    staffIds: List<String>.from(j['staffIds']),
+    status: ShowStatus.values[j['status']],
+    prodLeft: (j['prodLeft'] as num).toDouble(),
+    episodesAired: j['episodesAired'],
+    season: j['season'],
+    quality: (j['quality'] as num).toDouble(),
+    slot: j['slot'] == null ? null : SlotId.values[j['slot']],
+    noise: (j['noise'] as num).toDouble(),
+    ratingHistory: (j['ratingHistory'] as List)
+        .map((e) => (e as num).toDouble())
+        .toList(),
+    totalRevenue: (j['totalRevenue'] as num).toDouble(),
+    seasonRevenue: (j['seasonRevenue'] as num? ?? 0).toDouble(),
+    buff: (j['buff'] as num? ?? 1).toDouble(),
+    buffDays: j['buffDays'] ?? 0,
+    lastAiredDay: j['lastAiredDay'] ?? 0,
+    autoSlot: j['autoSlot'] == null ? null : SlotId.values[j['autoSlot']],
+    sponsor: j['sponsor'],
+    sponsorPerDay: (j['sponsorPerDay'] as num? ?? 0).toDouble(),
+    sponsorDays: j['sponsorDays'] ?? 0,
+    budget: j['budget'] ?? 1,
+    guest: j['guest'] ?? 0,
+    guestName: j['guestName'],
+    location: j['loc'],
+  );
 }
 
 /// Bir yayın kuşağının ayarı
@@ -219,9 +219,9 @@ class SlotState {
 
   Map<String, dynamic> toJson() => {'showId': showId, 'adMinutes': adMinutes};
   factory SlotState.fromJson(Map<String, dynamic> j) => SlotState(
-        showId: j['showId'],
-        adMinutes: (j['adMinutes'] as num).toDouble(),
-      );
+    showId: j['showId'],
+    adMinutes: (j['adMinutes'] as num).toDouble(),
+  );
 }
 
 class Loan {
@@ -242,19 +242,19 @@ class Loan {
   double get remaining => installment * installmentsLeft;
 
   Map<String, dynamic> toJson() => {
-        'id': id,
-        'principal': principal,
-        'installment': installment,
-        'installmentsLeft': installmentsLeft,
-        'nextDueDay': nextDueDay,
-      };
+    'id': id,
+    'principal': principal,
+    'installment': installment,
+    'installmentsLeft': installmentsLeft,
+    'nextDueDay': nextDueDay,
+  };
   factory Loan.fromJson(Map<String, dynamic> j) => Loan(
-        id: j['id'],
-        principal: (j['principal'] as num).toDouble(),
-        installment: (j['installment'] as num).toDouble(),
-        installmentsLeft: j['installmentsLeft'],
-        nextDueDay: j['nextDueDay'],
-      );
+    id: j['id'],
+    principal: (j['principal'] as num).toDouble(),
+    installment: (j['installment'] as num).toDouble(),
+    installmentsLeft: j['installmentsLeft'],
+    nextDueDay: j['nextDueDay'],
+  );
 }
 
 /// Pazarlık durumu (yat, ada, kanal vb. için)
@@ -272,17 +272,17 @@ class NegState {
   });
 
   Map<String, dynamic> toJson() => {
-        'patience': patience,
-        'floorFactor': floorFactor,
-        'counter': counter,
-        'lockedUntil': lockedUntil,
-      };
+    'patience': patience,
+    'floorFactor': floorFactor,
+    'counter': counter,
+    'lockedUntil': lockedUntil,
+  };
   factory NegState.fromJson(Map<String, dynamic> j) => NegState(
-        patience: j['patience'],
-        floorFactor: (j['floorFactor'] as num).toDouble(),
-        counter: (j['counter'] as num?)?.toDouble(),
-        lockedUntil: j['lockedUntil'],
-      );
+    patience: j['patience'],
+    floorFactor: (j['floorFactor'] as num).toDouble(),
+    counter: (j['counter'] as num?)?.toDouble(),
+    lockedUntil: j['lockedUntil'],
+  );
 }
 
 enum NegOutcome { accepted, counter, rejected, walkedAway, locked, noMoney }
@@ -332,8 +332,12 @@ class GameEvent {
   final bool good;
   GameEvent(this.day, this.title, this.body, this.good);
 
-  Map<String, dynamic> toJson() =>
-      {'day': day, 'title': title, 'body': body, 'good': good};
+  Map<String, dynamic> toJson() => {
+    'day': day,
+    'title': title,
+    'body': body,
+    'good': good,
+  };
   factory GameEvent.fromJson(Map<String, dynamic> j) =>
       GameEvent(j['day'], j['title'], j['body'], j['good']);
 }
@@ -346,8 +350,7 @@ class FilmLicense {
   int daysLeft;
   final double fee;
   FilmLicense(this.platformId, this.daysLeft, this.fee);
-  Map<String, dynamic> toJson() =>
-      {'p': platformId, 'd': daysLeft, 'f': fee};
+  Map<String, dynamic> toJson() => {'p': platformId, 'd': daysLeft, 'f': fee};
   factory FilmLicense.fromJson(Map<String, dynamic> j) =>
       FilmLicense(j['p'], j['d'], (j['f'] as num).toDouble());
 }
@@ -398,48 +401,48 @@ class Film {
   double get totalIncome => boxOffice + licenseIncome + soldFor;
 
   Map<String, dynamic> toJson() => {
-        'id': id,
-        'name': name,
-        'genre': genre.index,
-        'tier': tier,
-        'staffIds': staffIds,
-        'cost': cost,
-        'status': status.index,
-        'prodLeft': prodLeft,
-        'quality': quality,
-        'score': score,
-        'theaterDay': theaterDay,
-        'boxOffice': boxOffice,
-        'licenseIncome': licenseIncome,
-        'soldFor': soldFor,
-        'licensesSold': licensesSold,
-        'onOwnPlatform': onOwnPlatform,
-        'finishedDay': finishedDay,
-        'licenses': licenses.map((e) => e.toJson()).toList(),
-      };
+    'id': id,
+    'name': name,
+    'genre': genre.index,
+    'tier': tier,
+    'staffIds': staffIds,
+    'cost': cost,
+    'status': status.index,
+    'prodLeft': prodLeft,
+    'quality': quality,
+    'score': score,
+    'theaterDay': theaterDay,
+    'boxOffice': boxOffice,
+    'licenseIncome': licenseIncome,
+    'soldFor': soldFor,
+    'licensesSold': licensesSold,
+    'onOwnPlatform': onOwnPlatform,
+    'finishedDay': finishedDay,
+    'licenses': licenses.map((e) => e.toJson()).toList(),
+  };
 
   factory Film.fromJson(Map<String, dynamic> j) => Film(
-        id: j['id'],
-        name: j['name'],
-        genre: FilmGenre.values[j['genre']],
-        tier: j['tier'],
-        staffIds: List<String>.from(j['staffIds']),
-        cost: (j['cost'] as num).toDouble(),
-        status: FilmStatus.values[j['status']],
-        prodLeft: (j['prodLeft'] as num).toDouble(),
-        quality: (j['quality'] as num).toDouble(),
-        score: (j['score'] as num).toDouble(),
-        theaterDay: j['theaterDay'],
-        boxOffice: (j['boxOffice'] as num).toDouble(),
-        licenseIncome: (j['licenseIncome'] as num).toDouble(),
-        soldFor: (j['soldFor'] as num).toDouble(),
-        licensesSold: j['licensesSold'],
-        onOwnPlatform: j['onOwnPlatform'] ?? false,
-        finishedDay: j['finishedDay'] ?? 0,
-        licenses: (j['licenses'] as List)
-            .map((e) => FilmLicense.fromJson(e))
-            .toList(),
-      );
+    id: j['id'],
+    name: j['name'],
+    genre: FilmGenre.values[j['genre']],
+    tier: j['tier'],
+    staffIds: List<String>.from(j['staffIds']),
+    cost: (j['cost'] as num).toDouble(),
+    status: FilmStatus.values[j['status']],
+    prodLeft: (j['prodLeft'] as num).toDouble(),
+    quality: (j['quality'] as num).toDouble(),
+    score: (j['score'] as num).toDouble(),
+    theaterDay: j['theaterDay'],
+    boxOffice: (j['boxOffice'] as num).toDouble(),
+    licenseIncome: (j['licenseIncome'] as num).toDouble(),
+    soldFor: (j['soldFor'] as num).toDouble(),
+    licensesSold: j['licensesSold'],
+    onOwnPlatform: j['onOwnPlatform'] ?? false,
+    finishedDay: j['finishedDay'] ?? 0,
+    licenses: (j['licenses'] as List)
+        .map((e) => FilmLicense.fromJson(e))
+        .toList(),
+  );
 }
 
 /// Videom'daki içerik üreticisi (YouTuber)
@@ -473,20 +476,29 @@ class Creator {
   double get campaignCost => followers * 0.5;
 
   Map<String, dynamic> toJson() => {
-        'id': id, 'name': name, 'handle': handle, 'niche': niche.index,
-        'followers': followers, 'growth': growth, 'engagement': engagement,
-        'salary': salary, 'crd': campaignReadyDay, 'look': look,
-      };
+    'id': id,
+    'name': name,
+    'handle': handle,
+    'niche': niche.index,
+    'followers': followers,
+    'growth': growth,
+    'engagement': engagement,
+    'salary': salary,
+    'crd': campaignReadyDay,
+    'look': look,
+  };
   factory Creator.fromJson(Map<String, dynamic> j) => Creator(
-        id: j['id'], name: j['name'], handle: j['handle'],
-        niche: Niche.values[j['niche']],
-        followers: (j['followers'] as num).toDouble(),
-        growth: (j['growth'] as num).toDouble(),
-        engagement: (j['engagement'] as num).toDouble(),
-        salary: (j['salary'] as num).toDouble(),
-        campaignReadyDay: j['crd'] ?? 0,
-        look: j['look'] ?? 0,
-      );
+    id: j['id'],
+    name: j['name'],
+    handle: j['handle'],
+    niche: Niche.values[j['niche']],
+    followers: (j['followers'] as num).toDouble(),
+    growth: (j['growth'] as num).toDouble(),
+    engagement: (j['engagement'] as num).toDouble(),
+    salary: (j['salary'] as num).toDouble(),
+    campaignReadyDay: j['crd'] ?? 0,
+    look: j['look'] ?? 0,
+  );
 }
 
 /// Kasa geçmişi (grafik için): bir günün özeti
@@ -498,8 +510,12 @@ class DayStat {
   DayStat(this.day, this.cash, this.income, this.expense);
   double get net => income - expense;
   List<num> toJson() => [day, cash.round(), income.round(), expense.round()];
-  factory DayStat.fromJson(List j) => DayStat(j[0] as int, (j[1] as num).toDouble(),
-      (j[2] as num).toDouble(), (j[3] as num).toDouble());
+  factory DayStat.fromJson(List j) => DayStat(
+    j[0] as int,
+    (j[1] as num).toDouble(),
+    (j[2] as num).toDouble(),
+    (j[3] as num).toDouble(),
+  );
 }
 
 /// Reyting raporundaki bir satır
@@ -509,10 +525,21 @@ class ReportRow {
   final double rating;
   final bool mine;
   final int colorIndex;
-  ReportRow(this.channel, this.program, this.rating, this.mine, this.colorIndex);
+  ReportRow(
+    this.channel,
+    this.program,
+    this.rating,
+    this.mine,
+    this.colorIndex,
+  );
   List toJson() => [channel, program, rating, mine, colorIndex];
-  factory ReportRow.fromJson(List j) => ReportRow(j[0], j[1],
-      (j[2] as num).toDouble(), j[3] as bool, j[4] as int);
+  factory ReportRow.fromJson(List j) => ReportRow(
+    j[0],
+    j[1],
+    (j[2] as num).toDouble(),
+    j[3] as bool,
+    j[4] as int,
+  );
 }
 
 /// Oyuncunun karar vermesi gereken durum (kriz, zam talebi, sponsor…)
@@ -568,14 +595,31 @@ class Mission {
   final int gems;
   int progress;
   bool claimed;
-  Mission(this.kind, this.title, this.target, this.gems,
-      {this.progress = 0, this.claimed = false});
+  Mission(
+    this.kind,
+    this.title,
+    this.target,
+    this.gems, {
+    this.progress = 0,
+    this.claimed = false,
+  });
   bool get done => progress >= target;
   Map<String, dynamic> toJson() => {
-        'k': kind, 't': title, 'n': target, 'g': gems, 'p': progress, 'c': claimed,
-      };
-  factory Mission.fromJson(Map<String, dynamic> j) =>
-      Mission(j['k'], j['t'], j['n'], j['g'], progress: j['p'], claimed: j['c']);
+    'k': kind,
+    't': title,
+    'n': target,
+    'g': gems,
+    'p': progress,
+    'c': claimed,
+  };
+  factory Mission.fromJson(Map<String, dynamic> j) => Mission(
+    j['k'],
+    j['t'],
+    j['n'],
+    j['g'],
+    progress: j['p'],
+    claimed: j['c'],
+  );
 }
 
 enum TenderStatus { open, producing, delivered, lost, expired }
@@ -615,19 +659,34 @@ class Tender {
   double get productionCost => budget * 0.45;
 
   Map<String, dynamic> toJson() => {
-        'id': id, 'd': defId, 'b': budget, 'c': closesDay, 's': status.index,
-        'm': myBid, 'cr': crewIds, 'p': prodLeft, 'q': qualityFactor,
-        'w': winner, 'wb': winningBid, 'pd': paid,
-      };
+    'id': id,
+    'd': defId,
+    'b': budget,
+    'c': closesDay,
+    's': status.index,
+    'm': myBid,
+    'cr': crewIds,
+    'p': prodLeft,
+    'q': qualityFactor,
+    'w': winner,
+    'wb': winningBid,
+    'pd': paid,
+  };
   factory Tender.fromJson(Map<String, dynamic> j) => Tender(
-        id: j['id'], defId: j['d'], budget: (j['b'] as num).toDouble(),
-        closesDay: j['c'], status: TenderStatus.values[j['s']],
-        myBid: (j['m'] as num?)?.toDouble(), crewIds: List<String>.from(j['cr'] ?? []),
-        prodLeft: (j['p'] as num? ?? 0).toDouble(), qualityFactor: (j['q'] as num? ?? 1).toDouble(),
-        winner: j['w'], winningBid: (j['wb'] as num?)?.toDouble(), paid: (j['pd'] as num? ?? 0).toDouble(),
-      );
+    id: j['id'],
+    defId: j['d'],
+    budget: (j['b'] as num).toDouble(),
+    closesDay: j['c'],
+    status: TenderStatus.values[j['s']],
+    myBid: (j['m'] as num?)?.toDouble(),
+    crewIds: List<String>.from(j['cr'] ?? []),
+    prodLeft: (j['p'] as num? ?? 0).toDouble(),
+    qualityFactor: (j['q'] as num? ?? 1).toDouble(),
+    winner: j['w'],
+    winningBid: (j['wb'] as num?)?.toDouble(),
+    paid: (j['pd'] as num? ?? 0).toDouble(),
+  );
 }
-
 
 /// Yönetim kurulu üyesi
 class Exec {
@@ -643,10 +702,20 @@ class Exec {
   /// Yeteneğe göre etki (0..1): uzmanlar çok daha etkili
   double get power => pow(skill / 100, 1.5).toDouble();
 
-  Map<String, dynamic> toJson() =>
-      {'id': id, 'n': name, 'r': role.index, 's': skill, 'm': salary};
-  factory Exec.fromJson(Map<String, dynamic> j) => Exec(j['id'], j['n'],
-      ExecRole.values[j['r']], j['s'], (j['m'] as num).toDouble());
+  Map<String, dynamic> toJson() => {
+    'id': id,
+    'n': name,
+    'r': role.index,
+    's': skill,
+    'm': salary,
+  };
+  factory Exec.fromJson(Map<String, dynamic> j) => Exec(
+    j['id'],
+    j['n'],
+    ExecRole.values[j['r']],
+    j['s'],
+    (j['m'] as num).toDouble(),
+  );
 }
 
 /// Gelen marka teklifi (kabul edilmeyi bekler)
@@ -660,17 +729,40 @@ class BrandOffer {
   final int days;
   final double ratingCost; // reyting çarpanı kaybı (0.03 = -%3)
   final int expires; // bu günden sonra geçersiz
-  BrandOffer(this.id, this.brand, this.kind, this.targetId, this.perDay,
-      this.lump, this.days, this.ratingCost, this.expires);
+  BrandOffer(
+    this.id,
+    this.brand,
+    this.kind,
+    this.targetId,
+    this.perDay,
+    this.lump,
+    this.days,
+    this.ratingCost,
+    this.expires,
+  );
   double get total => perDay * days + lump;
   Map<String, dynamic> toJson() => {
-        'id': id, 'b': brand, 'k': kind.index, 't': targetId, 'p': perDay,
-        'l': lump, 'd': days, 'r': ratingCost, 'e': expires,
-      };
+    'id': id,
+    'b': brand,
+    'k': kind.index,
+    't': targetId,
+    'p': perDay,
+    'l': lump,
+    'd': days,
+    'r': ratingCost,
+    'e': expires,
+  };
   factory BrandOffer.fromJson(Map<String, dynamic> j) => BrandOffer(
-      j['id'], j['b'], DealKind.values[j['k']], j['t'],
-      (j['p'] as num).toDouble(), (j['l'] as num).toDouble(), j['d'],
-      (j['r'] as num).toDouble(), j['e']);
+    j['id'],
+    j['b'],
+    DealKind.values[j['k']],
+    j['t'],
+    (j['p'] as num).toDouble(),
+    (j['l'] as num).toDouble(),
+    j['d'],
+    (j['r'] as num).toDouble(),
+    j['e'],
+  );
 }
 
 /// Süren marka anlaşması (günlük gelir)
@@ -681,10 +773,20 @@ class Deal {
   final double perDay;
   int daysLeft;
   Deal(this.brand, this.kind, this.targetId, this.perDay, this.daysLeft);
-  Map<String, dynamic> toJson() =>
-      {'b': brand, 'k': kind.index, 't': targetId, 'p': perDay, 'd': daysLeft};
-  factory Deal.fromJson(Map<String, dynamic> j) => Deal(j['b'],
-      DealKind.values[j['k']], j['t'], (j['p'] as num).toDouble(), j['d']);
+  Map<String, dynamic> toJson() => {
+    'b': brand,
+    'k': kind.index,
+    't': targetId,
+    'p': perDay,
+    'd': daysLeft,
+  };
+  factory Deal.fromJson(Map<String, dynamic> j) => Deal(
+    j['b'],
+    DealKind.values[j['k']],
+    j['t'],
+    (j['p'] as num).toDouble(),
+    j['d'],
+  );
 }
 
 /// Satışa çıkarılan oyuncu için gelen transfer teklifi
@@ -694,10 +796,14 @@ class TransferOffer {
   final double amount;
   final int expires;
   TransferOffer(this.staffId, this.from, this.amount, this.expires);
-  Map<String, dynamic> toJson() =>
-      {'s': staffId, 'f': from, 'a': amount, 'e': expires};
-  factory TransferOffer.fromJson(Map<String, dynamic> j) => TransferOffer(
-      j['s'], j['f'], (j['a'] as num).toDouble(), j['e']);
+  Map<String, dynamic> toJson() => {
+    's': staffId,
+    'f': from,
+    'a': amount,
+    'e': expires,
+  };
+  factory TransferOffer.fromJson(Map<String, dynamic> j) =>
+      TransferOffer(j['s'], j['f'], (j['a'] as num).toDouble(), j['e']);
 }
 
 /// Şirket logosu: sembol × renk × çerçeve

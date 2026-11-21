@@ -10,15 +10,21 @@ class CompanyLogoView extends StatelessWidget {
   final CompanyLogo logo;
   final double size;
   final double glow; // 0..1 animasyonlar için parlama
-  const CompanyLogoView(
-      {super.key, required this.logo, this.size = 48, this.glow = 0});
+  const CompanyLogoView({
+    super.key,
+    required this.logo,
+    this.size = 48,
+    this.glow = 0,
+  });
 
   @override
   Widget build(BuildContext context) => SizedBox(
-        width: size,
-        height: size,
-        child: CustomPaint(painter: LogoPainter(logo.shape, logo.palette, logo.frame, glow)),
-      );
+    width: size,
+    height: size,
+    child: CustomPaint(
+      painter: LogoPainter(logo.shape, logo.palette, logo.frame, glow),
+    ),
+  );
 }
 
 class LogoPainter extends CustomPainter {
@@ -41,11 +47,12 @@ class LogoPainter extends CustomPainter {
 
     if (glow > 0) {
       canvas.drawCircle(
-          c,
-          w * 0.55,
-          Paint()
-            ..color = c1.withValues(alpha: 0.35 * glow)
-            ..maskFilter = MaskFilter.blur(BlurStyle.normal, w * 0.15));
+        c,
+        w * 0.55,
+        Paint()
+          ..color = c1.withValues(alpha: 0.35 * glow)
+          ..maskFilter = MaskFilter.blur(BlurStyle.normal, w * 0.15),
+      );
     }
 
     // ---- çerçeve ----
@@ -63,7 +70,9 @@ class LogoPainter extends CustomPainter {
         canvas.drawCircle(c, w * 0.45, framePaint);
       case 2:
         final r = RRect.fromRectAndRadius(
-            Rect.fromLTWH(w * 0.04, w * 0.04, w * 0.92, w * 0.92), Radius.circular(w * 0.18));
+          Rect.fromLTWH(w * 0.04, w * 0.04, w * 0.92, w * 0.92),
+          Radius.circular(w * 0.18),
+        );
         canvas.drawRRect(r, bg);
         canvas.drawRRect(r, framePaint);
       case 3:
@@ -88,15 +97,22 @@ class LogoPainter extends CustomPainter {
           ..strokeCap = StrokeCap.round;
         for (int i = 0; i < 16; i++) {
           final a = i * pi / 8;
-          canvas.drawLine(c + Offset(cos(a), sin(a)) * w * 0.43,
-              c + Offset(cos(a), sin(a)) * w * 0.49, ray);
+          canvas.drawLine(
+            c + Offset(cos(a), sin(a)) * w * 0.43,
+            c + Offset(cos(a), sin(a)) * w * 0.49,
+            ray,
+          );
         }
         canvas.drawCircle(c, w * 0.40, framePaint..strokeWidth = w * 0.025);
     }
 
     // ---- sembol ----
-    final box = Rect.fromLTWH(w * inset + w * 0.1, w * inset + w * 0.1,
-        w * (1 - 2 * inset - 0.2), w * (1 - 2 * inset - 0.2));
+    final box = Rect.fromLTWH(
+      w * inset + w * 0.1,
+      w * inset + w * 0.1,
+      w * (1 - 2 * inset - 0.2),
+      w * (1 - 2 * inset - 0.2),
+    );
     canvas.save();
     canvas.translate(box.left, box.top);
     canvas.scale(box.width, box.height);
@@ -129,18 +145,22 @@ class LogoPainter extends CustomPainter {
     const c = Offset(0.5, 0.5);
     switch (s) {
       case 0: // Hilal
-        final p = Path()
-          ..addOval(Rect.fromCircle(center: c, radius: 0.45));
+        final p = Path()..addOval(Rect.fromCircle(center: c, radius: 0.45));
         final cut = Path()
-          ..addOval(Rect.fromCircle(center: const Offset(0.66, 0.42), radius: 0.38));
+          ..addOval(
+            Rect.fromCircle(center: const Offset(0.66, 0.42), radius: 0.38),
+          );
         cv.drawPath(Path.combine(PathOperation.difference, p, cut), f);
         cv.drawPath(_poly(const Offset(0.74, 0.5), 0.12, 5, -pi / 2, 0.05), f2);
       case 1: // Güneş
         cv.drawCircle(c, 0.22, f);
         for (int i = 0; i < 12; i++) {
           final a = i * pi / 6;
-          cv.drawLine(c + Offset(cos(a), sin(a)) * 0.3,
-              c + Offset(cos(a), sin(a)) * 0.47, st..strokeWidth = 0.06);
+          cv.drawLine(
+            c + Offset(cos(a), sin(a)) * 0.3,
+            c + Offset(cos(a), sin(a)) * 0.47,
+            st..strokeWidth = 0.06,
+          );
         }
       case 2: // Yıldız
         cv.drawPath(_poly(c, 0.5, 5, -pi / 2, 0.2), f);
@@ -151,44 +171,60 @@ class LogoPainter extends CustomPainter {
           final p = Path()
             ..moveTo(0.05, y)
             ..cubicTo(0.35, y - 0.12, 0.6, y + 0.12, 0.8 - i * 0.1, y)
-            ..arcToPoint(Offset(0.8 - i * 0.1, y - 0.14),
-                radius: const Radius.circular(0.07), clockwise: false);
-          cv.drawPath(p, (i == 1 ? (Paint()..color = c2) : f)
-            ..style = PaintingStyle.stroke
-            ..strokeWidth = 0.08
-            ..strokeCap = StrokeCap.round);
+            ..arcToPoint(
+              Offset(0.8 - i * 0.1, y - 0.14),
+              radius: const Radius.circular(0.07),
+              clockwise: false,
+            );
+          cv.drawPath(
+            p,
+            (i == 1 ? (Paint()..color = c2) : f)
+              ..style = PaintingStyle.stroke
+              ..strokeWidth = 0.08
+              ..strokeCap = StrokeCap.round,
+          );
         }
       case 4: // Dalga
         for (int i = 0; i < 3; i++) {
           final y = 0.3 + i * 0.2;
           final p = Path()..moveTo(0.02, y);
           for (int k = 0; k < 4; k++) {
-            p.quadraticBezierTo(0.02 + k * 0.24 + 0.12, y - 0.12, 0.02 + (k + 1) * 0.24, y);
+            p.quadraticBezierTo(
+              0.02 + k * 0.24 + 0.12,
+              y - 0.12,
+              0.02 + (k + 1) * 0.24,
+              y,
+            );
           }
-          cv.drawPath(p, (i.isEven ? Paint() : (Paint()..color = c2))
-            ..color = i.isEven ? c1 : c2
-            ..style = PaintingStyle.stroke
-            ..strokeWidth = 0.08
-            ..strokeCap = StrokeCap.round);
+          cv.drawPath(
+            p,
+            (i.isEven ? Paint() : (Paint()..color = c2))
+              ..color = i.isEven ? c1 : c2
+              ..style = PaintingStyle.stroke
+              ..strokeWidth = 0.08
+              ..strokeCap = StrokeCap.round,
+          );
         }
       case 5: // Dağ
         cv.drawPath(
-            Path()
-              ..moveTo(0, 0.9)
-              ..lineTo(0.38, 0.15)
-              ..lineTo(0.62, 0.6)
-              ..lineTo(0.75, 0.4)
-              ..lineTo(1, 0.9)
-              ..close(),
-            f);
+          Path()
+            ..moveTo(0, 0.9)
+            ..lineTo(0.38, 0.15)
+            ..lineTo(0.62, 0.6)
+            ..lineTo(0.75, 0.4)
+            ..lineTo(1, 0.9)
+            ..close(),
+          f,
+        );
         cv.drawPath(
-            Path()
-              ..moveTo(0.28, 0.35)
-              ..lineTo(0.38, 0.15)
-              ..lineTo(0.48, 0.35)
-              ..lineTo(0.4, 0.3)
-              ..close(),
-            Paint()..color = Colors.white);
+          Path()
+            ..moveTo(0.28, 0.35)
+            ..lineTo(0.38, 0.15)
+            ..lineTo(0.48, 0.35)
+            ..lineTo(0.4, 0.3)
+            ..close(),
+          Paint()..color = Colors.white,
+        );
       case 6: // Alev
         final p = Path()
           ..moveTo(0.5, 0.0)
@@ -197,46 +233,50 @@ class LogoPainter extends CustomPainter {
           ..cubicTo(0.35, 0.5, 0.45, 0.5, 0.5, 0.0);
         cv.drawPath(p, f);
         cv.drawPath(
-            Path()
-              ..moveTo(0.5, 0.45)
-              ..cubicTo(0.75, 0.65, 0.7, 0.85, 0.5, 0.95)
-              ..cubicTo(0.3, 0.85, 0.3, 0.65, 0.5, 0.45),
-            f2);
+          Path()
+            ..moveTo(0.5, 0.45)
+            ..cubicTo(0.75, 0.65, 0.7, 0.85, 0.5, 0.95)
+            ..cubicTo(0.3, 0.85, 0.3, 0.65, 0.5, 0.45),
+          f2,
+        );
       case 7: // Elmas
         cv.drawPath(
-            Path()
-              ..moveTo(0.2, 0.15)
-              ..lineTo(0.8, 0.15)
-              ..lineTo(1, 0.38)
-              ..lineTo(0.5, 0.95)
-              ..lineTo(0, 0.38)
-              ..close(),
-            f);
+          Path()
+            ..moveTo(0.2, 0.15)
+            ..lineTo(0.8, 0.15)
+            ..lineTo(1, 0.38)
+            ..lineTo(0.5, 0.95)
+            ..lineTo(0, 0.38)
+            ..close(),
+          f,
+        );
         cv.drawPath(
-            Path()
-              ..moveTo(0, 0.38)
-              ..lineTo(1, 0.38)
-              ..moveTo(0.35, 0.15)
-              ..lineTo(0.28, 0.38)
-              ..lineTo(0.5, 0.95)
-              ..lineTo(0.72, 0.38)
-              ..lineTo(0.65, 0.15),
-            Paint()
-              ..color = c2
-              ..style = PaintingStyle.stroke
-              ..strokeWidth = 0.03);
+          Path()
+            ..moveTo(0, 0.38)
+            ..lineTo(1, 0.38)
+            ..moveTo(0.35, 0.15)
+            ..lineTo(0.28, 0.38)
+            ..lineTo(0.5, 0.95)
+            ..lineTo(0.72, 0.38)
+            ..lineTo(0.65, 0.15),
+          Paint()
+            ..color = c2
+            ..style = PaintingStyle.stroke
+            ..strokeWidth = 0.03,
+        );
       case 8: // Taç
         cv.drawPath(
-            Path()
-              ..moveTo(0.05, 0.8)
-              ..lineTo(0.05, 0.3)
-              ..lineTo(0.3, 0.55)
-              ..lineTo(0.5, 0.15)
-              ..lineTo(0.7, 0.55)
-              ..lineTo(0.95, 0.3)
-              ..lineTo(0.95, 0.8)
-              ..close(),
-            f);
+          Path()
+            ..moveTo(0.05, 0.8)
+            ..lineTo(0.05, 0.3)
+            ..lineTo(0.3, 0.55)
+            ..lineTo(0.5, 0.15)
+            ..lineTo(0.7, 0.55)
+            ..lineTo(0.95, 0.3)
+            ..lineTo(0.95, 0.8)
+            ..close(),
+          f,
+        );
         cv.drawRect(const Rect.fromLTWH(0.05, 0.82, 0.9, 0.1), f2);
         for (final x in [0.05, 0.5, 0.95]) {
           cv.drawCircle(Offset(x, x == 0.5 ? 0.12 : 0.27), 0.06, f2);
@@ -244,53 +284,71 @@ class LogoPainter extends CustomPainter {
       case 9: // Kanat
         for (int i = 0; i < 4; i++) {
           cv.drawPath(
-              Path()
-                ..moveTo(0.1, 0.75)
-                ..quadraticBezierTo(0.3 + i * 0.1, 0.15 + i * 0.12, 0.95 - i * 0.05, 0.1 + i * 0.16)
-                ..quadraticBezierTo(0.5, 0.45 + i * 0.1, 0.1, 0.75),
-              i.isEven ? f : f2);
+            Path()
+              ..moveTo(0.1, 0.75)
+              ..quadraticBezierTo(
+                0.3 + i * 0.1,
+                0.15 + i * 0.12,
+                0.95 - i * 0.05,
+                0.1 + i * 0.16,
+              )
+              ..quadraticBezierTo(0.5, 0.45 + i * 0.1, 0.1, 0.75),
+            i.isEven ? f : f2,
+          );
         }
       case 10: // Kalp
         cv.drawPath(
-            Path()
-              ..moveTo(0.5, 0.92)
-              ..cubicTo(-0.15, 0.45, 0.15, -0.05, 0.5, 0.28)
-              ..cubicTo(0.85, -0.05, 1.15, 0.45, 0.5, 0.92),
-            f);
+          Path()
+            ..moveTo(0.5, 0.92)
+            ..cubicTo(-0.15, 0.45, 0.15, -0.05, 0.5, 0.28)
+            ..cubicTo(0.85, -0.05, 1.15, 0.45, 0.5, 0.92),
+          f,
+        );
       case 11: // Şimşek
         cv.drawPath(
-            Path()
-              ..moveTo(0.6, 0.0)
-              ..lineTo(0.15, 0.55)
-              ..lineTo(0.45, 0.55)
-              ..lineTo(0.35, 1)
-              ..lineTo(0.85, 0.4)
-              ..lineTo(0.55, 0.4)
-              ..close(),
-            f);
+          Path()
+            ..moveTo(0.6, 0.0)
+            ..lineTo(0.15, 0.55)
+            ..lineTo(0.45, 0.55)
+            ..lineTo(0.35, 1)
+            ..lineTo(0.85, 0.4)
+            ..lineTo(0.55, 0.4)
+            ..close(),
+          f,
+        );
       case 12: // Yaprak
         cv.drawPath(
-            Path()
-              ..moveTo(0.1, 0.9)
-              ..quadraticBezierTo(0.0, 0.1, 0.9, 0.1)
-              ..quadraticBezierTo(0.95, 0.9, 0.1, 0.9),
-            f);
-        cv.drawLine(const Offset(0.1, 0.9), const Offset(0.7, 0.3),
-            Paint()
-              ..color = c2
-              ..strokeWidth = 0.05);
+          Path()
+            ..moveTo(0.1, 0.9)
+            ..quadraticBezierTo(0.0, 0.1, 0.9, 0.1)
+            ..quadraticBezierTo(0.95, 0.9, 0.1, 0.9),
+          f,
+        );
+        cv.drawLine(
+          const Offset(0.1, 0.9),
+          const Offset(0.7, 0.3),
+          Paint()
+            ..color = c2
+            ..strokeWidth = 0.05,
+        );
       case 13: // Göz
         cv.drawPath(
-            Path()
-              ..moveTo(0, 0.5)
-              ..quadraticBezierTo(0.5, 0.0, 1, 0.5)
-              ..quadraticBezierTo(0.5, 1.0, 0, 0.5),
-            f);
+          Path()
+            ..moveTo(0, 0.5)
+            ..quadraticBezierTo(0.5, 0.0, 1, 0.5)
+            ..quadraticBezierTo(0.5, 1.0, 0, 0.5),
+          f,
+        );
         cv.drawCircle(c, 0.18, Paint()..color = const Color(0xFF1A1426));
         cv.drawCircle(c, 0.09, f2);
       case 14: // Film şeridi
         cv.drawRRect(
-            RRect.fromRectAndRadius(const Rect.fromLTWH(0.05, 0.2, 0.9, 0.6), const Radius.circular(0.06)), f);
+          RRect.fromRectAndRadius(
+            const Rect.fromLTWH(0.05, 0.2, 0.9, 0.6),
+            const Radius.circular(0.06),
+          ),
+          f,
+        );
         final hole = Paint()..color = const Color(0xFF1A1426);
         for (int i = 0; i < 5; i++) {
           cv.drawRect(Rect.fromLTWH(0.1 + i * 0.17, 0.24, 0.09, 0.07), hole);
@@ -300,29 +358,41 @@ class LogoPainter extends CustomPainter {
         cv.drawRect(const Rect.fromLTWH(0.55, 0.36, 0.3, 0.28), f2);
       case 15: // Kamera
         cv.drawRRect(
-            RRect.fromRectAndRadius(const Rect.fromLTWH(0.05, 0.35, 0.62, 0.45), const Radius.circular(0.06)), f);
+          RRect.fromRectAndRadius(
+            const Rect.fromLTWH(0.05, 0.35, 0.62, 0.45),
+            const Radius.circular(0.06),
+          ),
+          f,
+        );
         cv.drawPath(
-            Path()
-              ..moveTo(0.67, 0.5)
-              ..lineTo(0.95, 0.38)
-              ..lineTo(0.95, 0.78)
-              ..lineTo(0.67, 0.66)
-              ..close(),
-            f2);
+          Path()
+            ..moveTo(0.67, 0.5)
+            ..lineTo(0.95, 0.38)
+            ..lineTo(0.95, 0.78)
+            ..lineTo(0.67, 0.66)
+            ..close(),
+          f2,
+        );
         cv.drawCircle(const Offset(0.2, 0.2), 0.13, f);
         cv.drawCircle(const Offset(0.48, 0.2), 0.13, f);
       case 16: // Mikrofon
         cv.drawRRect(
-            RRect.fromRectAndRadius(const Rect.fromLTWH(0.33, 0.02, 0.34, 0.55), const Radius.circular(0.17)), f);
+          RRect.fromRectAndRadius(
+            const Rect.fromLTWH(0.33, 0.02, 0.34, 0.55),
+            const Radius.circular(0.17),
+          ),
+          f,
+        );
         cv.drawPath(
-            Path()
-              ..moveTo(0.2, 0.4)
-              ..quadraticBezierTo(0.2, 0.75, 0.5, 0.75)
-              ..quadraticBezierTo(0.8, 0.75, 0.8, 0.4),
-            Paint()
-              ..color = c2
-              ..style = PaintingStyle.stroke
-              ..strokeWidth = 0.06);
+          Path()
+            ..moveTo(0.2, 0.4)
+            ..quadraticBezierTo(0.2, 0.75, 0.5, 0.75)
+            ..quadraticBezierTo(0.8, 0.75, 0.8, 0.4),
+          Paint()
+            ..color = c2
+            ..style = PaintingStyle.stroke
+            ..strokeWidth = 0.06,
+        );
         cv.drawRect(const Rect.fromLTWH(0.47, 0.75, 0.06, 0.15), f2);
         cv.drawRect(const Rect.fromLTWH(0.3, 0.9, 0.4, 0.06), f2);
       case 17: // Nota
@@ -331,29 +401,32 @@ class LogoPainter extends CustomPainter {
         cv.drawRect(const Rect.fromLTWH(0.32, 0.12, 0.06, 0.68), f);
         cv.drawRect(const Rect.fromLTWH(0.79, 0.02, 0.06, 0.68), f);
         cv.drawPath(
-            Path()
-              ..moveTo(0.32, 0.12)
-              ..lineTo(0.85, 0.02)
-              ..lineTo(0.85, 0.16)
-              ..lineTo(0.32, 0.26)
-              ..close(),
-            f2);
+          Path()
+            ..moveTo(0.32, 0.12)
+            ..lineTo(0.85, 0.02)
+            ..lineTo(0.85, 0.16)
+            ..lineTo(0.32, 0.26)
+            ..close(),
+          f2,
+        );
       case 18: // Kalkan
         cv.drawPath(
-            Path()
-              ..moveTo(0.5, 0)
-              ..lineTo(0.95, 0.15)
-              ..quadraticBezierTo(0.95, 0.75, 0.5, 1)
-              ..quadraticBezierTo(0.05, 0.75, 0.05, 0.15)
-              ..close(),
-            f);
+          Path()
+            ..moveTo(0.5, 0)
+            ..lineTo(0.95, 0.15)
+            ..quadraticBezierTo(0.95, 0.75, 0.5, 1)
+            ..quadraticBezierTo(0.05, 0.75, 0.05, 0.15)
+            ..close(),
+          f,
+        );
         cv.drawPath(
-            Path()
-              ..moveTo(0.5, 0.0)
-              ..lineTo(0.5, 1)
-              ..quadraticBezierTo(0.05, 0.75, 0.05, 0.15)
-              ..close(),
-            f2);
+          Path()
+            ..moveTo(0.5, 0.0)
+            ..lineTo(0.5, 1)
+            ..quadraticBezierTo(0.05, 0.75, 0.05, 0.15)
+            ..close(),
+          f2,
+        );
       case 19: // Çark
         final teeth = _poly(c, 0.5, 10, 0, 0.38);
         cv.drawPath(teeth, f);
@@ -364,11 +437,13 @@ class LogoPainter extends CustomPainter {
           cv.save();
           cv.translate(0.5, 0.5);
           cv.rotate(i * pi / 3);
-          cv.drawOval(const Rect.fromLTWH(-0.48, -0.17, 0.96, 0.34),
-              Paint()
-                ..color = c1
-                ..style = PaintingStyle.stroke
-                ..strokeWidth = 0.05);
+          cv.drawOval(
+            const Rect.fromLTWH(-0.48, -0.17, 0.96, 0.34),
+            Paint()
+              ..color = c1
+              ..style = PaintingStyle.stroke
+              ..strokeWidth = 0.05,
+          );
           cv.restore();
         }
         cv.drawCircle(c, 0.1, f2);
@@ -378,21 +453,27 @@ class LogoPainter extends CustomPainter {
         cv.drawOval(const Rect.fromLTWH(0.1, 0.5, 0.36, 0.38), f2);
         cv.drawOval(const Rect.fromLTWH(0.54, 0.5, 0.36, 0.38), f2);
         cv.drawRRect(
-            RRect.fromRectAndRadius(const Rect.fromLTWH(0.46, 0.15, 0.08, 0.75), const Radius.circular(0.04)),
-            Paint()..color = const Color(0xFF1A1426));
+          RRect.fromRectAndRadius(
+            const Rect.fromLTWH(0.46, 0.15, 0.08, 0.75),
+            const Radius.circular(0.04),
+          ),
+          Paint()..color = const Color(0xFF1A1426),
+        );
       case 22: // Ok
         cv.drawPath(
-            Path()
-              ..moveTo(0.05, 0.95)
-              ..lineTo(0.8, 0.2),
-            st);
+          Path()
+            ..moveTo(0.05, 0.95)
+            ..lineTo(0.8, 0.2),
+          st,
+        );
         cv.drawPath(
-            Path()
-              ..moveTo(0.95, 0.05)
-              ..lineTo(0.55, 0.12)
-              ..lineTo(0.88, 0.45)
-              ..close(),
-            f2);
+          Path()
+            ..moveTo(0.95, 0.05)
+            ..lineTo(0.55, 0.12)
+            ..lineTo(0.88, 0.45)
+            ..close(),
+          f2,
+        );
       case 23: // Sonsuzluk
         final p = Path()
           ..moveTo(0.5, 0.5)
@@ -403,78 +484,94 @@ class LogoPainter extends CustomPainter {
         cv.drawPath(p, st..strokeWidth = 0.1);
       case 24: // Kule
         cv.drawPath(
-            Path()
-              ..moveTo(0.3, 1)
-              ..lineTo(0.42, 0.3)
-              ..lineTo(0.58, 0.3)
-              ..lineTo(0.7, 1)
-              ..close(),
-            f);
+          Path()
+            ..moveTo(0.3, 1)
+            ..lineTo(0.42, 0.3)
+            ..lineTo(0.58, 0.3)
+            ..lineTo(0.7, 1)
+            ..close(),
+          f,
+        );
         cv.drawRect(const Rect.fromLTWH(0.36, 0.2, 0.28, 0.12), f2);
         cv.drawPath(
-            Path()
-              ..moveTo(0.38, 0.2)
-              ..lineTo(0.5, 0.0)
-              ..lineTo(0.62, 0.2)
-              ..close(),
-            f);
+          Path()
+            ..moveTo(0.38, 0.2)
+            ..lineTo(0.5, 0.0)
+            ..lineTo(0.62, 0.2)
+            ..close(),
+          f,
+        );
       case 25: // Lale
         cv.drawPath(
-            Path()
-              ..moveTo(0.5, 0.65)
-              ..cubicTo(0.15, 0.6, 0.15, 0.2, 0.25, 0.05)
-              ..lineTo(0.38, 0.25)
-              ..lineTo(0.5, 0.02)
-              ..lineTo(0.62, 0.25)
-              ..lineTo(0.75, 0.05)
-              ..cubicTo(0.85, 0.2, 0.85, 0.6, 0.5, 0.65),
-            f);
-        cv.drawLine(const Offset(0.5, 0.62), const Offset(0.5, 1),
-            Paint()
-              ..color = c2
-              ..strokeWidth = 0.06);
+          Path()
+            ..moveTo(0.5, 0.65)
+            ..cubicTo(0.15, 0.6, 0.15, 0.2, 0.25, 0.05)
+            ..lineTo(0.38, 0.25)
+            ..lineTo(0.5, 0.02)
+            ..lineTo(0.62, 0.25)
+            ..lineTo(0.75, 0.05)
+            ..cubicTo(0.85, 0.2, 0.85, 0.6, 0.5, 0.65),
+          f,
+        );
+        cv.drawLine(
+          const Offset(0.5, 0.62),
+          const Offset(0.5, 1),
+          Paint()
+            ..color = c2
+            ..strokeWidth = 0.06,
+        );
         cv.drawPath(
-            Path()
-              ..moveTo(0.5, 0.95)
-              ..quadraticBezierTo(0.2, 0.9, 0.18, 0.65)
-              ..quadraticBezierTo(0.42, 0.72, 0.5, 0.95),
-            f2);
+          Path()
+            ..moveTo(0.5, 0.95)
+            ..quadraticBezierTo(0.2, 0.9, 0.18, 0.65)
+            ..quadraticBezierTo(0.42, 0.72, 0.5, 0.95),
+          f2,
+        );
       case 26: // Martı
         cv.drawPath(
-            Path()
-              ..moveTo(0.0, 0.4)
-              ..quadraticBezierTo(0.25, 0.2, 0.5, 0.55)
-              ..quadraticBezierTo(0.75, 0.2, 1.0, 0.4)
-              ..quadraticBezierTo(0.75, 0.35, 0.5, 0.7)
-              ..quadraticBezierTo(0.25, 0.35, 0.0, 0.4),
-            f);
+          Path()
+            ..moveTo(0.0, 0.4)
+            ..quadraticBezierTo(0.25, 0.2, 0.5, 0.55)
+            ..quadraticBezierTo(0.75, 0.2, 1.0, 0.4)
+            ..quadraticBezierTo(0.75, 0.35, 0.5, 0.7)
+            ..quadraticBezierTo(0.25, 0.35, 0.0, 0.4),
+          f,
+        );
         cv.drawCircle(const Offset(0.5, 0.85), 0.06, f2);
       default: // Pusula
-        cv.drawCircle(c, 0.46,
-            Paint()
-              ..color = c1
-              ..style = PaintingStyle.stroke
-              ..strokeWidth = 0.05);
+        cv.drawCircle(
+          c,
+          0.46,
+          Paint()
+            ..color = c1
+            ..style = PaintingStyle.stroke
+            ..strokeWidth = 0.05,
+        );
         cv.drawPath(
-            Path()
-              ..moveTo(0.5, 0.06)
-              ..lineTo(0.6, 0.5)
-              ..lineTo(0.4, 0.5)
-              ..close(),
-            f);
+          Path()
+            ..moveTo(0.5, 0.06)
+            ..lineTo(0.6, 0.5)
+            ..lineTo(0.4, 0.5)
+            ..close(),
+          f,
+        );
         cv.drawPath(
-            Path()
-              ..moveTo(0.5, 0.94)
-              ..lineTo(0.6, 0.5)
-              ..lineTo(0.4, 0.5)
-              ..close(),
-            f2);
+          Path()
+            ..moveTo(0.5, 0.94)
+            ..lineTo(0.6, 0.5)
+            ..lineTo(0.4, 0.5)
+            ..close(),
+          f2,
+        );
     }
   }
 
   @override
   bool shouldRepaint(covariant LogoPainter o) =>
-      o.shape != shape || o.palette != palette || o.frame != frame || o.glow != glow;
+      o.shape != shape ||
+      o.palette != palette ||
+      o.frame != frame ||
+      o.glow != glow;
 }
 
 /// Logo + şirket adı (yatay amblem)
@@ -482,25 +579,35 @@ class CompanyBadge extends StatelessWidget {
   final CompanyLogo logo;
   final String name;
   final double size;
-  const CompanyBadge(
-      {super.key, required this.logo, required this.name, this.size = 40});
+  const CompanyBadge({
+    super.key,
+    required this.logo,
+    required this.name,
+    this.size = 40,
+  });
 
   @override
   Widget build(BuildContext context) {
     final c = logoPalettes[logo.palette % logoPalettes.length];
-    return Row(mainAxisSize: MainAxisSize.min, children: [
-      CompanyLogoView(logo: logo, size: size),
-      SizedBox(width: size * 0.2),
-      Flexible(
-        child: Text(name.toUpperCase(),
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        CompanyLogoView(logo: logo, size: size),
+        SizedBox(width: size * 0.2),
+        Flexible(
+          child: Text(
+            name.toUpperCase(),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             style: TextStyle(
-                fontWeight: FontWeight.w900,
-                letterSpacing: 1.2,
-                fontSize: size * 0.38,
-                color: c[0])),
-      ),
-    ]);
+              fontWeight: FontWeight.w900,
+              letterSpacing: 1.2,
+              fontSize: size * 0.38,
+              color: c[0],
+            ),
+          ),
+        ),
+      ],
+    );
   }
 }

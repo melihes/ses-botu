@@ -25,7 +25,11 @@ double salaryFor(int skill) => 1500 + skill * skill * 3.0;
 
 /// Program kalitesi (0..1.3): kadro yeteneği × bütçe × ekipman.
 double showQuality(
-    List<Staff> staff, Genre genre, int tier, Iterable<String> ownedEquip) {
+  List<Staff> staff,
+  Genre genre,
+  int tier,
+  Iterable<String> ownedEquip,
+) {
   if (staff.isEmpty) return 0;
   final avg =
       staff.map((s) => s.skill).reduce((a, b) => a + b) / staff.length / 100;
@@ -35,8 +39,10 @@ double showQuality(
     if (e == null || e.qualityBonus == 0) continue;
     if (e.boosts.isEmpty || e.boosts.contains(genre)) bonus += e.qualityBonus;
   }
-  return (avg * formatOf(genre, tier).qualityMult * (1 + bonus))
-      .clamp(0.0, 1.6);
+  return (avg * formatOf(genre, tier).qualityMult * (1 + bonus)).clamp(
+    0.0,
+    1.6,
+  );
 }
 
 /// İzleyicinin tahammül ettiği reklam süresi: kaliteli program daha çok
@@ -50,9 +56,8 @@ double adRetention(double adMinutes, double quality) {
 }
 
 /// Sezon ilerledikçe ilgi: dizi ortada zirve yapar, diğerleri yavaşça yorulur.
-double freshness(Genre g, double progress) => g == Genre.dizi
-    ? 0.9 + 0.25 * sin(pi * progress)
-    : 1.05 - 0.15 * progress;
+double freshness(Genre g, double progress) =>
+    g == Genre.dizi ? 0.9 + 0.25 * sin(pi * progress) : 1.05 - 0.15 * progress;
 
 /// Reklamsız, ideal koşullardaki ham reyting (%).
 double baseRating(double quality, Genre g) =>
@@ -76,8 +81,15 @@ double viewersFor(double ratingPct, SlotId slot, double reach) =>
 
 /// Günlük reklam geliri.
 double adRevenuePerDay(
-        double viewers, double adMinutes, SlotId slot, double bonus) =>
-    viewers * adMinutes * adRatePerViewerMinute * slotDefs[slot]!.adValue *
+  double viewers,
+  double adMinutes,
+  SlotId slot,
+  double bonus,
+) =>
+    viewers *
+    adMinutes *
+    adRatePerViewerMinute *
+    slotDefs[slot]!.adValue *
     (1 + bonus);
 
 /// Prestij reklam fiyatlarını artırır (en fazla %30).
@@ -123,8 +135,13 @@ double filmValue(Film f) =>
 
 /// Vizyondaki bir günün gişesi: ilk hafta güçlü, sonra düşer.
 double boxOfficeForDay(Film f, int dayIndex, double reach, double bonus) {
-  final total = f.cost * pow(f.score / 5, 1.8) * 1.0 * f.def.boxOffice *
-      (0.5 + reach) * (1 + bonus);
+  final total =
+      f.cost *
+      pow(f.score / 5, 1.8) *
+      1.0 *
+      f.def.boxOffice *
+      (0.5 + reach) *
+      (1 + bonus);
   // 10 güne yayılan azalan dağılım (toplamı ~1)
   final w = pow(0.8, dayIndex) * 0.2 / (1 - pow(0.8, theaterRunDays));
   return total * w;

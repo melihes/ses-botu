@@ -127,7 +127,8 @@ class Game extends ChangeNotifier {
       try {
         _load(jsonDecode(raw));
         final lastSeen = DateTime.fromMillisecondsSinceEpoch(
-            jsonDecode(raw)['savedAt'] as int);
+          jsonDecode(raw)['savedAt'] as int,
+        );
         _catchUp(DateTime.now().difference(lastSeen));
       } catch (e) {
         debugPrint('Kayıt okunamadı, yeni oyun: $e');
@@ -198,8 +199,11 @@ class Game extends ChangeNotifier {
     _resetV12();
     _refreshMarket();
     _tendersDaily();
-    _log('Kanal kuruldu', '$channelName yayın hayatına başladı. Bol reytingler!',
-        true);
+    _log(
+      'Kanal kuruldu',
+      '$channelName yayın hayatına başladı. Bol reytingler!',
+      true,
+    );
   }
 
   Future<void> resetGame() async {
@@ -240,7 +244,8 @@ class Game extends ChangeNotifier {
     final raw = prefs.getString(_saveKey);
     if (raw != null) {
       final savedAt = DateTime.fromMillisecondsSinceEpoch(
-          jsonDecode(raw)['savedAt'] as int);
+        jsonDecode(raw)['savedAt'] as int,
+      );
       _catchUp(DateTime.now().difference(savedAt));
     }
     _dailyCheck();
@@ -266,9 +271,16 @@ class Game extends ChangeNotifier {
       return 'İmza ücreti için ${fmtShort(managerSigningFee)} gerekli.';
     }
     cash -= managerSigningFee;
-    execs[ExecRole.genelMudur] =
-        Exec(_newId('e'), 'Kemal Ardıç', ExecRole.genelMudur, 55, managerSalary);
-    _notify('🤵 Genel Müdür göreve başladı! Biten sezonları artık o yenileyecek.');
+    execs[ExecRole.genelMudur] = Exec(
+      _newId('e'),
+      'Kemal Ardıç',
+      ExecRole.genelMudur,
+      55,
+      managerSalary,
+    );
+    _notify(
+      '🤵 Genel Müdür göreve başladı! Biten sezonları artık o yenileyecek.',
+    );
     _changed();
     return null;
   }
@@ -328,69 +340,69 @@ class Game extends ChangeNotifier {
   }
 
   Map<String, dynamic> _toJson() => {
-        'v': _saveVersion,
-        'savedAt': DateTime.now().millisecondsSinceEpoch,
-        'idCounter': _idCounter,
-        'channelName': channelName,
-        'cash': cash,
-        'diamonds': diamonds,
-        'day': day,
-        'dayProgress': dayProgress,
-        'studioLevel': studioLevel,
-        'vip': vip,
-        'staff': staff.map((e) => e.toJson()).toList(),
-        'market': market.map((e) => e.toJson()).toList(),
-        'shows': shows.map((e) => e.toJson()).toList(),
-        'slots': {for (final e in slots.entries) e.key.name: e.value.toJson()},
-        'loans': loans.map((e) => e.toJson()).toList(),
-        'ownedLuxury': ownedLuxury.toList(),
-        'ownedChannels': ownedChannels.toList(),
-        'ownedEquip': ownedEquip.toList(),
-        'films': films.map((e) => e.toJson()).toList(),
-        'ownedPlatforms': ownedPlatforms.toList(),
-        'bizLevels': bizLevels,
-        'creators': creators.map((e) => e.toJson()).toList(),
-        'creatorMarket': creatorMarket.map((e) => e.toJson()).toList(),
-        'history': history.map((e) => e.toJson()).toList(),
-        'todaySamples': todaySamples.map((e) => e.round()).toList(),
-        'cashAtDayStart': cashAtDayStart,
-        'introSeen': introSeen,
-        'managerHired': autoManager,
-        'missionDate': missionDate,
-        'missions': missions.map((m) => m.toJson()).toList(),
-        'loginDate': loginDate,
-        'loginStreak': loginStreak,
-        'adTouched': adTouched,
-        'claimedGoals': claimedGoals.toList(),
-        'lastReport': {
-          for (final e in lastReport.entries)
-            e.key.name: e.value.map((r) => r.toJson()).toList()
-        },
-        'reportDay': reportDay,
-        'primeWins': primeWins,
-        'bestRating': bestRating,
-        'sponsorDeals': sponsorDeals,
-        'decisionsMade': decisionsMade,
-        'trophies': trophies.map((e) => e.toJson()).toList(),
-        'achievements': achievements.toList(),
-        'tenders': tenders.map((e) => e.toJson()).toList(),
-        'tendersWon': tendersWon,
-        'stockPrices': stockPrices,
-        'stockHist': stockHist,
-        'holdings': holdings,
-        'costBasis': costBasis,
-        'tradingProfit': tradingProfit,
-        'lastStockHour': lastStockHour,
-        'negotiations': {
-          for (final e in negotiations.entries) e.key: e.value.toJson()
-        },
-        'cashHistory': cashHistory,
-        'eventLog': eventLog.map((e) => e.toJson()).toList(),
-        'bonusPrestige': bonusPrestige,
-        'todayIncome': todayIncome,
-        'yesterdayIncome': yesterdayIncome,
-        ..._v12ToJson(),
-      };
+    'v': _saveVersion,
+    'savedAt': DateTime.now().millisecondsSinceEpoch,
+    'idCounter': _idCounter,
+    'channelName': channelName,
+    'cash': cash,
+    'diamonds': diamonds,
+    'day': day,
+    'dayProgress': dayProgress,
+    'studioLevel': studioLevel,
+    'vip': vip,
+    'staff': staff.map((e) => e.toJson()).toList(),
+    'market': market.map((e) => e.toJson()).toList(),
+    'shows': shows.map((e) => e.toJson()).toList(),
+    'slots': {for (final e in slots.entries) e.key.name: e.value.toJson()},
+    'loans': loans.map((e) => e.toJson()).toList(),
+    'ownedLuxury': ownedLuxury.toList(),
+    'ownedChannels': ownedChannels.toList(),
+    'ownedEquip': ownedEquip.toList(),
+    'films': films.map((e) => e.toJson()).toList(),
+    'ownedPlatforms': ownedPlatforms.toList(),
+    'bizLevels': bizLevels,
+    'creators': creators.map((e) => e.toJson()).toList(),
+    'creatorMarket': creatorMarket.map((e) => e.toJson()).toList(),
+    'history': history.map((e) => e.toJson()).toList(),
+    'todaySamples': todaySamples.map((e) => e.round()).toList(),
+    'cashAtDayStart': cashAtDayStart,
+    'introSeen': introSeen,
+    'managerHired': autoManager,
+    'missionDate': missionDate,
+    'missions': missions.map((m) => m.toJson()).toList(),
+    'loginDate': loginDate,
+    'loginStreak': loginStreak,
+    'adTouched': adTouched,
+    'claimedGoals': claimedGoals.toList(),
+    'lastReport': {
+      for (final e in lastReport.entries)
+        e.key.name: e.value.map((r) => r.toJson()).toList(),
+    },
+    'reportDay': reportDay,
+    'primeWins': primeWins,
+    'bestRating': bestRating,
+    'sponsorDeals': sponsorDeals,
+    'decisionsMade': decisionsMade,
+    'trophies': trophies.map((e) => e.toJson()).toList(),
+    'achievements': achievements.toList(),
+    'tenders': tenders.map((e) => e.toJson()).toList(),
+    'tendersWon': tendersWon,
+    'stockPrices': stockPrices,
+    'stockHist': stockHist,
+    'holdings': holdings,
+    'costBasis': costBasis,
+    'tradingProfit': tradingProfit,
+    'lastStockHour': lastStockHour,
+    'negotiations': {
+      for (final e in negotiations.entries) e.key: e.value.toJson(),
+    },
+    'cashHistory': cashHistory,
+    'eventLog': eventLog.map((e) => e.toJson()).toList(),
+    'bonusPrestige': bonusPrestige,
+    'todayIncome': todayIncome,
+    'yesterdayIncome': yesterdayIncome,
+    ..._v12ToJson(),
+  };
 
   void _load(Map<String, dynamic> j) {
     _idCounter = j['idCounter'] ?? 0;
@@ -452,14 +464,18 @@ class Game extends ChangeNotifier {
       ..addAll((j['creators'] as List? ?? []).map((e) => Creator.fromJson(e)));
     creatorMarket
       ..clear()
-      ..addAll((j['creatorMarket'] as List? ?? []).map((e) => Creator.fromJson(e)));
+      ..addAll(
+        (j['creatorMarket'] as List? ?? []).map((e) => Creator.fromJson(e)),
+      );
     if (creatorMarket.isEmpty) _refreshCreators();
     history
       ..clear()
       ..addAll((j['history'] as List? ?? []).map((e) => DayStat.fromJson(e)));
     todaySamples
       ..clear()
-      ..addAll((j['todaySamples'] as List? ?? []).map((e) => (e as num).toDouble()));
+      ..addAll(
+        (j['todaySamples'] as List? ?? []).map((e) => (e as num).toDouble()),
+      );
     cashAtDayStart = (j['cashAtDayStart'] as num? ?? cash).toDouble();
     introSeen = j['introSeen'] ?? true;
     missionDate = j['missionDate'] ?? '';
@@ -500,10 +516,14 @@ class Game extends ChangeNotifier {
     if (j['stockPrices'] == null) {
       _initStocks();
     } else {
-      (j['stockPrices'] as Map<String, dynamic>)
-          .forEach((k, v) => stockPrices[k] = (v as num).toDouble());
-      (j['stockHist'] as Map<String, dynamic>).forEach((k, v) => stockHist[k] =
-          (v as List).map((e) => (e as num).toDouble()).toList());
+      (j['stockPrices'] as Map<String, dynamic>).forEach(
+        (k, v) => stockPrices[k] = (v as num).toDouble(),
+      );
+      (j['stockHist'] as Map<String, dynamic>).forEach(
+        (k, v) => stockHist[k] = (v as List)
+            .map((e) => (e as num).toDouble())
+            .toList(),
+      );
       for (final d in stockDefs) {
         stockPrices.putIfAbsent(d.ticker, () => d.basePrice);
         stockHist.putIfAbsent(d.ticker, () => [d.basePrice]);
@@ -511,24 +531,35 @@ class Game extends ChangeNotifier {
     }
     holdings
       ..clear()
-      ..addAll((j['holdings'] as Map<String, dynamic>? ?? {})
-          .map((k, v) => MapEntry(k, (v as num).toDouble())));
+      ..addAll(
+        (j['holdings'] as Map<String, dynamic>? ?? {}).map(
+          (k, v) => MapEntry(k, (v as num).toDouble()),
+        ),
+      );
     costBasis
       ..clear()
-      ..addAll((j['costBasis'] as Map<String, dynamic>? ?? {})
-          .map((k, v) => MapEntry(k, (v as num).toDouble())));
+      ..addAll(
+        (j['costBasis'] as Map<String, dynamic>? ?? {}).map(
+          (k, v) => MapEntry(k, (v as num).toDouble()),
+        ),
+      );
     tradingProfit = (j['tradingProfit'] as num? ?? 0).toDouble();
     lastStockHour = j['lastStockHour'] ?? ((day + dayProgress) * 24).floor();
     negotiations
       ..clear()
-      ..addAll((j['negotiations'] as Map<String, dynamic>)
-          .map((k, v) => MapEntry(k, NegState.fromJson(v))));
+      ..addAll(
+        (j['negotiations'] as Map<String, dynamic>).map(
+          (k, v) => MapEntry(k, NegState.fromJson(v)),
+        ),
+      );
     cashHistory
       ..clear()
       ..addAll((j['cashHistory'] as List).map((e) => (e as num).toDouble()));
     eventLog
       ..clear()
-      ..addAll((j['eventLog'] as List? ?? []).map((e) => GameEvent.fromJson(e)));
+      ..addAll(
+        (j['eventLog'] as List? ?? []).map((e) => GameEvent.fromJson(e)),
+      );
     bonusPrestige = j['bonusPrestige'] ?? 0;
     todayIncome = (j['todayIncome'] as num? ?? 0).toDouble();
     yesterdayIncome = (j['yesterdayIncome'] as num? ?? 0).toDouble();
@@ -588,7 +619,9 @@ class Game extends ChangeNotifier {
           s.status = ShowStatus.ready;
           _acc?.finishedProductions++;
           final auto = s.autoSlot;
-          if (auto != null && slots[auto]!.showId == null && slotUnlocked(auto)) {
+          if (auto != null &&
+              slots[auto]!.showId == null &&
+              slotUnlocked(auto)) {
             slots[auto]!.showId = s.id;
             s.slot = auto;
             s.status = ShowStatus.onAir;
@@ -609,7 +642,8 @@ class Game extends ChangeNotifier {
         f.prodLeft -= step;
         if (f.prodLeft <= 0) _finishFilm(f);
       } else if (f.status == FilmStatus.inTheaters) {
-        final inc = boxOfficeForDay(f, f.theaterDay, reach, boxOfficeBonus) * step;
+        final inc =
+            boxOfficeForDay(f, f.theaterDay, reach, boxOfficeBonus) * step;
         cash += inc;
         todayIncome += inc;
         f.boxOffice += inc;
@@ -649,15 +683,18 @@ class Game extends ChangeNotifier {
       if (st.showId == f.id) st.showId = null;
     }
     _acc?.filmsDone++;
-    _notify('🎞️ "${f.name}" tamamlandı! İzleyici puanı ${fmtDec(f.score, 1)}. '
-        'Vizyona sok ya da platformlara sat.');
+    _notify(
+      '🎞️ "${f.name}" tamamlandı! İzleyici puanı ${fmtDec(f.score, 1)}. '
+      'Vizyona sok ya da platformlara sat.',
+    );
   }
 
   void _endOfDay() {
     day++;
 
     // Giderler
-    final sal = dailySalaries +
+    final sal =
+        dailySalaries +
         creators.fold(0.0, (a, c) => a + c.salary) +
         execSalaries;
     cash -= sal;
@@ -721,8 +758,10 @@ class Game extends ChangeNotifier {
         f.theaterDay++;
         if (f.theaterDay >= theaterRunDays) {
           f.status = FilmStatus.library;
-          _notify('🍿 "${f.name}" vizyondan kalktı. Gişe: ${fmtShort(f.boxOffice)}. '
-              'Artık platformlara lisanslayabilirsin.');
+          _notify(
+            '🍿 "${f.name}" vizyondan kalktı. Gişe: ${fmtShort(f.boxOffice)}. '
+            'Artık platformlara lisanslayabilirsin.',
+          );
         }
       }
       for (final l in f.licenses) {
@@ -779,12 +818,16 @@ class Game extends ChangeNotifier {
       if (cash >= cost * (2.0 - gm.power * 0.8) && renewShow(s) == null) {
         s.autoSlot = prevSlot;
         _acc?.autoRenewed++;
-        _notify('🤵 Genel Müdür: "${s.name}" ${s.season}. sezon çekimlerine başladı.');
+        _notify(
+          '🤵 Genel Müdür: "${s.name}" ${s.season}. sezon çekimlerine başladı.',
+        );
         return;
       }
     }
-    _notify('🏁 "${s.name}" ${s.season}. sezon finali yaptı! '
-        'Yeni sezon çekebilirsin.');
+    _notify(
+      '🏁 "${s.name}" ${s.season}. sezon finali yaptı! '
+      'Yeni sezon çekebilirsin.',
+    );
   }
 
   // =================================================================
@@ -802,80 +845,110 @@ class Game extends ChangeNotifier {
         if (s == null) return;
         s.buff = 1.2;
         s.buffDays = 2;
-        _event('📈 Viral oldu!',
-            '"${s.name}" sosyal medyada gündem oldu. 2 gün reyting +%20.', true);
+        _event(
+          '📈 Viral oldu!',
+          '"${s.name}" sosyal medyada gündem oldu. 2 gün reyting +%20.',
+          true,
+        );
       case 1:
         if (s == null || !s.def.needs.containsKey(Role.oyuncu)) return;
         if (_offerDecision(_setCrisisDecision(s))) return;
         s.buff = 0.92;
         s.buffDays = 1;
-        _event('😤 Sette kriz',
-            '"${s.name}" başrolü sete geç geldi. 1 gün reyting -%8.', false);
+        _event(
+          '😤 Sette kriz',
+          '"${s.name}" başrolü sete geç geldi. 1 gün reyting -%8.',
+          false,
+        );
       case 2:
         final cost = (yesterdayIncome * 0.15).clamp(20000.0, 2e6);
         cash -= cost;
         _acc?.eventCash -= cost;
-        _event('⚡ Verici arızası',
-            'Fırtına vericiyi vurdu. Onarım: ${fmtShort(cost)}', false);
+        _event(
+          '⚡ Verici arızası',
+          'Fırtına vericiyi vurdu. Onarım: ${fmtShort(cost)}',
+          false,
+        );
       case 3:
         if (s == null ||
             !(s.genre == Genre.magazin || s.genre == Genre.talkShow)) {
           return;
         }
-        final fine = productionCost(s.genre, s.tier) * 0.3 *
+        final fine =
+            productionCost(s.genre, s.tier) *
+            0.3 *
             (1 - execBonus(ExecRole.hukuk));
         if (_offerDecision(_regulatorDecision(s, fine))) return;
         cash -= fine;
         _acc?.eventCash -= fine;
-        _event('⚖️ Yayın Kurulu cezası',
-            '"${s.name}" için ${fmtShort(fine)} idari para cezası.', false);
+        _event(
+          '⚖️ Yayın Kurulu cezası',
+          '"${s.name}" için ${fmtShort(fine)} idari para cezası.',
+          false,
+        );
       case 4:
         if (s == null) return;
         s.buff = 1.15;
         s.buffDays = 4;
         bonusPrestige += 15;
-        _event('🏆 Ödül töreni',
-            '"${s.name}" yılın programı seçildi! +15 prestij, 4 gün reyting +%15.',
-            true);
+        _event(
+          '🏆 Ödül töreni',
+          '"${s.name}" yılın programı seçildi! +15 prestij, 4 gün reyting +%15.',
+          true,
+        );
       case 5:
         final amount = (yesterdayIncome * 1.5).clamp(80000.0, 50e6);
         _gain(amount);
         _acc?.eventCash += amount;
-        _event('🤝 Sponsor anlaşması',
-            'Bir içecek markası sponsor oldu: +${fmtShort(amount)}', true);
+        _event(
+          '🤝 Sponsor anlaşması',
+          'Bir içecek markası sponsor oldu: +${fmtShort(amount)}',
+          true,
+        );
       case 6:
         if (s == null) return;
         if (_offerDecision(_scandalDecision(s))) return;
         s.buff = 1.12;
         s.buffDays = 2;
         bonusPrestige = max(0, bonusPrestige - 3);
-        _event('📰 Skandal manşette',
-            '"${s.name}" kulis dedikodusuyla gazetelerde. Reyting +%12 ama -3 prestij.',
-            true);
+        _event(
+          '📰 Skandal manşette',
+          '"${s.name}" kulis dedikodusuyla gazetelerde. Reyting +%12 ama -3 prestij.',
+          true,
+        );
       case 7:
         if (s == null) return;
         s.buff = 0.93;
         s.buffDays = 2;
-        _event('📺 Rakip hamlesi',
-            'Rakip kanal aynı saate dev yapım koydu. "${s.name}" 2 gün -%7.',
-            false);
+        _event(
+          '📺 Rakip hamlesi',
+          'Rakip kanal aynı saate dev yapım koydu. "${s.name}" 2 gün -%7.',
+          false,
+        );
       case 9:
         final pool = films
-            .where((f) =>
-                f.status == FilmStatus.inTheaters ||
-                f.status == FilmStatus.library)
+            .where(
+              (f) =>
+                  f.status == FilmStatus.inTheaters ||
+                  f.status == FilmStatus.library,
+            )
             .toList();
         if (pool.isEmpty) return;
         final f = pool[_rng.nextInt(pool.length)];
         f.score = min(9.9, f.score + 0.5);
         bonusPrestige += 10;
-        _event('🎖️ Festival ödülü',
-            '"${f.name}" uluslararası festivalde ödül aldı! Puan +0,5, +10 prestij.',
-            true);
+        _event(
+          '🎖️ Festival ödülü',
+          '"${f.name}" uluslararası festivalde ödül aldı! Puan +0,5, +10 prestij.',
+          true,
+        );
       case 8:
         diamonds += 2;
-        _event('💎 Sadık izleyici', 'İzleyici kulübü sana 2 elmas hediye etti.',
-            true);
+        _event(
+          '💎 Sadık izleyici',
+          'İzleyici kulübü sana 2 elmas hediye etti.',
+          true,
+        );
     }
   }
 
@@ -912,7 +985,8 @@ class Game extends ChangeNotifier {
   }
 
   int get prestige {
-    var p = bonusPrestige +
+    var p =
+        bonusPrestige +
         studioLevel * 50 +
         (bizEffect(BizEffect.prestige)).round();
     for (final d in luxuryDefs) {
@@ -1015,7 +1089,10 @@ class Game extends ChangeNotifier {
   double get digitalBoost => min(totalFollowers / 20e6, 0.10);
   double get boxOfficeBonus =>
       bizEffect(BizEffect.boxOffice) +
-      ownedEquip.fold(0.0, (a, id) => a + (equipById(id)?.boxOfficeBonus ?? 0)) +
+      ownedEquip.fold(
+        0.0,
+        (a, id) => a + (equipById(id)?.boxOfficeBonus ?? 0),
+      ) +
       execBonus(ExecRole.sinema);
   double get licenseBonus => bizEffect(BizEffect.licenseFee);
   double get musicQualityBonus => bizEffect(BizEffect.quality);
@@ -1038,16 +1115,19 @@ class Game extends ChangeNotifier {
 
   double get boxOfficePerDay => films
       .where((f) => f.status == FilmStatus.inTheaters)
-      .fold(0.0,
-          (a, f) => a + boxOfficeForDay(f, f.theaterDay, reach, boxOfficeBonus));
+      .fold(
+        0.0,
+        (a, f) => a + boxOfficeForDay(f, f.theaterDay, reach, boxOfficeBonus),
+      );
 
   /// Boşta bekleyen (programda olmayan) kadro yarım maaş alır.
   double get dailySalaries =>
       staff.fold(
-          0.0, (a, s) => a + (s.showId == null ? s.salary * 0.5 : s.salary)) +
+        0.0,
+        (a, s) => a + (s.showId == null ? s.salary * 0.5 : s.salary),
+      ) +
       academy.fold(0.0, (a, s) => a + s.salary);
-  double get dailyRent =>
-      studio.rentPerDay * (1 - execBonus(ExecRole.finans));
+  double get dailyRent => studio.rentPerDay * (1 - execBonus(ExecRole.finans));
   double get dailyUpkeep =>
       (ownedEquip.fold(0.0, (a, id) => a + (equipById(id)?.upkeepPerDay ?? 0)) +
           locationUpkeep) *
@@ -1167,19 +1247,25 @@ class Game extends ChangeNotifier {
   String _newId(String p) => '$p${++_idCounter}';
 
   Staff _randomPerson(Role role) {
-    final base = 30 + studioLevel * 9 + bizEffect(BizEffect.marketSkill).round();
+    final base =
+        30 + studioLevel * 9 + bizEffect(BizEffect.marketSkill).round();
     // yaklaşık normal dağılım
-    final g = (_rng.nextDouble() + _rng.nextDouble() + _rng.nextDouble() - 1.5) *
-        2;
+    final g =
+        (_rng.nextDouble() + _rng.nextDouble() + _rng.nextDouble() - 1.5) * 2;
     var skill = (base + g * 16).round().clamp(8, 99);
     if (_rng.nextDouble() < 0.06) skill = 85 + _rng.nextInt(14); // yıldız!
     final name =
         '${firstNames[_rng.nextInt(firstNames.length)]} ${lastNames[_rng.nextInt(lastNames.length)]}';
-    final salary = (salaryFor(skill) * (0.85 + _rng.nextDouble() * 0.3) / 100)
-            .round() *
+    final salary =
+        (salaryFor(skill) * (0.85 + _rng.nextDouble() * 0.3) / 100).round() *
         100.0;
     return Staff(
-        id: _newId('p'), name: name, role: role, skill: skill, salary: salary);
+      id: _newId('p'),
+      name: name,
+      role: role,
+      skill: skill,
+      salary: salary,
+    );
   }
 
   void _refreshMarket() {
@@ -1193,7 +1279,10 @@ class Game extends ChangeNotifier {
     market.sort((a, b) => a.role.index.compareTo(b.role.index));
     // Günün Yıldızı: her gün yüksek puanlı (ama daha pahalı) bir aday
     final star = _randomPerson(Role.values[_rng.nextInt(4)]);
-    star.skill = min(99, max(star.skill, 80 + studioLevel * 2 + _rng.nextInt(12)));
+    star.skill = min(
+      99,
+      max(star.skill, 80 + studioLevel * 2 + _rng.nextInt(12)),
+    );
     star.salary = (salaryFor(star.skill) * 1.3 / 100).round() * 100.0;
     market.insert(0, star);
   }
@@ -1236,8 +1325,15 @@ class Game extends ChangeNotifier {
   // Yapım
   // =================================================================
 
-  String? createShow(String name, Genre genre, int tier, List<Staff> crew,
-      {int budget = 1, int guest = 0, String? location}) {
+  String? createShow(
+    String name,
+    Genre genre,
+    int tier,
+    List<Staff> crew, {
+    int budget = 1,
+    int guest = 0,
+    String? location,
+  }) {
     final def = genreDefs[genre]!;
     if (!genreUnlocked(genre)) {
       return '${def.label} için ${equipById(def.reqEquip!)!.name} gerekli.';
@@ -1261,7 +1357,9 @@ class Game extends ChangeNotifier {
       budget: budget,
       guest: guest,
       guestName: guest > 0
-          ? guestTiers[guest].names[_rng.nextInt(guestTiers[guest].names.length)]
+          ? guestTiers[guest].names[_rng.nextInt(
+              guestTiers[guest].names.length,
+            )]
           : null,
       location: location,
       id: _newId('s'),
@@ -1306,7 +1404,8 @@ class Game extends ChangeNotifier {
       ..seasonRevenue = 0
       ..status = ShowStatus.producing
       ..prodLeft = max(1.0, s.def.prodDays - 1) * prodSpeedMult()
-      ..quality = fullShowQuality(crew, s.genre, s.tier, s.budget, s.location) * fatigue
+      ..quality =
+          fullShowQuality(crew, s.genre, s.tier, s.budget, s.location) * fatigue
       ..ratingHistory.clear();
     if (!_offlineMode) _count('show');
     _notify('🎥 "${s.name}" ${s.season}. sezon çekimleri başladı!');
@@ -1352,7 +1451,8 @@ class Game extends ChangeNotifier {
   /// Yayındaki programı başka kuşağa taşır; hedef doluysa yer değiştirir.
   /// Sezon kesilmez, bölüm sayısı korunur.
   String? moveShow(Show s, SlotId to) {
-    if (s.status != ShowStatus.onAir || s.slot == null) return 'Program yayında değil.';
+    if (s.status != ShowStatus.onAir || s.slot == null)
+      return 'Program yayında değil.';
     if (!slotUnlocked(to)) return 'Bu kuşak henüz açık değil.';
     final from = s.slot!;
     if (from == to) return null;
@@ -1361,9 +1461,11 @@ class Game extends ChangeNotifier {
     s.slot = to;
     slots[from]!.showId = other?.id;
     other?.slot = from;
-    _notify(other == null
-        ? '🔀 "${s.name}" ${slotDefs[to]!.label} kuşağına taşındı.'
-        : '🔀 "${s.name}" ile "${other.name}" yer değiştirdi.');
+    _notify(
+      other == null
+          ? '🔀 "${s.name}" ${slotDefs[to]!.label} kuşağına taşındı.'
+          : '🔀 "${s.name}" ile "${other.name}" yer değiştirdi.',
+    );
     _changed();
     return null;
   }
@@ -1418,13 +1520,15 @@ class Game extends ChangeNotifier {
   String? takeLoan(LoanOffer o) {
     if (loans.length >= 3) return 'En fazla 3 açık kredin olabilir.';
     _gain(o.amount);
-    loans.add(Loan(
-      id: _newId('l'),
-      principal: o.amount,
-      installment: o.installment,
-      installmentsLeft: o.installments,
-      nextDueDay: day + 7,
-    ));
+    loans.add(
+      Loan(
+        id: _newId('l'),
+        principal: o.amount,
+        installment: o.installment,
+        installmentsLeft: o.installments,
+        nextDueDay: day + 7,
+      ),
+    );
     _notify('🏦 ${fmtShort(o.amount)} kredi hesabına yattı.');
     _changed();
     return null;
@@ -1478,7 +1582,9 @@ class Game extends ChangeNotifier {
   }
 
   NegState negFor(String id) => negotiations.putIfAbsent(
-      id, () => NegState(floorFactor: 0.74 + _rng.nextDouble() * 0.18));
+    id,
+    () => NegState(floorFactor: 0.74 + _rng.nextDouble() * 0.18),
+  );
 
   bool negLocked(String id) => (negotiations[id]?.lockedUntil ?? 0) > day;
 
@@ -1504,12 +1610,16 @@ class Game extends ChangeNotifier {
   NegResult negotiate(String id, double price, double offer) {
     final st = negFor(id);
     if (negLocked(id)) {
-      return NegResult(NegOutcome.locked,
-          'Satıcı seninle konuşmak istemiyor. ${st.lockedUntil - day} gün bekle.');
+      return NegResult(
+        NegOutcome.locked,
+        'Satıcı seninle konuşmak istemiyor. ${st.lockedUntil - day} gün bekle.',
+      );
     }
     if (cash < offer) {
       return const NegResult(
-          NegOutcome.noMoney, 'Önce kasanı doldur, sonra konuşalım.');
+        NegOutcome.noMoney,
+        'Önce kasanı doldur, sonra konuşalım.',
+      );
     }
     final floor = price * st.floorFactor;
     if (offer >= floor) {
@@ -1523,8 +1633,10 @@ class Game extends ChangeNotifier {
         ..lockedUntil = day + 3
         ..floorFactor = min(0.97, st.floorFactor + 0.04);
       _changed();
-      return const NegResult(NegOutcome.walkedAway,
-          'Yeter! Satıcı masadan kalktı. 3 gün sonra tekrar dene.');
+      return const NegResult(
+        NegOutcome.walkedAway,
+        'Yeter! Satıcı masadan kalktı. 3 gün sonra tekrar dene.',
+      );
     }
     if (offer >= floor * 0.88) {
       final prev = st.counter ?? price;
@@ -1545,18 +1657,28 @@ class Game extends ChangeNotifier {
     final plat = platformById(id);
     if (plat != null) {
       ownedPlatforms.add(id);
-      _log('Platform satın alındı', '${plat.name} artık $channelName ailesinde!',
-          true);
-      _notify('📲 ${plat.name} artık senin! ${fmtDec(plat.subscribersM, 1)} M abone, '
-          'günlük +${fmtShort(plat.dailyIncome)}');
+      _log(
+        'Platform satın alındı',
+        '${plat.name} artık $channelName ailesinde!',
+        true,
+      );
+      _notify(
+        '📲 ${plat.name} artık senin! ${fmtDec(plat.subscribersM, 1)} M abone, '
+        'günlük +${fmtShort(plat.dailyIncome)}',
+      );
     } else if (lux.isNotEmpty) {
       ownedLuxury.add(id);
-      _notify('✨ ${lux.first.name} artık senin! +${lux.first.prestige} prestij');
+      _notify(
+        '✨ ${lux.first.name} artık senin! +${lux.first.prestige} prestij',
+      );
     } else {
       final ch = channelDefs.firstWhere((c) => c.id == id);
       ownedChannels.add(id);
-      _log('Kanal satın alındı', '${ch.name} artık $channelName ailesinde!',
-          true);
+      _log(
+        'Kanal satın alındı',
+        '${ch.name} artık $channelName ailesinde!',
+        true,
+      );
       _notify('📺 ${ch.name} artık senin! Günlük +${fmtShort(ch.dailyIncome)}');
     }
     _changed();
@@ -1583,8 +1705,13 @@ class Game extends ChangeNotifier {
     return (avg * budgetTiers[tier].qualityMult * (1 + bonus)).clamp(0.0, 1.3);
   }
 
-  String? createFilm(String name, FilmGenre genre, int tier, List<Staff> crew,
-      {String? location}) {
+  String? createFilm(
+    String name,
+    FilmGenre genre,
+    int tier,
+    List<Staff> crew, {
+    String? location,
+  }) {
     final def = filmGenreDefs[genre]!;
     if (!filmGenreUnlocked(genre)) {
       return '${def.label} için ${equipById(def.reqEquip!)!.name} gerekli.';
@@ -1671,7 +1798,9 @@ class Game extends ChangeNotifier {
     f.licenses.add(FilmLicense(p.id, licenseDays, fee));
     _count('license');
     if (f.status == FilmStatus.ready) f.status = FilmStatus.library;
-    _notify('📲 "${f.name}" $licenseDays günlüğüne ${p.name}\'a satıldı: +${fmtShort(fee)}');
+    _notify(
+      '📲 "${f.name}" $licenseDays günlüğüne ${p.name}\'a satıldı: +${fmtShort(fee)}',
+    );
     _changed();
     return null;
   }
@@ -1716,7 +1845,15 @@ class Game extends ChangeNotifier {
   // Dijital: içerik üreticileri
   // =================================================================
 
-  static const _ascii = {'ç': 'c', 'ğ': 'g', 'ı': 'i', 'ö': 'o', 'ş': 's', 'ü': 'u', 'â': 'a'};
+  static const _ascii = {
+    'ç': 'c',
+    'ğ': 'g',
+    'ı': 'i',
+    'ö': 'o',
+    'ş': 's',
+    'ü': 'u',
+    'â': 'a',
+  };
 
   Creator _randomCreator() {
     final niche = Niche.values[_rng.nextInt(Niche.values.length)];
@@ -1724,9 +1861,9 @@ class Game extends ChangeNotifier {
     final last = lastNames[_rng.nextInt(lastNames.length)];
     var h = first.toLowerCase();
     _ascii.forEach((k, v) => h = h.replaceAll(k, v));
-    final followers = (20000 * pow(2.6, studioLevel) *
-            (0.3 + _rng.nextDouble() * 2.7))
-        .roundToDouble();
+    final followers =
+        (20000 * pow(2.6, studioLevel) * (0.3 + _rng.nextDouble() * 2.7))
+            .roundToDouble();
     final engagement = 0.02 + _rng.nextDouble() * 0.06;
     final rev = followers * engagement * 2;
     return Creator(
@@ -1769,8 +1906,10 @@ class Game extends ChangeNotifier {
     cash -= c.signingFee;
     creatorMarket.remove(c);
     creators.add(c);
-    _notify('📱 ${c.handle} artık $channelName ailesinde! '
-        '${fmtShort(c.followers).replaceAll(' ₺', '')} takipçi');
+    _notify(
+      '📱 ${c.handle} artık $channelName ailesinde! '
+      '${fmtShort(c.followers).replaceAll(' ₺', '')} takipçi',
+    );
     _changed();
     return null;
   }
@@ -1812,17 +1951,27 @@ class Game extends ChangeNotifier {
       final rows = <ReportRow>[];
       for (int i = 0; i < rivalDefs.length; i++) {
         final rv = rivalDefs[i];
-        if (ownedChannels.any((id) => channelDefs.any((c) => c.id == id && c.name == rv.name))) {
+        if (ownedChannels.any(
+          (id) => channelDefs.any((c) => c.id == id && c.name == rv.name),
+        )) {
           continue;
         }
         final g = Genre.values[r.nextInt(Genre.values.length)];
         final ideas = showNameIdeas[g]!;
-        final rating = rv.strength * (0.6 + slotMul * 0.5) * (0.7 + r.nextDouble() * 0.6) * growth;
-        rows.add(ReportRow(rv.name, ideas[r.nextInt(ideas.length)], rating, false, i));
+        final rating =
+            rv.strength *
+            (0.6 + slotMul * 0.5) *
+            (0.7 + r.nextDouble() * 0.6) *
+            growth;
+        rows.add(
+          ReportRow(rv.name, ideas[r.nextInt(ideas.length)], rating, false, i),
+        );
       }
       final mine = showById(slots[slot]!.showId);
       if (mine != null && mine.ratingHistory.isNotEmpty) {
-        rows.add(ReportRow(channelName, mine.name, mine.ratingHistory.last, true, -1));
+        rows.add(
+          ReportRow(channelName, mine.name, mine.ratingHistory.last, true, -1),
+        );
       }
       rows.sort((a, b) => b.rating.compareTo(a.rating));
       lastReport[slot] = rows;
@@ -1831,8 +1980,10 @@ class Game extends ChangeNotifier {
     final rank = prime.indexWhere((e) => e.mine);
     if (rank == 0) primeWins++;
     if (rank >= 0) {
-      _notify('📊 Dünün reytingleri: Prime Time\'da ${rank + 1}. oldun '
-          '(${fmtPct(prime[rank].rating, 2)})${rank == 0 ? ' 🏆' : ''}');
+      _notify(
+        '📊 Dünün reytingleri: Prime Time\'da ${rank + 1}. oldun '
+        '(${fmtPct(prime[rank].rating, 2)})${rank == 0 ? ' 🏆' : ''}',
+      );
     }
   }
 
@@ -1875,35 +2026,47 @@ class Game extends ChangeNotifier {
   }
 
   Decision _scandalDecision(Show s) => Decision(
-        kind: 'scandal',
-        title: '📰 Skandal manşetlerde!',
-        body: '"${s.name}" kulis dedikodusuyla gazetelerde. Ne yapacaksın?',
-        options: ['Özür dile', 'Sessiz kal', 'Avukat tut'],
-        hints: ['+5 prestij, 1 gün -%5', 'Şans: +%15 ya da -%10', '${fmtShort(productionCost(s.genre, s.tier) * 0.1)}, risk yok'],
-        targetId: s.id,
-        amount: productionCost(s.genre, s.tier) * 0.1,
-      );
+    kind: 'scandal',
+    title: '📰 Skandal manşetlerde!',
+    body: '"${s.name}" kulis dedikodusuyla gazetelerde. Ne yapacaksın?',
+    options: ['Özür dile', 'Sessiz kal', 'Avukat tut'],
+    hints: [
+      '+5 prestij, 1 gün -%5',
+      'Şans: +%15 ya da -%10',
+      '${fmtShort(productionCost(s.genre, s.tier) * 0.1)}, risk yok',
+    ],
+    targetId: s.id,
+    amount: productionCost(s.genre, s.tier) * 0.1,
+  );
 
   Decision _setCrisisDecision(Show s) => Decision(
-        kind: 'setCrisis',
-        title: '😤 Sette kriz!',
-        body: '"${s.name}" başrolü sete gelmedi, menajeri "şartlarımız var" diyor.',
-        options: ['Prim öde', 'Senaryoyu değiştir', 'Bekle'],
-        hints: ['${fmtShort(productionCost(s.genre, s.tier) * 0.08)}, sorun biter', '2 gün -%8', 'Şans: sorun yok ya da 1 gün -%10'],
-        targetId: s.id,
-        amount: productionCost(s.genre, s.tier) * 0.08,
-        defaultOption: 2,
-      );
+    kind: 'setCrisis',
+    title: '😤 Sette kriz!',
+    body: '"${s.name}" başrolü sete gelmedi, menajeri "şartlarımız var" diyor.',
+    options: ['Prim öde', 'Senaryoyu değiştir', 'Bekle'],
+    hints: [
+      '${fmtShort(productionCost(s.genre, s.tier) * 0.08)}, sorun biter',
+      '2 gün -%8',
+      'Şans: sorun yok ya da 1 gün -%10',
+    ],
+    targetId: s.id,
+    amount: productionCost(s.genre, s.tier) * 0.08,
+    defaultOption: 2,
+  );
 
   Decision _regulatorDecision(Show s, double fine) => Decision(
-        kind: 'regulator',
-        title: '⚖️ Yayın Kurulu uyarısı',
-        body: '"${s.name}" için şikâyet geldi. Ceza ${fmtShort(fine)} olabilir.',
-        options: ['Cezayı öde', 'Programı düzenle', 'İtiraz et'],
-        hints: [fmtShort(fine), '${fmtShort(fine * 0.4)} + 1 gün -%5', '%70 ceza yok, %30 ceza ×1,3'],
-        targetId: s.id,
-        amount: fine,
-      );
+    kind: 'regulator',
+    title: '⚖️ Yayın Kurulu uyarısı',
+    body: '"${s.name}" için şikâyet geldi. Ceza ${fmtShort(fine)} olabilir.',
+    options: ['Cezayı öde', 'Programı düzenle', 'İtiraz et'],
+    hints: [
+      fmtShort(fine),
+      '${fmtShort(fine * 0.4)} + 1 gün -%5',
+      '%70 ceza yok, %30 ceza ×1,3',
+    ],
+    targetId: s.id,
+    amount: fine,
+  );
 
   void _maybeDecision() {
     if (_offlineMode || pendingDecision != null) return;
@@ -1914,31 +2077,47 @@ class Game extends ChangeNotifier {
     if (stars.isNotEmpty && _rng.nextDouble() < 0.03) {
       final p = stars[_rng.nextInt(stars.length)];
       if (_rng.nextBool() && p.salary < salaryFor(p.skill) * 1.9) {
-        _setDecision(Decision(
-          kind: 'raise',
-          title: '⭐ ${p.name} zam istiyor',
-          body: '${p.role.label} ${p.name} (yetenek ${p.skill}) maaşına %20 zam istiyor.',
-          options: ['Zammı ver', 'Pazarlık et (%10)', 'Reddet'],
-          hints: ['Maaş ${fmtShort(p.salary * 1.2)}/gün', '%75 kabul eder', '%25 istifa eder'],
-          targetId: p.id,
-        ));
+        _setDecision(
+          Decision(
+            kind: 'raise',
+            title: '⭐ ${p.name} zam istiyor',
+            body:
+                '${p.role.label} ${p.name} (yetenek ${p.skill}) maaşına %20 zam istiyor.',
+            options: ['Zammı ver', 'Pazarlık et (%10)', 'Reddet'],
+            hints: [
+              'Maaş ${fmtShort(p.salary * 1.2)}/gün',
+              '%75 kabul eder',
+              '%25 istifa eder',
+            ],
+            targetId: p.id,
+          ),
+        );
       } else {
         // sahip olduğun kanallar sana transfer teklifi yapmaz
         final rivals = rivalDefs
-            .where((r) => !channelDefs.any(
-                (c) => c.name == r.name && ownedChannels.contains(c.id)))
+            .where(
+              (r) => !channelDefs.any(
+                (c) => c.name == r.name && ownedChannels.contains(c.id),
+              ),
+            )
             .toList();
         if (rivals.isEmpty) return;
         final rival = rivals[_rng.nextInt(rivals.length)].name;
-        _setDecision(Decision(
-          kind: 'poach',
-          title: '📞 $rival transfer teklifi',
-          body: '$rival, ${p.name} için teklif yaptı. Bonservis olarak ${fmtShort(p.salary * 25)} ödemeye hazırlar.',
-          options: ['Teklifi eşle (+%15 maaş)', 'Sat gitsin'],
-          hints: ['Maaş ${fmtShort(p.salary * 1.15)}/gün, kadroda kalır', '+${fmtShort(p.salary * 25)}, yıldızı kaybedersin'],
-          targetId: p.id,
-          extra: rival,
-        ));
+        _setDecision(
+          Decision(
+            kind: 'poach',
+            title: '📞 $rival transfer teklifi',
+            body:
+                '$rival, ${p.name} için teklif yaptı. Bonservis olarak ${fmtShort(p.salary * 25)} ödemeye hazırlar.',
+            options: ['Teklifi eşle (+%15 maaş)', 'Sat gitsin'],
+            hints: [
+              'Maaş ${fmtShort(p.salary * 1.15)}/gün, kadroda kalır',
+              '+${fmtShort(p.salary * 25)}, yıldızı kaybedersin',
+            ],
+            targetId: p.id,
+            extra: rival,
+          ),
+        );
       }
       return;
     }
@@ -1960,14 +2139,20 @@ class Game extends ChangeNotifier {
       case 'scandal':
         if (option == 0) {
           bonusPrestige += 5;
-          s?..buff = 0.95..buffDays = 1;
+          s
+            ?..buff = 0.95
+            ..buffDays = 1;
           msg = 'Özür kabul gördü. +5 prestij.';
         } else if (option == 1) {
           if (_rng.nextBool()) {
-            s?..buff = 1.15..buffDays = 2;
+            s
+              ?..buff = 1.15
+              ..buffDays = 2;
             msg = 'Merak uyandı! 2 gün reyting +%15.';
           } else {
-            s?..buff = 0.9..buffDays = 2;
+            s
+              ?..buff = 0.9
+              ..buffDays = 2;
             bonusPrestige = max(0, bonusPrestige - 5);
             msg = 'Tepki büyüdü: -5 prestij, 2 gün reyting -%10.';
           }
@@ -1980,13 +2165,17 @@ class Game extends ChangeNotifier {
           cash -= d.amount;
           msg = 'Başrol sete döndü (-${fmtShort(d.amount)}).';
         } else if (option == 1) {
-          s?..buff = 0.92..buffDays = 2;
+          s
+            ?..buff = 0.92
+            ..buffDays = 2;
           msg = 'Senaryo değişti, 2 gün reyting -%8.';
         } else {
           if (_rng.nextBool()) {
             msg = 'Ertesi gün özür dileyip sete geldi. Bedava çözüm!';
           } else {
-            s?..buff = 0.9..buffDays = 1;
+            s
+              ?..buff = 0.9
+              ..buffDays = 1;
             msg = 'Gelmedi! 1 gün reyting -%10.';
           }
         }
@@ -1996,7 +2185,9 @@ class Game extends ChangeNotifier {
           msg = 'Ceza ödendi (-${fmtShort(d.amount)}).';
         } else if (option == 1) {
           cash -= d.amount * 0.4;
-          s?..buff = 0.95..buffDays = 1;
+          s
+            ?..buff = 0.95
+            ..buffDays = 1;
           msg = 'Program düzenlendi (-${fmtShort(d.amount * 0.4)}).';
         } else {
           if (_rng.nextDouble() < 0.7) {
@@ -2106,10 +2297,12 @@ class Game extends ChangeNotifier {
     for (final g in Genre.values) {
       // sadece son 30 günde yayında olan programlar aday olur
       final cands = shows
-          .where((s) =>
-              s.genre == g &&
-              s.ratingHistory.isNotEmpty &&
-              s.lastAiredDay > day - 30)
+          .where(
+            (s) =>
+                s.genre == g &&
+                s.ratingHistory.isNotEmpty &&
+                s.lastAiredDay > day - 30,
+          )
           .toList();
       if (cands.isEmpty) continue;
       double avg(Show s) =>
@@ -2117,21 +2310,35 @@ class Game extends ChangeNotifier {
       cands.sort((a, b) => avg(b).compareTo(avg(a)));
       final best = cands.first;
       final need = bar * genreDefs[g]!.ratingMult;
-      results.add(AwardResult('Yılın ${genreDefs[g]!.label} Programı',
-          best.name, avg(best) >= need));
+      results.add(
+        AwardResult(
+          'Yılın ${genreDefs[g]!.label} Programı',
+          best.name,
+          avg(best) >= need,
+        ),
+      );
     }
-    final recentFilms = films
-        .where((f) => f.score > 0 && f.finishedDay > day - 30)
-        .toList()
-      ..sort((a, b) => b.score.compareTo(a.score));
+    final recentFilms =
+        films.where((f) => f.score > 0 && f.finishedDay > day - 30).toList()
+          ..sort((a, b) => b.score.compareTo(a.score));
     if (recentFilms.isNotEmpty) {
-      results.add(AwardResult('En İyi Film', recentFilms.first.name,
-          recentFilms.first.score >= 7));
+      results.add(
+        AwardResult(
+          'En İyi Film',
+          recentFilms.first.name,
+          recentFilms.first.score >= 7,
+        ),
+      );
     }
     if (creators.isNotEmpty) {
       final top = creators.reduce((a, b) => a.followers > b.followers ? a : b);
-      results.add(AwardResult('Yılın YouTuber\'ı', top.handle,
-          top.followers >= 500000 * (1 + day / 200)));
+      results.add(
+        AwardResult(
+          'Yılın YouTuber\'ı',
+          top.handle,
+          top.followers >= 500000 * (1 + day / 200),
+        ),
+      );
     }
     if (results.isEmpty) return;
     for (final r in results.where((r) => r.won)) {
@@ -2140,9 +2347,11 @@ class Game extends ChangeNotifier {
       diamonds += 3;
     }
     pendingAwards = results;
-    _log('🏆 Altın Anten Ödülleri',
-        '${results.where((r) => r.won).length}/${results.length} ödül kazandın!',
-        true);
+    _log(
+      '🏆 Altın Anten Ödülleri',
+      '${results.where((r) => r.won).length}/${results.length} ödül kazandın!',
+      true,
+    );
   }
 
   void dismissAwards() {
@@ -2220,7 +2429,8 @@ class Game extends ChangeNotifier {
     final pct = 0.06 + _rng.nextDouble() * 0.12;
     stockPrices[d.ticker] = stockPrices[d.ticker]! * (up ? 1 + pct : 1 - pct);
     final msg = '${d.name} ${(up ? _goodNews : _badNews)[_rng.nextInt(4)]}';
-    lastStockNews = '📰 ${d.ticker}: $msg (${up ? '+' : '-'}%${(pct * 100).round()})';
+    lastStockNews =
+        '📰 ${d.ticker}: $msg (${up ? '+' : '-'}%${(pct * 100).round()})';
     if (holdings.containsKey(d.ticker)) _notify(lastStockNews!);
   }
 
@@ -2324,12 +2534,19 @@ class Game extends ChangeNotifier {
 
   /// Açık ihale sayısını 3'te tutar; süresi dolanları sonuçlandırır.
   void _tendersDaily() {
-    for (final t in tenders.where((t) => t.status == TenderStatus.open).toList()) {
+    for (final t
+        in tenders.where((t) => t.status == TenderStatus.open).toList()) {
       if (day >= t.closesDay) _resolveTender(t);
     }
     // eski kayıtları temizle (son 12 kapanmış ihale kalsın)
-    final closed = tenders.where((t) =>
-        t.status == TenderStatus.delivered || t.status == TenderStatus.lost || t.status == TenderStatus.expired).toList();
+    final closed = tenders
+        .where(
+          (t) =>
+              t.status == TenderStatus.delivered ||
+              t.status == TenderStatus.lost ||
+              t.status == TenderStatus.expired,
+        )
+        .toList();
     if (closed.length > 12) {
       for (final t in closed.take(closed.length - 12)) {
         tenders.remove(t);
@@ -2343,27 +2560,37 @@ class Game extends ChangeNotifier {
   bool _spawnTender() {
     final lv = studioLevel + 1;
     final pool = tenderDefs
-        .where((d) => d.minLevel <= lv + 1 &&
-            !tenders.any((t) => t.defId == d.id && t.status == TenderStatus.open))
+        .where(
+          (d) =>
+              d.minLevel <= lv + 1 &&
+              !tenders.any(
+                (t) => t.defId == d.id && t.status == TenderStatus.open,
+              ),
+        )
         .toList();
     if (pool.isEmpty) return false;
     final d = pool[_rng.nextInt(pool.length)];
     final scale = 1 + 0.4 * max(0, lv - d.minLevel);
     tenders.insert(
-        0,
-        Tender(
-          id: _newId('t'),
-          defId: d.id,
-          budget: (d.budget * scale * (0.9 + _rng.nextDouble() * 0.25) / 1000).round() * 1000.0,
-          closesDay: day + 3,
-        ));
+      0,
+      Tender(
+        id: _newId('t'),
+        defId: d.id,
+        budget:
+            (d.budget * scale * (0.9 + _rng.nextDouble() * 0.25) / 1000)
+                .round() *
+            1000.0,
+        closesDay: day + 3,
+      ),
+    );
     return true;
   }
 
   /// Teklif verilebilir mi? (null = evet, aksi hâlde sebep)
   String? tenderEligible(Tender t) {
     final d = t.def;
-    if (studioLevel + 1 < d.minLevel) return 'Stüdyo seviyesi ${d.minLevel} gerekli.';
+    if (studioLevel + 1 < d.minLevel)
+      return 'Stüdyo seviyesi ${d.minLevel} gerekli.';
     final missing = d.equip.where((e) => !ownedEquip.contains(e)).toList();
     if (missing.isNotEmpty) {
       return 'Eksik ekipman: ${missing.map((e) => equipById(e)!.name).join(', ')}';
@@ -2373,7 +2600,9 @@ class Game extends ChangeNotifier {
 
   /// Fiyat+kalite puanı için kalite çarpanı: ekip yeteneği ve fazladan ekipman.
   double tenderQuality(Tender t, List<Staff> crew) {
-    final avg = crew.isEmpty ? 0 : crew.map((c) => c.skill).reduce((a, b) => a + b) / crew.length;
+    final avg = crew.isEmpty
+        ? 0
+        : crew.map((c) => c.skill).reduce((a, b) => a + b) / crew.length;
     final extra = min(0.1, (ownedEquip.length - t.def.equip.length) * 0.01);
     return 0.85 + avg / 100 * 0.35 + max(0.0, extra);
   }
@@ -2402,7 +2631,9 @@ class Game extends ChangeNotifier {
       c.showId = t.id;
     }
     _count('tender');
-    _notify('📨 "${t.def.title}" için ${fmtShort(amount)} teklif verildi. Zarflar ${t.closesDay}. gün açılacak.');
+    _notify(
+      '📨 "${t.def.title}" için ${fmtShort(amount)} teklif verildi. Zarflar ${t.closesDay}. gün açılacak.',
+    );
     _changed();
     return null;
   }
@@ -2442,14 +2673,20 @@ class Game extends ChangeNotifier {
       t.winner = channelName;
       t.winningBid = t.myBid;
       cash -= t.productionCost;
-      _log('🏛️ İhale kazanıldı', '"${t.def.title}" ${fmtShort(t.myBid!)} ile senin! Çekimler başladı.', true);
+      _log(
+        '🏛️ İhale kazanıldı',
+        '"${t.def.title}" ${fmtShort(t.myBid!)} ile senin! Çekimler başladı.',
+        true,
+      );
       _notify('🏆 İhaleyi kazandın: "${t.def.title}"! Çekimler başladı.');
     } else {
       t.status = TenderStatus.lost;
       t.winner = bestName;
       t.winningBid = bestBid;
       _freeCrew(t);
-      _notify('📭 "${t.def.title}" ihalesini $bestName ${fmtShort(bestBid)} ile kazandı.');
+      _notify(
+        '📭 "${t.def.title}" ihalesini $bestName ${fmtShort(bestBid)} ile kazandı.',
+      );
     }
   }
 
@@ -2463,8 +2700,14 @@ class Game extends ChangeNotifier {
     bonusPrestige += t.def.prestige;
     tendersWon++;
     _freeCrew(t);
-    _log('🏛️ Proje teslim edildi', '"${t.def.title}" teslim edildi: +${fmtShort(t.paid)}, +${t.def.prestige} prestij', true);
-    _notify('✅ "${t.def.title}" teslim edildi! +${fmtShort(t.paid)}, +${t.def.prestige} prestij');
+    _log(
+      '🏛️ Proje teslim edildi',
+      '"${t.def.title}" teslim edildi: +${fmtShort(t.paid)}, +${t.def.prestige} prestij',
+      true,
+    );
+    _notify(
+      '✅ "${t.def.title}" teslim edildi! +${fmtShort(t.paid)}, +${t.def.prestige} prestij',
+    );
   }
 
   // =================================================================
@@ -2477,7 +2720,8 @@ class Game extends ChangeNotifier {
   /// Eğitim kampı: yetenek +3..6 (3 günde bir), maaş yeteneğe göre artar.
   String? trainStaff(Staff p) {
     if (p.skill >= 99) return '${p.name} zaten zirvede!';
-    if (!canTrain(p)) return '${p.name} ${3 - (day - p.trainedDay)} gün sonra tekrar eğitilebilir.';
+    if (!canTrain(p))
+      return '${p.name} ${3 - (day - p.trainedDay)} gün sonra tekrar eğitilebilir.';
     final cost = trainCost(p);
     if (cash < cost) return 'Eğitim için ${fmtShort(cost)} gerekli.';
     cash -= cost;
@@ -2502,6 +2746,7 @@ class Game extends ChangeNotifier {
   final List<Mission> missions = [];
   String loginDate = '';
   int loginStreak = 0;
+
   /// Açılışta gösterilecek giriş ödülü (seri günü, elmas, para)
   (int, int, double)? pendingLogin;
 
@@ -2549,20 +2794,27 @@ class Game extends ChangeNotifier {
 
   /// Görev oyuncunun şu anki durumunda yapılabilir mi?
   bool _missionPossible(String kind) => switch (kind) {
-        'license' => films.any((f) => f.rightsOwned && f.status != FilmStatus.producing),
-        'campaign' => creators.isNotEmpty,
-        'train' => staff.length >= 2,
-        'tender' => tenders.any((t) => t.status == TenderStatus.open && tenderEligible(t) == null),
-        'brand' => brandOffers.isNotEmpty,
-        'youth' => agencyOpen,
-        _ => true,
-      };
+    'license' => films.any(
+      (f) => f.rightsOwned && f.status != FilmStatus.producing,
+    ),
+    'campaign' => creators.isNotEmpty,
+    'train' => staff.length >= 2,
+    'tender' => tenders.any(
+      (t) => t.status == TenderStatus.open && tenderEligible(t) == null,
+    ),
+    'brand' => brandOffers.isNotEmpty,
+    'youth' => agencyOpen,
+    _ => true,
+  };
 
   void _makeMissions() {
-    final pool = _missionPool.where((m) => _missionPossible(m.$1)).toList()..shuffle(_rng);
+    final pool = _missionPool.where((m) => _missionPossible(m.$1)).toList()
+      ..shuffle(_rng);
     missions
       ..clear()
-      ..addAll(pool.take(3).map((m) => Mission(m.$1, m.$2, m.$3, 1 + _rng.nextInt(3))));
+      ..addAll(
+        pool.take(3).map((m) => Mission(m.$1, m.$2, m.$3, 1 + _rng.nextInt(3))),
+      );
   }
 
   /// Görev sayacı: ilgili işlem yapıldıkça artar.
@@ -2572,7 +2824,8 @@ class Game extends ChangeNotifier {
     }
   }
 
-  double missionCash(Mission m) => max(100000.0, yesterdayIncome * 0.6) * m.target;
+  double missionCash(Mission m) =>
+      max(100000.0, yesterdayIncome * 0.6) * m.target;
 
   String? claimMission(Mission m) {
     if (m.claimed) return 'Ödül zaten alındı.';
@@ -2591,14 +2844,39 @@ class Game extends ChangeNotifier {
 
   /// (başlık, açıklama, tamamlandı mı, ödül elmas)
   List<(String, String, bool, int)> get goals => [
-        ('Kadro kur', 'İş ilanlarından en az 2 kişi işe al.', staff.length >= 2, 3),
-        ('İlk programını üret', 'Yapım ekranından bir format seç ve çekime başla.', shows.isNotEmpty, 3),
-        ('Yayına çık', 'Hazır programı bir yayın kuşağına koy.', shows.any((s) => s.status == ShowStatus.onAir || s.totalRevenue > 0), 3),
-        ('Reklam ayarı', 'Yayın ekranında reklam süresini kaydırıp en iyi noktayı bul.', adTouched, 2),
-        ('YouTuber transfer et', 'Dijital ekranından bir içerik üreticisi al.', creators.isNotEmpty, 3),
-        ('İlk filmini çek', 'Sinema ekranından bir film çek.', films.isNotEmpty, 3),
-        ('Stüdyoyu büyüt', 'Stüdyo ekranından bir üst seviyeye çık.', studioLevel >= 1, 5),
-      ];
+    ('Kadro kur', 'İş ilanlarından en az 2 kişi işe al.', staff.length >= 2, 3),
+    (
+      'İlk programını üret',
+      'Yapım ekranından bir format seç ve çekime başla.',
+      shows.isNotEmpty,
+      3,
+    ),
+    (
+      'Yayına çık',
+      'Hazır programı bir yayın kuşağına koy.',
+      shows.any((s) => s.status == ShowStatus.onAir || s.totalRevenue > 0),
+      3,
+    ),
+    (
+      'Reklam ayarı',
+      'Yayın ekranında reklam süresini kaydırıp en iyi noktayı bul.',
+      adTouched,
+      2,
+    ),
+    (
+      'YouTuber transfer et',
+      'Dijital ekranından bir içerik üreticisi al.',
+      creators.isNotEmpty,
+      3,
+    ),
+    ('İlk filmini çek', 'Sinema ekranından bir film çek.', films.isNotEmpty, 3),
+    (
+      'Stüdyoyu büyüt',
+      'Stüdyo ekranından bir üst seviyeye çık.',
+      studioLevel >= 1,
+      5,
+    ),
+  ];
 
   int get currentGoal {
     final g = goals;
@@ -2638,9 +2916,9 @@ class Game extends ChangeNotifier {
     if (cash < cost) return 'Kasada yeterli para yok (${fmtShort(cost)}).';
     cash -= cost;
     bizLevels[b.id] = lv + 1;
-    _notify(lv == 0
-        ? '🏢 ${b.name} kuruldu!'
-        : '🏢 ${b.name} seviye ${lv + 1} oldu!');
+    _notify(
+      lv == 0 ? '🏢 ${b.name} kuruldu!' : '🏢 ${b.name} seviye ${lv + 1} oldu!',
+    );
     _changed();
     return null;
   }
@@ -2654,7 +2932,6 @@ class Game extends ChangeNotifier {
     channelName = name.trim();
     _changed();
   }
-
 
   void setTimeScale(double s) {
     timeScale = s;

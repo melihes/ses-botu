@@ -8,9 +8,16 @@ import 'package:reyting/engine/game.dart';
 import 'package:reyting/models/models.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-Staff person(String id, Role r, int skill, {int spec = 0, int trait = 0}) => Staff(
-    id: id, name: 'Ad Soyad', role: r, skill: skill, salary: salaryFor(skill),
-    spec: spec, trait: trait);
+Staff person(String id, Role r, int skill, {int spec = 0, int trait = 0}) =>
+    Staff(
+      id: id,
+      name: 'Ad Soyad',
+      role: r,
+      skill: skill,
+      salary: salaryFor(skill),
+      spec: spec,
+      trait: trait,
+    );
 
 Future<Game> fresh() async {
   final g = Game();
@@ -20,7 +27,11 @@ Future<Game> fresh() async {
 }
 
 /// Yayında bir dizi (oyuncular dahil) kurar.
-Future<(Game, Show)> diziOnAir({int budget = 1, int guest = 0, String? loc}) async {
+Future<(Game, Show)> diziOnAir({
+  int budget = 1,
+  int guest = 0,
+  String? loc,
+}) async {
   final g = await fresh();
   g.cash = 1e9;
   g.studioLevel = 5;
@@ -31,7 +42,18 @@ Future<(Game, Show)> diziOnAir({int budget = 1, int guest = 0, String? loc}) asy
     person('a4', Role.oyuncu, 60),
   ];
   g.staff.addAll(crew);
-  expect(g.createShow('Dizi', Genre.dizi, 1, crew, budget: budget, guest: guest, location: loc), isNull);
+  expect(
+    g.createShow(
+      'Dizi',
+      Genre.dizi,
+      1,
+      crew,
+      budget: budget,
+      guest: guest,
+      location: loc,
+    ),
+    isNull,
+  );
   final s = g.shows.first;
   g.speedUp(s);
   g.diamonds = 100;
@@ -46,8 +68,12 @@ void main() {
     test('isim, ek ve logo kaydedilir ve geri yüklenir', () async {
       final g = await fresh();
       expect(g.identitySet, isFalse);
-      g.setIdentity(company: 'Esmer', suffix: 2, channel: 'Esmer TV',
-          newLogo: CompanyLogo(shape: 5, palette: 3, frame: 4));
+      g.setIdentity(
+        company: 'Esmer',
+        suffix: 2,
+        channel: 'Esmer TV',
+        newLogo: CompanyLogo(shape: 5, palette: 3, frame: 4),
+      );
       expect(g.companyFullName, 'Esmer ${companySuffixes[2]}');
       await g.save();
       g.dispose();
@@ -72,8 +98,10 @@ void main() {
       final low = g.fullShowQuality(crew, Genre.talkShow, 1, 0, null);
       final prem = g.fullShowQuality(crew, Genre.talkShow, 1, 3, null);
       expect(prem, greaterThan(low));
-      expect(g.showCost(Genre.talkShow, 1, 3, 0, null),
-          greaterThan(g.showCost(Genre.talkShow, 1, 0, 0, null)));
+      expect(
+        g.showCost(Genre.talkShow, 1, 3, 0, null),
+        greaterThan(g.showCost(Genre.talkShow, 1, 0, 0, null)),
+      );
       g.dispose();
     });
     test('kilitli bütçe ve konuk reddedilir', () async {
@@ -81,9 +109,15 @@ void main() {
       g.cash = 1e9;
       final host = person('h', Role.sunucu, 50);
       g.staff.add(host);
-      expect(g.createShow('X', Genre.talkShow, 0, [host], budget: 4), isNotNull);
+      expect(
+        g.createShow('X', Genre.talkShow, 0, [host], budget: 4),
+        isNotNull,
+      );
       expect(g.createShow('X', Genre.talkShow, 0, [host], guest: 5), isNotNull);
-      expect(g.createShow('X', Genre.talkShow, 0, [host], location: 'paris'), isNotNull);
+      expect(
+        g.createShow('X', Genre.talkShow, 0, [host], location: 'paris'),
+        isNotNull,
+      );
       g.dispose();
     });
     test('ünlü konuk reytingi artırır', () async {
@@ -110,13 +144,21 @@ void main() {
       final up = g.dailyUpkeep;
       expect(g.buyLocation(locationById('karadeniz')!), isNull);
       expect(g.dailyUpkeep, greaterThan(up));
-      final crew = [person('a', Role.senarist, 60), person('b', Role.yonetmen, 60),
-        person('c', Role.oyuncu, 60), person('d', Role.oyuncu, 60)];
-      expect(g.fullShowQuality(crew, Genre.dizi, 1, 1, 'karadeniz'),
-          greaterThan(g.fullShowQuality(crew, Genre.dizi, 1, 1, null)));
+      final crew = [
+        person('a', Role.senarist, 60),
+        person('b', Role.yonetmen, 60),
+        person('c', Role.oyuncu, 60),
+        person('d', Role.oyuncu, 60),
+      ];
+      expect(
+        g.fullShowQuality(crew, Genre.dizi, 1, 1, 'karadeniz'),
+        greaterThan(g.fullShowQuality(crew, Genre.dizi, 1, 1, null)),
+      );
       // uyumsuz türde bonus yok
-      expect(g.fullShowQuality([crew[0]], Genre.spor, 1, 1, 'karadeniz'),
-          closeTo(g.fullShowQuality([crew[0]], Genre.spor, 1, 1, null), 1e-9));
+      expect(
+        g.fullShowQuality([crew[0]], Genre.spor, 1, 1, 'karadeniz'),
+        closeTo(g.fullShowQuality([crew[0]], Genre.spor, 1, 1, null), 1e-9),
+      );
       g.dispose();
     });
     test('etkinlik bekleme süresi ve prestij', () async {
@@ -153,8 +195,12 @@ void main() {
     test('genç yetenek gelişir ve satılabilir', () async {
       final g = await fresh();
       g.cash = 1e9;
-      expect(g.signYouth(Staff(id: 'q', name: 'a', role: Role.oyuncu, skill: 20, salary: 1)),
-          isNotNull); // ajans kapalı
+      expect(
+        g.signYouth(
+          Staff(id: 'q', name: 'a', role: Role.oyuncu, skill: 20, salary: 1),
+        ),
+        isNotNull,
+      ); // ajans kapalı
       expect(g.upgradeAgency(), isNull);
       expect(g.youthMarket, isNotEmpty);
       final y = g.youthMarket.first;
@@ -209,8 +255,9 @@ void main() {
       g.cash = 1e9;
       g.studioLevel = 7;
       g.debugAdvanceDays(1);
-      final gms = g.execCandidates.where((e) => e.role == ExecRole.genelMudur).toList()
-        ..sort((a, b) => a.skill.compareTo(b.skill));
+      final gms =
+          g.execCandidates.where((e) => e.role == ExecRole.genelMudur).toList()
+            ..sort((a, b) => a.skill.compareTo(b.skill));
       expect(gms.length, 3);
       expect(gms.last.salary, greaterThan(gms.first.salary));
       expect(g.hireExec(gms.last), isNull);
@@ -227,7 +274,9 @@ void main() {
       g2.hireManager();
       await g2.save();
       final prefs = await SharedPreferences.getInstance();
-      final raw = jsonDecode(prefs.getString('reyting_save_v1')!) as Map<String, dynamic>;
+      final raw = jsonDecode(
+        prefs.getString('reyting_save_v1')!,
+      ) as Map<String, dynamic>;
       raw.remove('execs');
       raw.addAll(j);
       await prefs.setString('reyting_save_v1', jsonEncode(raw));
@@ -266,7 +315,10 @@ void main() {
       final before = g.dealIncomePerDay + g.sponsorIncomePerDay;
       final cash = g.cash;
       expect(g.acceptBrandOffer(o), isNull);
-      expect(g.dealIncomePerDay + g.sponsorIncomePerDay > before || g.cash > cash, isTrue);
+      expect(
+        g.dealIncomePerDay + g.sponsorIncomePerDay > before || g.cash > cash,
+        isTrue,
+      );
       g.dispose();
     });
   });

@@ -13,9 +13,15 @@ void main() {
     for (final lv in [1, 4, 8]) {
       for (final genre in [Genre.dizi, Genre.talkShow, Genre.yarisma]) {
         for (final skill in [45, 75]) {
-          final row = StringBuffer('sv${lv + 1} ${genre.name.padRight(9)} yetenek $skill: ');
+          final row = StringBuffer(
+            'sv${lv + 1} ${genre.name.padRight(9)} yetenek $skill: ',
+          );
           for (final mode in ['b', 'g']) {
-            for (int i = 0; i < (mode == 'b' ? prodBudgets.length : guestTiers.length); i++) {
+            for (
+              int i = 0;
+              i < (mode == 'b' ? prodBudgets.length : guestTiers.length);
+              i++
+            ) {
               SharedPreferences.setMockInitialValues({});
               final g = Game();
               await g.start();
@@ -26,7 +32,16 @@ void main() {
               int k = 0;
               genreDefs[genre]!.needs.forEach((r, n) {
                 for (int j = 0; j < n; j++) {
-                  crew.add(Staff(id: 'c${k++}', name: 'x', role: r, skill: skill, salary: 1, spec: 99));
+                  crew.add(
+                    Staff(
+                      id: 'c${k++}',
+                      name: 'x',
+                      role: r,
+                      skill: skill,
+                      salary: 1,
+                      spec: 99,
+                    ),
+                  );
                 }
               });
               g.staff.addAll(crew);
@@ -34,15 +49,20 @@ void main() {
               final b = mode == 'b' ? i : 1;
               final gu = mode == 'g' ? i : 0;
               final cost = g.showCost(genre, tier, b, gu, null);
-              if (g.createShow('x', genre, tier, crew, budget: b, guest: gu) != null) {
+              if (g.createShow('x', genre, tier, crew, budget: b, guest: gu) !=
+                  null) {
                 row.write('$mode$i:- ');
                 continue;
               }
               final s = g.shows.first;
               g.speedUp(s);
               g.putOnAir(s, SlotId.prime1);
-              g.setAdMinutes(SlotId.prime1, adTolerance(s.quality).roundToDouble());
-              final rev = g.revenuePerDay(s) * genreDefs[genre]!.seasonDays - cost;
+              g.setAdMinutes(
+                SlotId.prime1,
+                adTolerance(s.quality).roundToDouble(),
+              );
+              final rev =
+                  g.revenuePerDay(s) * genreDefs[genre]!.seasonDays - cost;
               row.write("$mode$i:${fmtShort(rev)} ");
               g.dispose();
             }

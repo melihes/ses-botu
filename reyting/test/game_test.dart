@@ -51,10 +51,12 @@ void main() {
       expect(adRetention(12, 0.9), greaterThan(adRetention(12, 0.3)));
     });
     test('daha iyi kadro daha yüksek kalite', () {
-      Staff p(int s) => Staff(
-          id: 'x$s', name: 'a', role: Role.sunucu, skill: s, salary: 1);
-      expect(showQuality([p(80)], Genre.magazin, 1, const []),
-          greaterThan(showQuality([p(40)], Genre.magazin, 1, const [])));
+      Staff p(int s) =>
+          Staff(id: 'x$s', name: 'a', role: Role.sunucu, skill: s, salary: 1);
+      expect(
+        showQuality([p(80)], Genre.magazin, 1, const []),
+        greaterThan(showQuality([p(40)], Genre.magazin, 1, const [])),
+      );
     });
   });
 
@@ -87,7 +89,11 @@ void main() {
       final g2 = Game();
       await g2.start();
       final s = g2.pendingOffline!;
-      expect(s.days, inInclusiveRange(9, 10), reason: '20 dk yokluk, yarı hız = 10 gün');
+      expect(
+        s.days,
+        inInclusiveRange(9, 10),
+        reason: '20 dk yokluk, yarı hız = 10 gün',
+      );
       expect(s.adIncome, greaterThan(0), reason: 'gelir işlenmeli');
       expect(s.salaries, greaterThan(0), reason: 'gider işlenmeli');
       expect(s.rent, greaterThan(0));
@@ -188,18 +194,33 @@ void main() {
       g.cash = 1e9;
       g.diamonds = 100;
       Staff mk(Role r, int i) {
-        final p = Staff(id: 't${r.index}$i', name: 'Test $i', role: r, skill: 70, salary: 1000);
+        final p = Staff(
+          id: 't${r.index}$i',
+          name: 'Test $i',
+          role: r,
+          skill: 70,
+          salary: 1000,
+        );
         g.staff.add(p);
         return p;
       }
-      final crew = [mk(Role.senarist, 1), mk(Role.yonetmen, 1), mk(Role.oyuncu, 1)];
+
+      final crew = [
+        mk(Role.senarist, 1),
+        mk(Role.yonetmen, 1),
+        mk(Role.oyuncu, 1),
+      ];
       expect(g.createFilm('Test Film', FilmGenre.komedi, 1, crew), isNull);
       final f = g.films.first;
       expect(f.status, FilmStatus.producing);
       expect(g.speedUpFilm(f), isNull);
       expect(f.status, FilmStatus.ready);
       expect(f.score, greaterThan(1));
-      expect(crew.every((c) => c.showId == null), isTrue, reason: 'ekip serbest kalmalı');
+      expect(
+        crew.every((c) => c.showId == null),
+        isTrue,
+        reason: 'ekip serbest kalmalı',
+      );
       return (g, f);
     }
 
@@ -212,19 +233,26 @@ void main() {
       g.dispose();
     });
 
-    test('lisans: para gelir, haklar bende kalır, aynı platforma iki kez olmaz', () async {
-      final (g, f) = await filmReady();
-      final cash = g.cash;
-      final p = platformDefs.first;
-      expect(g.licenseFilm(f, p), isNull);
-      expect(g.cash, greaterThan(cash));
-      expect(f.rightsOwned, isTrue);
-      expect(g.licenseFilm(f, p), isNotNull);
-      g.debugAdvanceDays(licenseDays + 1.0);
-      expect(f.licenses, isEmpty, reason: 'lisans süresi bitmeli');
-      expect(g.licenseFilm(f, p), isNull, reason: 'süre bitince tekrar satılabilmeli');
-      g.dispose();
-    });
+    test(
+      'lisans: para gelir, haklar bende kalır, aynı platforma iki kez olmaz',
+      () async {
+        final (g, f) = await filmReady();
+        final cash = g.cash;
+        final p = platformDefs.first;
+        expect(g.licenseFilm(f, p), isNull);
+        expect(g.cash, greaterThan(cash));
+        expect(f.rightsOwned, isTrue);
+        expect(g.licenseFilm(f, p), isNotNull);
+        g.debugAdvanceDays(licenseDays + 1.0);
+        expect(f.licenses, isEmpty, reason: 'lisans süresi bitmeli');
+        expect(
+          g.licenseFilm(f, p),
+          isNull,
+          reason: 'süre bitince tekrar satılabilmeli',
+        );
+        g.dispose();
+      },
+    );
 
     test('hak satışı: film başkasına geçer, artık lisanslanamaz', () async {
       final (g, f) = await filmReady();
@@ -289,19 +317,33 @@ void main() {
       await g.start();
       g.cash = 1e10;
       expect(g.formatUnlocked(Genre.yarisma, 0), isTrue);
-      expect(g.formatUnlocked(Genre.yarisma, 3), isFalse, reason: 'ses yarışması sv3');
+      expect(
+        g.formatUnlocked(Genre.yarisma, 3),
+        isFalse,
+        reason: 'ses yarışması sv3',
+      );
       g.upgradeStudio();
       g.upgradeStudio();
       expect(g.formatUnlocked(Genre.yarisma, 3), isTrue);
-      expect(g.formatUnlocked(Genre.yarisma, 5), isFalse, reason: 'ada: drone + sv5');
+      expect(
+        g.formatUnlocked(Genre.yarisma, 5),
+        isFalse,
+        reason: 'ada: drone + sv5',
+      );
       g.dispose();
     });
 
     test('üst format daha pahalı ve daha kaliteli', () {
-      Staff p(int s) => Staff(id: 'x$s', name: 'a', role: Role.sunucu, skill: s, salary: 1);
-      expect(productionCost(Genre.yarisma, 4), greaterThan(productionCost(Genre.yarisma, 0)));
-      expect(showQuality([p(60)], Genre.yarisma, 4, const []),
-          greaterThan(showQuality([p(60)], Genre.yarisma, 0, const [])));
+      Staff p(int s) =>
+          Staff(id: 'x$s', name: 'a', role: Role.sunucu, skill: s, salary: 1);
+      expect(
+        productionCost(Genre.yarisma, 4),
+        greaterThan(productionCost(Genre.yarisma, 0)),
+      );
+      expect(
+        showQuality([p(60)], Genre.yarisma, 4, const []),
+        greaterThan(showQuality([p(60)], Genre.yarisma, 0, const [])),
+      );
     });
 
     test('YouTuber: transfer, gelir, büyüme, kampanya', () async {
@@ -328,7 +370,10 @@ void main() {
       final h = g.history.last;
       expect(h.income, greaterThan(0));
       expect(h.expense, greaterThan(0));
-      expect(g.history[1].cash + g.history[2].net, closeTo(g.history[2].cash, 2));
+      expect(
+        g.history[1].cash + g.history[2].net,
+        closeTo(g.history[2].cash, 2),
+      );
       g.dispose();
     });
 
@@ -360,28 +405,53 @@ void main() {
       g.dispose();
     });
 
-    test('sponsor kabul edilince günlük gelir gelir, 10 gün sonra biter', () async {
-      final g = await gameWithShowOnAir();
-      final s = g.shows.first;
-      g.pendingDecision = Decision(kind: 'sponsor', title: 't', body: 'b',
-          options: ['a', 'b', 'c'], hints: ['', '', ''], targetId: s.id, amount: 10000, extra: 'Fırtına Cola');
-      g.resolveDecision(0);
-      expect(g.pendingDecision, isNull);
-      expect(g.sponsorIncomePerDay, 10000);
-      expect(g.sponsorDeals, 1);
-      s.episodesAired = -20; // sezon bitmesin
-      g.debugAdvanceDays(10.5);
-      expect(s.sponsorDays, 0);
-      expect(g.sponsorIncomePerDay, 0);
-      g.dispose();
-    });
+    test(
+      'sponsor kabul edilince günlük gelir gelir, 10 gün sonra biter',
+      () async {
+        final g = await gameWithShowOnAir();
+        final s = g.shows.first;
+        g.pendingDecision = Decision(
+          kind: 'sponsor',
+          title: 't',
+          body: 'b',
+          options: ['a', 'b', 'c'],
+          hints: ['', '', ''],
+          targetId: s.id,
+          amount: 10000,
+          extra: 'Fırtına Cola',
+        );
+        g.resolveDecision(0);
+        expect(g.pendingDecision, isNull);
+        expect(g.sponsorIncomePerDay, 10000);
+        expect(g.sponsorDeals, 1);
+        s.episodesAired = -20; // sezon bitmesin
+        g.debugAdvanceDays(10.5);
+        expect(s.sponsorDays, 0);
+        expect(g.sponsorIncomePerDay, 0);
+        g.dispose();
+      },
+    );
 
     test('yıldız zammı verilince maaş %20 artar', () async {
       final g = Game();
       await g.start();
-      g.staff.add(Staff(id: 'star', name: 'Yıldız', role: Role.oyuncu, skill: 95, salary: 10000));
-      g.pendingDecision = Decision(kind: 'raise', title: 't', body: 'b',
-          options: ['a', 'b', 'c'], hints: ['', '', ''], targetId: 'star');
+      g.staff.add(
+        Staff(
+          id: 'star',
+          name: 'Yıldız',
+          role: Role.oyuncu,
+          skill: 95,
+          salary: 10000,
+        ),
+      );
+      g.pendingDecision = Decision(
+        kind: 'raise',
+        title: 't',
+        body: 'b',
+        options: ['a', 'b', 'c'],
+        hints: ['', '', ''],
+        targetId: 'star',
+      );
       g.resolveDecision(0);
       expect(g.staffById('star')!.salary, 12000);
       g.dispose();
@@ -390,10 +460,25 @@ void main() {
     test('transfer: satınca bonservis gelir, yıldız gider', () async {
       final g = Game();
       await g.start();
-      g.staff.add(Staff(id: 'star', name: 'Yıldız', role: Role.oyuncu, skill: 95, salary: 10000));
+      g.staff.add(
+        Staff(
+          id: 'star',
+          name: 'Yıldız',
+          role: Role.oyuncu,
+          skill: 95,
+          salary: 10000,
+        ),
+      );
       final c0 = g.cash;
-      g.pendingDecision = Decision(kind: 'poach', title: 't', body: 'b',
-          options: ['a', 'b'], hints: ['', ''], targetId: 'star', extra: 'Nova Türk');
+      g.pendingDecision = Decision(
+        kind: 'poach',
+        title: 't',
+        body: 'b',
+        options: ['a', 'b'],
+        hints: ['', ''],
+        targetId: 'star',
+        extra: 'Nova Türk',
+      );
       g.resolveDecision(1);
       expect(g.staffById('star'), isNull);
       expect(g.cash, c0 + 250000);
@@ -423,22 +508,32 @@ void main() {
   });
 
   group('Kararlar oyunu durdurmaz', () {
-    test('cevap verilmezse 1 gün sonra güvenli seçenek otomatik seçilir', () async {
-      final g = await gameWithShowOnAir();
-      final s = g.shows.first;
-      s.episodesAired = -20;
-      final d = Decision(kind: 'setCrisis', title: 't', body: 'b',
-          options: ['a', 'b', 'c'], hints: ['', '', ''], targetId: s.id,
-          amount: 1000, defaultOption: 2);
-      d.deadline = g.gameTime + 1.0;
-      g.pendingDecision = d;
-      g.debugAdvanceDays(0.5);
-      expect(g.pendingDecision, isNotNull, reason: 'süre dolmadı');
-      g.debugAdvanceDays(0.6);
-      expect(g.pendingDecision, isNull, reason: 'otomatik çözülmeli');
-      expect(g.decisionsMade, 1);
-      g.dispose();
-    });
+    test(
+      'cevap verilmezse 1 gün sonra güvenli seçenek otomatik seçilir',
+      () async {
+        final g = await gameWithShowOnAir();
+        final s = g.shows.first;
+        s.episodesAired = -20;
+        final d = Decision(
+          kind: 'setCrisis',
+          title: 't',
+          body: 'b',
+          options: ['a', 'b', 'c'],
+          hints: ['', '', ''],
+          targetId: s.id,
+          amount: 1000,
+          defaultOption: 2,
+        );
+        d.deadline = g.gameTime + 1.0;
+        g.pendingDecision = d;
+        g.debugAdvanceDays(0.5);
+        expect(g.pendingDecision, isNotNull, reason: 'süre dolmadı');
+        g.debugAdvanceDays(0.6);
+        expect(g.pendingDecision, isNull, reason: 'otomatik çözülmeli');
+        expect(g.decisionsMade, 1);
+        g.dispose();
+      },
+    );
 
     test('olayların reyting etkisi ±%20 ile sınırlı', () async {
       final g = await gameWithShowOnAir();
@@ -468,20 +563,23 @@ void main() {
   });
 
   group('Rekabet dengesi', () {
-    test('aynı türden iki program yayındaysa ikisi de reyting kaybeder', () async {
-      final g = await gameWithShowOnAir();
-      g.cash = 1e9;
-      final r1 = g.currentRating(g.shows.first);
-      final host = g.market.firstWhere((p) => p.role == Role.sunucu);
-      g.hire(host);
-      g.createShow('İkinci', Genre.magazin, 0, [host]);
-      final s2 = g.shows.first;
-      g.speedUp(s2);
-      g.putOnAir(s2, SlotId.ogle1);
-      expect(g.saturationFor(Genre.magazin), lessThan(1));
-      expect(g.currentRating(g.shows.last), lessThan(r1));
-      g.dispose();
-    });
+    test(
+      'aynı türden iki program yayındaysa ikisi de reyting kaybeder',
+      () async {
+        final g = await gameWithShowOnAir();
+        g.cash = 1e9;
+        final r1 = g.currentRating(g.shows.first);
+        final host = g.market.firstWhere((p) => p.role == Role.sunucu);
+        g.hire(host);
+        g.createShow('İkinci', Genre.magazin, 0, [host]);
+        final s2 = g.shows.first;
+        g.speedUp(s2);
+        g.putOnAir(s2, SlotId.ogle1);
+        expect(g.saturationFor(Genre.magazin), lessThan(1));
+        expect(g.currentRating(g.shows.last), lessThan(r1));
+        g.dispose();
+      },
+    );
 
     test('rakip baskısı zamanla artar ama sınırlı kalır', () async {
       final g = Game();
@@ -509,13 +607,30 @@ void main() {
   test('HATA #3: art arda zamlar maaşı sınırsız büyütemez', () async {
     final g = Game();
     await g.start();
-    g.staff.add(Staff(id: 'star', name: 'Yıldız', role: Role.oyuncu, skill: 95, salary: salaryFor(95)));
+    g.staff.add(
+      Staff(
+        id: 'star',
+        name: 'Yıldız',
+        role: Role.oyuncu,
+        skill: 95,
+        salary: salaryFor(95),
+      ),
+    );
     for (int i = 0; i < 50; i++) {
-      g.pendingDecision = Decision(kind: 'raise', title: 't', body: 'b',
-          options: ['a', 'b', 'c'], hints: ['', '', ''], targetId: 'star');
+      g.pendingDecision = Decision(
+        kind: 'raise',
+        title: 't',
+        body: 'b',
+        options: ['a', 'b', 'c'],
+        hints: ['', '', ''],
+        targetId: 'star',
+      );
       g.resolveDecision(0);
     }
-    expect(g.staffById('star')!.salary, lessThanOrEqualTo(salaryFor(95) * 2 + 100));
+    expect(
+      g.staffById('star')!.salary,
+      lessThanOrEqualTo(salaryFor(95) * 2 + 100),
+    );
     g.dispose();
   });
 
@@ -532,7 +647,11 @@ void main() {
       expect(g.netWorth, greaterThan(1e8 - p0 * 1000 * 0.01));
       expect(g.sellStock(t, 1000), isNull);
       expect(g.holdings.containsKey(t), isFalse);
-      expect(g.tradingProfit, lessThan(0), reason: 'anında al-sat komisyon kaybettirir');
+      expect(
+        g.tradingProfit,
+        lessThan(0),
+        reason: 'anında al-sat komisyon kaybettirir',
+      );
       g.dispose();
     });
 
@@ -577,7 +696,10 @@ void main() {
       g.cash = 1e10;
       for (final c in channelDefs) {
         final c0 = g.cash;
-        g.completePurchase(c.id, c.price * 0.74); // pazarlıkta inilebilecek en düşük
+        g.completePurchase(
+          c.id,
+          c.price * 0.74,
+        ); // pazarlıkta inilebilecek en düşük
         g.sellChannel(c);
         expect(g.cash, lessThan(c0), reason: c.name);
       }
@@ -619,8 +741,11 @@ void main() {
       g.takeOffAir(s.slot!);
       g.debugAdvanceDays(60.5); // iki tören geçer
       final names = g.trophies.map((t) => t.winner).toList();
-      expect(names.where((n) => n == s.name).length, lessThanOrEqualTo(1),
-          reason: 'bitmiş program her törende ödül almamalı');
+      expect(
+        names.where((n) => n == s.name).length,
+        lessThanOrEqualTo(1),
+        reason: 'bitmiş program her törende ödül almamalı',
+      );
       g.dispose();
     });
 
@@ -631,12 +756,18 @@ void main() {
       g.dispose();
       final prefs = await SharedPreferences.getInstance();
       final j = jsonDecode(prefs.getString('reyting_save_v1')!);
-      j['savedAt'] = DateTime.now().subtract(const Duration(seconds: 40)).millisecondsSinceEpoch;
+      j['savedAt'] = DateTime.now()
+          .subtract(const Duration(seconds: 40))
+          .millisecondsSinceEpoch;
       await prefs.setString('reyting_save_v1', jsonEncode(j));
       final g2 = Game();
       await g2.start();
       expect(g2.pendingOffline, isNull, reason: 'özet penceresi çıkmamalı');
-      expect(g2.dayProgress, greaterThan(0.5), reason: '40 sn = ~0,67 gün işlenmeli');
+      expect(
+        g2.dayProgress,
+        greaterThan(0.5),
+        reason: '40 sn = ~0,67 gün işlenmeli',
+      );
       g2.dispose();
     });
   });
@@ -656,23 +787,26 @@ void main() {
       g.dispose();
     });
 
-    test('işe alınmadan yenilemez; elle kaldırılan program yenilenmez', () async {
-      final g = await gameWithShowOnAir();
-      g.cash = 1e8;
-      final s = g.shows.first;
-      g.debugAdvanceDays(s.seasonDays + 0.5);
-      expect(s.status, ShowStatus.ended, reason: 'müdür yok, yenilenmemeli');
-      expect(s.season, 1);
-      g.dispose();
-      final g2 = await gameWithShowOnAir();
-      g2.cash = 1e8;
-      g2.hireManager();
-      final s2 = g2.shows.first;
-      g2.takeOffAir(s2.slot!);
-      expect(s2.status, ShowStatus.ended);
-      expect(s2.season, 1);
-      g2.dispose();
-    });
+    test(
+      'işe alınmadan yenilemez; elle kaldırılan program yenilenmez',
+      () async {
+        final g = await gameWithShowOnAir();
+        g.cash = 1e8;
+        final s = g.shows.first;
+        g.debugAdvanceDays(s.seasonDays + 0.5);
+        expect(s.status, ShowStatus.ended, reason: 'müdür yok, yenilenmemeli');
+        expect(s.season, 1);
+        g.dispose();
+        final g2 = await gameWithShowOnAir();
+        g2.cash = 1e8;
+        g2.hireManager();
+        final s2 = g2.shows.first;
+        g2.takeOffAir(s2.slot!);
+        expect(s2.status, ShowStatus.ended);
+        expect(s2.season, 1);
+        g2.dispose();
+      },
+    );
 
     test('Genel Müdür maaş alır', () async {
       final g = Game();
@@ -720,7 +854,9 @@ void main() {
       j['v'] = 1;
       final sid = (j['shows'] as List).first['id'];
       (j['shows'] as List).first['slot'] = 2;
-      j['slots'] = {'prime': {'showId': sid, 'adMinutes': 9}};
+      j['slots'] = {
+        'prime': {'showId': sid, 'adMinutes': 9},
+      };
       await prefs.setString('reyting_save_v1', jsonEncode(j));
       final g2 = Game();
       await g2.start();
@@ -730,15 +866,18 @@ void main() {
       g2.dispose();
     });
 
-    test('iş ilanları her gün yenilenir ve günün yıldızı yüksek puanlı', () async {
-      final g = Game();
-      await g.start();
-      final ids = g.market.map((p) => p.id).toSet();
-      g.debugAdvanceDays(1);
-      expect(g.market.map((p) => p.id).toSet().intersection(ids), isEmpty);
-      expect(g.market.first.skill, greaterThanOrEqualTo(80));
-      g.dispose();
-    });
+    test(
+      'iş ilanları her gün yenilenir ve günün yıldızı yüksek puanlı',
+      () async {
+        final g = Game();
+        await g.start();
+        final ids = g.market.map((p) => p.id).toSet();
+        g.debugAdvanceDays(1);
+        expect(g.market.map((p) => p.id).toSet().intersection(ids), isEmpty);
+        expect(g.market.first.skill, greaterThanOrEqualTo(80));
+        g.dispose();
+      },
+    );
 
     test('eğitim yeteneği artırır, 3 gün bekletir', () async {
       final g = Game();
@@ -783,23 +922,43 @@ void main() {
       final g = Game();
       await g.start();
       g.cash = 1e9;
-      for (final r in [Role.senarist, Role.yonetmen, Role.sunucu, Role.oyuncu]) {
+      for (final r in [
+        Role.senarist,
+        Role.yonetmen,
+        Role.sunucu,
+        Role.oyuncu,
+      ]) {
         for (int i = 0; i < 2; i++) {
-          g.staff.add(Staff(id: 'x${r.name}$i', name: 'Test', role: r, skill: 90, salary: 1000));
+          g.staff.add(
+            Staff(
+              id: 'x${r.name}$i',
+              name: 'Test',
+              role: r,
+              skill: 90,
+              salary: 1000,
+            ),
+          );
         }
       }
-      final t = g.tenders.firstWhere((t) => t.status == TenderStatus.open && g.tenderEligible(t) == null,
-          orElse: () {
-        final nt = Tender(id: 'tt', defId: 'spot', budget: 600000, closesDay: g.day + 3);
-        g.tenders.add(nt);
-        return nt;
-      });
+      final t = g.tenders.firstWhere(
+        (t) => t.status == TenderStatus.open && g.tenderEligible(t) == null,
+        orElse: () {
+          final nt = Tender(
+            id: 'tt',
+            defId: 'spot',
+            budget: 600000,
+            closesDay: g.day + 3,
+          );
+          g.tenders.add(nt);
+          return nt;
+        },
+      );
       return (g, t);
     }
 
     List<Staff> crewFor(Game g, Tender t) => [
-          for (final e in t.def.crew.entries) ...g.freeStaff(e.key).take(e.value),
-        ];
+      for (final e in t.def.crew.entries) ...g.freeStaff(e.key).take(e.value),
+    ];
 
     test('her zaman açık ihale bulunur', () async {
       final g = Game();
@@ -808,40 +967,59 @@ void main() {
       g.dispose();
     });
 
-    test('çok düşük teklif kazanır, çekilir, teslimde para ve prestij gelir', () async {
-      final (g, t) = await setup();
-      final c0 = g.cash;
-      final crew = crewFor(g, t);
-      expect(g.bidTender(t, t.budget * 0.5, crew), isNull);
-      expect(crew.every((c) => c.showId == t.id), isTrue, reason: 'ekip rezerve');
-      g.debugAdvanceDays((t.closesDay - g.day).toDouble() + 0.01);
-      expect(t.status, TenderStatus.producing);
-      g.debugAdvanceDays(t.def.days + 0.5);
-      expect(t.status, TenderStatus.delivered);
-      expect(t.paid, greaterThanOrEqualTo(t.myBid!));
-      expect(g.tendersWon, 1);
-      expect(crew.every((c) => c.showId == null), isTrue, reason: 'ekip serbest');
-      expect(g.cash, isNot(c0));
-      g.dispose();
-    });
+    test(
+      'çok düşük teklif kazanır, çekilir, teslimde para ve prestij gelir',
+      () async {
+        final (g, t) = await setup();
+        final c0 = g.cash;
+        final crew = crewFor(g, t);
+        expect(g.bidTender(t, t.budget * 0.5, crew), isNull);
+        expect(
+          crew.every((c) => c.showId == t.id),
+          isTrue,
+          reason: 'ekip rezerve',
+        );
+        g.debugAdvanceDays((t.closesDay - g.day).toDouble() + 0.01);
+        expect(t.status, TenderStatus.producing);
+        g.debugAdvanceDays(t.def.days + 0.5);
+        expect(t.status, TenderStatus.delivered);
+        expect(t.paid, greaterThanOrEqualTo(t.myBid!));
+        expect(g.tendersWon, 1);
+        expect(
+          crew.every((c) => c.showId == null),
+          isTrue,
+          reason: 'ekip serbest',
+        );
+        expect(g.cash, isNot(c0));
+        g.dispose();
+      },
+    );
 
-    test('çok yüksek teklif kaybeder, teminat iade edilir, ekip serbest kalır', () async {
-      final (g, t) = await setup();
-      final crew = crewFor(g, t);
-      expect(g.bidTender(t, t.budget * 1.2, crew), isNull);
-      final afterBid = g.cash;
-      g.debugAdvanceDays((t.closesDay - g.day).toDouble() + 0.01);
-      expect(t.status, TenderStatus.lost);
-      expect(crew.every((c) => c.showId == null), isTrue);
-      expect(g.history.isNotEmpty, isTrue);
-      expect(g.cash, greaterThan(afterBid - 1e7), reason: 'teminat iade');
-      g.dispose();
-    });
+    test(
+      'çok yüksek teklif kaybeder, teminat iade edilir, ekip serbest kalır',
+      () async {
+        final (g, t) = await setup();
+        final crew = crewFor(g, t);
+        expect(g.bidTender(t, t.budget * 1.2, crew), isNull);
+        final afterBid = g.cash;
+        g.debugAdvanceDays((t.closesDay - g.day).toDouble() + 0.01);
+        expect(t.status, TenderStatus.lost);
+        expect(crew.every((c) => c.showId == null), isTrue);
+        expect(g.history.isNotEmpty, isTrue);
+        expect(g.cash, greaterThan(afterBid - 1e7), reason: 'teminat iade');
+        g.dispose();
+      },
+    );
 
     test('ekipman yoksa teklif verilemez', () async {
       final g = Game();
       await g.start();
-      final t = Tender(id: 'tx', defId: 'miras', budget: 1e7, closesDay: g.day + 3);
+      final t = Tender(
+        id: 'tx',
+        defId: 'miras',
+        budget: 1e7,
+        closesDay: g.day + 3,
+      );
       g.tenders.add(t);
       expect(g.tenderEligible(t), isNotNull);
       expect(g.bidTender(t, 9e6, []), isNotNull);
@@ -853,7 +1031,9 @@ void main() {
       await g.start();
       g.cash = 1e12;
       g.studioLevel = 3;
-      final ocean = genreFormats[Genre.belgesel]!.indexWhere((f) => f.prop == Prop.ocean);
+      final ocean = genreFormats[Genre.belgesel]!.indexWhere(
+        (f) => f.prop == Prop.ocean,
+      );
       expect(g.formatUnlocked(Genre.belgesel, ocean), isFalse);
       g.buyEquip(equipById('underwater')!);
       expect(g.formatUnlocked(Genre.belgesel, ocean), isTrue);

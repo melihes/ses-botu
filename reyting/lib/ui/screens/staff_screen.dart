@@ -32,47 +32,55 @@ class _StaffScreenState extends State<StaffScreen> {
     return ListView(
       padding: const EdgeInsets.all(14),
       children: [
-        Row(children: [
-          PillTabs(
-            labels: [
-              'Kadrom ${game.staff.length}/${game.studio.maxStaff}',
-              'İş ilanları ${game.market.length}',
-            ],
-            selected: _tab,
-            onChanged: (i) => setState(() => _tab = i),
-          ),
-          const Spacer(),
-          if (_tab == 1)
-            GhostButton('Yeni adaylar · 3 💎',
+        Row(
+          children: [
+            PillTabs(
+              labels: [
+                'Kadrom ${game.staff.length}/${game.studio.maxStaff}',
+                'İş ilanları ${game.market.length}',
+              ],
+              selected: _tab,
+              onChanged: (i) => setState(() => _tab = i),
+            ),
+            const Spacer(),
+            if (_tab == 1)
+              GhostButton(
+                'Yeni adaylar · 3 💎',
                 compact: true,
                 icon: Icons.refresh_rounded,
-                onTap: () => report(context, game.refreshMarketPaid())),
-        ]),
+                onTap: () => report(context, game.refreshMarketPaid()),
+              ),
+          ],
+        ),
         const SizedBox(height: 10),
-        if (_tab == 0) ...[
-          const _ManagerCard(),
-          const SizedBox(height: 10),
-        ],
-        PageHint(_tab == 0
-            ? 'Günlük maaş toplamı: ${fmtShort(game.dailySalaries)}. '
-                'Programda çalışan kişiler kadrodan çıkarılamaz. '
-                'Eğitim kampı yeteneği artırır (3 günde bir).'
-            : 'Adaylar her gün yenilenir. En üstteki ⭐ Günün Yıldızı yüksek puanlı ama daha pahalı. '
-                'İşe alırken 5 günlük maaş kadar imza ücreti ödenir.'),
+        if (_tab == 0) ...[const _ManagerCard(), const SizedBox(height: 10)],
+        PageHint(
+          _tab == 0
+              ? 'Günlük maaş toplamı: ${fmtShort(game.dailySalaries)}. '
+                    'Programda çalışan kişiler kadrodan çıkarılamaz. '
+                    'Eğitim kampı yeteneği artırır (3 günde bir).'
+              : 'Adaylar her gün yenilenir. En üstteki ⭐ Günün Yıldızı yüksek puanlı ama daha pahalı. '
+                    'İşe alırken 5 günlük maaş kadar imza ücreti ödenir.',
+        ),
         if (list.isEmpty)
           Panel(
             child: Text(
-                _tab == 0
-                    ? 'Kadron boş. "İş ilanları" sekmesinden ilk çalışanlarını al!'
-                    : 'Şu an aday yok.',
-                style: const TextStyle(color: AppColors.textDim)),
+              _tab == 0
+                  ? 'Kadron boş. "İş ilanları" sekmesinden ilk çalışanlarını al!'
+                  : 'Şu an aday yok.',
+              style: const TextStyle(color: AppColors.textDim),
+            ),
           ),
         AutoGrid(
           minItemWidth: 250,
           spacing: 10,
           children: [
             for (int i = 0; i < list.length; i++)
-              _PersonCard(person: list[i], hired: _tab == 0, featured: _tab == 1 && i == 0),
+              _PersonCard(
+                person: list[i],
+                hired: _tab == 0,
+                featured: _tab == 1 && i == 0,
+              ),
           ],
         ),
       ],
@@ -84,7 +92,11 @@ class _PersonCard extends StatelessWidget {
   final Staff person;
   final bool hired;
   final bool featured;
-  const _PersonCard({required this.person, required this.hired, this.featured = false});
+  const _PersonCard({
+    required this.person,
+    required this.hired,
+    this.featured = false,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -97,106 +109,145 @@ class _PersonCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(children: [
-            PersonAvatar(
+          Row(
+            children: [
+              PersonAvatar(
                 seed: p.id.hashCode,
                 color: p.role.color,
                 size: 46,
-                badgeIcon: p.role.icon),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(p.name,
+                badgeIcon: p.role.icon,
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      p.name,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(fontWeight: FontWeight.w800)),
-                  Text('${p.role.label} · ${p.specDef.label}',
+                      style: const TextStyle(fontWeight: FontWeight.w800),
+                    ),
+                    Text(
+                      '${p.role.label} · ${p.specDef.label}',
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
-                          color: p.role.color,
-                          fontSize: 12,
-                          fontWeight: FontWeight.w700)),
-                  Text(
+                        color: p.role.color,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    Text(
                       '${p.age} yaş${p.trait != 0 ? ' · ${p.traitDef.emoji} ${p.traitDef.label}' : ''}'
                       '${p.fame >= 1 ? ' · şöhret ${p.fame.round()}' : ''}',
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(color: AppColors.textDim, fontSize: 11)),
-                ],
-              ),
-            ),
-            if (featured)
-              const Tag('GÜNÜN YILDIZI', color: AppColors.yellow, icon: Icons.auto_awesome)
-            else if (p.isStar)
-              const Tag('YILDIZ', color: AppColors.yellow, icon: Icons.star),
-          ]),
-          const SizedBox(height: 10),
-          Row(children: [
-            const Text('Yetenek',
-                style: TextStyle(color: AppColors.textDim, fontSize: 12)),
-            const SizedBox(width: 8),
-            Expanded(
-                child: Bar(p.skill / 100,
-                    color: p.skill >= 70
-                        ? AppColors.green
-                        : p.skill >= 45
-                            ? AppColors.yellow
-                            : AppColors.orange)),
-            const SizedBox(width: 8),
-            Text('${p.skill}',
-                style: const TextStyle(fontWeight: FontWeight.w900)),
-          ]),
-          const SizedBox(height: 6),
-          Text(
-              hired && p.showId == null
-                  ? 'Maaş: ${fmtShort(p.salary)}/gün (boştayken yarısı)'
-                  : 'Maaş: ${fmtShort(p.salary)}/gün',
-              style: const TextStyle(color: AppColors.textDim, fontSize: 12)),
-          const SizedBox(height: 10),
-          if (hired)
-            Row(children: [
-              Expanded(
-                child: Text(
-                  show == null ? '● Boşta' : '● $show',
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                      color: show == null ? AppColors.yellow : AppColors.green,
-                      fontWeight: FontWeight.w700,
-                      fontSize: 12),
+                      style: const TextStyle(
+                        color: AppColors.textDim,
+                        fontSize: 11,
+                      ),
+                    ),
+                  ],
                 ),
               ),
-              GhostButton(
-                  game.canTrain(p) ? 'Eğit · ${fmtShort(game.trainCost(p))}' : 'Eğitimde',
+              if (featured)
+                const Tag(
+                  'GÜNÜN YILDIZI',
+                  color: AppColors.yellow,
+                  icon: Icons.auto_awesome,
+                )
+              else if (p.isStar)
+                const Tag('YILDIZ', color: AppColors.yellow, icon: Icons.star),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              const Text(
+                'Yetenek',
+                style: TextStyle(color: AppColors.textDim, fontSize: 12),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Bar(
+                  p.skill / 100,
+                  color: p.skill >= 70
+                      ? AppColors.green
+                      : p.skill >= 45
+                      ? AppColors.yellow
+                      : AppColors.orange,
+                ),
+              ),
+              const SizedBox(width: 8),
+              Text(
+                '${p.skill}',
+                style: const TextStyle(fontWeight: FontWeight.w900),
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          Text(
+            hired && p.showId == null
+                ? 'Maaş: ${fmtShort(p.salary)}/gün (boştayken yarısı)'
+                : 'Maaş: ${fmtShort(p.salary)}/gün',
+            style: const TextStyle(color: AppColors.textDim, fontSize: 12),
+          ),
+          const SizedBox(height: 10),
+          if (hired)
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    show == null ? '● Boşta' : '● $show',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: show == null ? AppColors.yellow : AppColors.green,
+                      fontWeight: FontWeight.w700,
+                      fontSize: 12,
+                    ),
+                  ),
+                ),
+                GhostButton(
+                  game.canTrain(p)
+                      ? 'Eğit · ${fmtShort(game.trainCost(p))}'
+                      : (p.skill >= 99 ? 'Zirvede' : 'Eğitimde'),
                   compact: true,
                   icon: Icons.school_rounded,
-                  onTap: game.canTrain(p) ? () => report(context, game.trainStaff(p)) : null),
-              const SizedBox(width: 4),
-              GhostButton('Çıkar',
+                  onTap: () => report(context, game.trainStaff(p)),
+                ),
+                const SizedBox(width: 4),
+                GhostButton(
+                  'Çıkar',
                   compact: true,
                   color: AppColors.red,
                   onTap: show != null
-                      ? null
+                      ? () => game.showToast(
+                          '${p.name} şu an "$show" projesinde. Önce proje bitmeli.',
+                        )
                       : () async {
                           final ok = await confirm(
-                              context,
-                              '${p.name} çıkarılsın mı?',
-                              'Tazminat: ${fmtShort(p.salary * 3)}',
-                              ok: 'Çıkar');
+                            context,
+                            '${p.name} çıkarılsın mı?',
+                            'Tazminat: ${fmtShort(p.salary * 3)}',
+                            ok: 'Çıkar',
+                          );
                           if (ok && context.mounted) {
                             report(context, game.fire(p));
                           }
-                        }),
-            ])
+                        },
+                ),
+              ],
+            )
           else
-            AccentButton('İşe al · ${fmtShort(game.signingFeeFor(p))}',
-                compact: true,
-                expand: true,
-                icon: Icons.handshake_rounded,
-                onTap: () => report(context, game.hire(p))),
+            AccentButton(
+              'İşe al · ${fmtShort(game.signingFeeFor(p))}',
+              compact: true,
+              expand: true,
+              icon: Icons.handshake_rounded,
+              onTap: () => report(context, game.hire(p)),
+            ),
         ],
       ),
     );
@@ -212,26 +263,49 @@ class _ManagerCard extends StatelessWidget {
     final n = game.execs.length;
     return Panel(
       padding: const EdgeInsets.all(12),
-      borderColor: n > 0 ? AppColors.green.withValues(alpha: 0.6) : AppColors.yellow.withValues(alpha: 0.6),
+      borderColor: n > 0
+          ? AppColors.green.withValues(alpha: 0.6)
+          : AppColors.yellow.withValues(alpha: 0.6),
       onTap: () => ShellNav.go(context, PageId.board),
-      child: Row(children: [
-        const PersonAvatar(seed: 7777, color: AppColors.purple, size: 48, badgeIcon: Icons.business_center_rounded),
-        const SizedBox(width: 12),
-        Expanded(
-          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text('🤵 Yönetim kurulu · $n yönetici',
-                style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 15)),
-            Text(
-                n == 0
-                    ? 'Genel Müdür, Yayın Planlama, İK, Pazarlama… Sen yokken kanalı onlar yönetir.'
-                    : game.execs.values.map((e) => '${e.def.label} (${e.skill})').join(' · '),
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(color: AppColors.textDim, fontSize: 12)),
-          ]),
-        ),
-        const Icon(Icons.chevron_right_rounded, color: AppColors.textDim),
-      ]),
+      child: Row(
+        children: [
+          const PersonAvatar(
+            seed: 7777,
+            color: AppColors.purple,
+            size: 48,
+            badgeIcon: Icons.business_center_rounded,
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  '🤵 Yönetim kurulu · $n yönetici',
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w900,
+                    fontSize: 15,
+                  ),
+                ),
+                Text(
+                  n == 0
+                      ? 'Genel Müdür, Yayın Planlama, İK, Pazarlama… Sen yokken kanalı onlar yönetir.'
+                      : game.execs.values
+                            .map((e) => '${e.def.label} (${e.skill})')
+                            .join(' · '),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: AppColors.textDim,
+                    fontSize: 12,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const Icon(Icons.chevron_right_rounded, color: AppColors.textDim),
+        ],
+      ),
     );
   }
 }

@@ -102,7 +102,11 @@ class _ReytingAppState extends State<ReytingApp> with WidgetsBindingObserver {
       debugShowCheckedModeBanner: false,
       theme: buildTheme(),
       home: g == null
-          ? SplashScreen(progress: _progress, status: _status, version: _version)
+          ? SplashScreen(
+              progress: _progress,
+              status: _status,
+              version: _version,
+            )
           : const Shell(),
     );
     if (g == null) return app;

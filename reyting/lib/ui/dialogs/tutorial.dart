@@ -13,28 +13,56 @@ class _Page {
 }
 
 const _pages = [
-  _Page(Prop.studio, AppColors.purple, 'Hoş geldin patron! 🎬',
-      'Küçük bir yerel kanalın sahibisin. Hedefin: Türkiye\'nin en büyük medya imparatorluğunu kurmak. Her şey kurgusal, her şey senin elinde!'),
-  _Page(Prop.debate, AppColors.pink, '1 · Kadronu kur',
-      'Senarist, yönetmen, oyuncu ve sunucu işe al. Yetenekleri arttıkça maaşları da artar. Arada bir ★ yıldızlar çıkar, kaçırma!'),
-  _Page(Prop.wheel, AppColors.yellow, '2 · Program üret',
-      'Tür seç, sonra formatını seç. Her türün seviyeleri var: bilgi yarışmasından başlayıp dev ada yarışmasına kadar çıkabilirsin. Üst formatlar pahalı ama reytingi uçurur.'),
-  _Page(Prop.globe, AppColors.blue, '3 · Yayına koy, reklamı ayarla',
-      'Hazır programı bir kuşağa koy. Reklam süresini kaydır: reklam uzarsa gelir artar ama izleyici kaçar. En iyi noktayı bulmak senin işin!'),
-  _Page(Prop.film, AppColors.orange, '4 · Paranı büyüt',
-      'Film çek, vizyona sok, platformlara sat; haklar sende kalsın. YouTuber transfer et, holding kur, rakip kanalları satın al. Yatlar, adalar seni bekliyor!'),
-  _Page(Prop.talent, AppColors.pink, '5 · Büyük oyna',
-      'Bütçeyi yükselt, ünlü konuk getir, Kapadokya\'da ya da Paris\'te çekim yap. Genç yetenekleri ajansında yetiştir, yıldız yapıp sat. Markalar zamanla kapını çalar.'),
-  _Page(Prop.nightShow, AppColors.cyan, '6 · Zaman akıyor',
-      '1 oyun günü = 1 dakika. Maaşlar ve kira her gün ödenir. Sen yokken kanalın 8 saate kadar yarı hızda çalışır; yönetim kuruluna uzman yöneticiler alırsan işler sen yokken de iyi gider. Başındayken çıkan senaryo kararları ekstra reyting getirir!'),
+  _Page(
+    Prop.studio,
+    AppColors.purple,
+    'Hoş geldin patron! 🎬',
+    'Küçük bir yerel kanalın sahibisin. Hedefin: Türkiye\'nin en büyük medya imparatorluğunu kurmak. Her şey kurgusal, her şey senin elinde!',
+  ),
+  _Page(
+    Prop.debate,
+    AppColors.pink,
+    '1 · Kadronu kur',
+    'Senarist, yönetmen, oyuncu ve sunucu işe al. Yetenekleri arttıkça maaşları da artar. Arada bir ★ yıldızlar çıkar, kaçırma!',
+  ),
+  _Page(
+    Prop.wheel,
+    AppColors.yellow,
+    '2 · Program üret',
+    'Tür seç, sonra formatını seç. Her türün seviyeleri var: bilgi yarışmasından başlayıp dev ada yarışmasına kadar çıkabilirsin. Üst formatlar pahalı ama reytingi uçurur.',
+  ),
+  _Page(
+    Prop.globe,
+    AppColors.blue,
+    '3 · Yayına koy, reklamı ayarla',
+    'Hazır programı bir kuşağa koy. Reklam süresini kaydır: reklam uzarsa gelir artar ama izleyici kaçar. En iyi noktayı bulmak senin işin!',
+  ),
+  _Page(
+    Prop.film,
+    AppColors.orange,
+    '4 · Paranı büyüt',
+    'Film çek, vizyona sok, platformlara sat; haklar sende kalsın. YouTuber transfer et, holding kur, rakip kanalları satın al. Yatlar, adalar seni bekliyor!',
+  ),
+  _Page(
+    Prop.talent,
+    AppColors.pink,
+    '5 · Büyük oyna',
+    'Bütçeyi yükselt, ünlü konuk getir, Kapadokya\'da ya da Paris\'te çekim yap. Genç yetenekleri ajansında yetiştir, yıldız yapıp sat. Markalar zamanla kapını çalar.',
+  ),
+  _Page(
+    Prop.nightShow,
+    AppColors.cyan,
+    '6 · Zaman akıyor',
+    '1 oyun günü = 1 dakika. Maaşlar ve kira her gün ödenir. Sen yokken kanalın 8 saate kadar yarı hızda çalışır; yönetim kuruluna uzman yöneticiler alırsan işler sen yokken de iyi gider. Başındayken çıkan senaryo kararları ekstra reyting getirir!',
+  ),
 ];
 
 /// İlk açılışta gösterilen tanıtım turu
 Future<void> showIntroTutorial(BuildContext context) => showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (_) => const Dialog(child: _Intro()),
-    );
+  context: context,
+  barrierDismissible: false,
+  builder: (_) => const Dialog(child: _Intro()),
+);
 
 class _Intro extends StatefulWidget {
   const _Intro();
@@ -52,52 +80,96 @@ class _IntroState extends State<_Intro> {
       constraints: const BoxConstraints(maxWidth: 760, maxHeight: 360),
       child: Padding(
         padding: const EdgeInsets.all(16),
-        child: Row(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-          Expanded(
-            flex: 5,
-            child: StageScene(
-                key: ValueKey(_i), talk: true, prop: p.prop, color: p.color, tier: 3, live: _i == 3, height: 300),
-          ),
-          const SizedBox(width: 16),
-          Expanded(
-            flex: 5,
-            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              SectionLabel('Öğretici · ${_i + 1}/${_pages.length}', color: AppColors.accent),
-              const SizedBox(height: 6),
-              Text(p.title, style: const TextStyle(fontSize: 21, fontWeight: FontWeight.w900)),
-              const SizedBox(height: 8),
-              Expanded(
-                child: SingleChildScrollView(
-                  child: Text(p.body,
-                      style: const TextStyle(fontSize: 14, height: 1.4, color: AppColors.textDim)),
-                ),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Expanded(
+              flex: 5,
+              child: StageScene(
+                key: ValueKey(_i),
+                talk: true,
+                prop: p.prop,
+                color: p.color,
+                tier: 3,
+                live: _i == 3,
+                height: 300,
               ),
-              Row(children: [
-                for (int k = 0; k < _pages.length; k++)
-                  Container(
-                    width: k == _i ? 18 : 7,
-                    height: 7,
-                    margin: const EdgeInsets.only(right: 4),
-                    decoration: BoxDecoration(
-                      color: k == _i ? AppColors.accent : AppColors.border,
-                      borderRadius: BorderRadius.circular(4),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              flex: 5,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  SectionLabel(
+                    'Öğretici · ${_i + 1}/${_pages.length}',
+                    color: AppColors.accent,
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    p.title,
+                    style: const TextStyle(
+                      fontSize: 21,
+                      fontWeight: FontWeight.w900,
                     ),
                   ),
-              ]),
-              const SizedBox(height: 10),
-              Row(children: [
-                if (!last)
-                  TextButton(
-                      onPressed: () => Navigator.pop(context),
-                      child: const Text('Atla', style: TextStyle(color: AppColors.textDim))),
-                const Spacer(),
-                AccentButton(last ? 'Başla!' : 'İleri',
-                    icon: last ? Icons.play_arrow_rounded : Icons.arrow_forward_rounded,
-                    onTap: () => last ? Navigator.pop(context) : setState(() => _i++)),
-              ]),
-            ]),
-          ),
-        ]),
+                  const SizedBox(height: 8),
+                  Expanded(
+                    child: SingleChildScrollView(
+                      child: Text(
+                        p.body,
+                        style: const TextStyle(
+                          fontSize: 14,
+                          height: 1.4,
+                          color: AppColors.textDim,
+                        ),
+                      ),
+                    ),
+                  ),
+                  Row(
+                    children: [
+                      for (int k = 0; k < _pages.length; k++)
+                        Container(
+                          width: k == _i ? 18 : 7,
+                          height: 7,
+                          margin: const EdgeInsets.only(right: 4),
+                          decoration: BoxDecoration(
+                            color: k == _i
+                                ? AppColors.accent
+                                : AppColors.border,
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                        ),
+                    ],
+                  ),
+                  const SizedBox(height: 10),
+                  Row(
+                    children: [
+                      if (!last)
+                        TextButton(
+                          onPressed: () => Navigator.pop(context),
+                          child: const Text(
+                            'Atla',
+                            style: TextStyle(color: AppColors.textDim),
+                          ),
+                        ),
+                      const Spacer(),
+                      AccentButton(
+                        last ? 'Başla!' : 'İleri',
+                        icon: last
+                            ? Icons.play_arrow_rounded
+                            : Icons.arrow_forward_rounded,
+                        onTap: () => last
+                            ? Navigator.pop(context)
+                            : setState(() => _i++),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -123,6 +195,7 @@ class _CoachBubbleState extends State<CoachBubble> {
     final g = goals[i];
     if (!_open) {
       return GestureDetector(
+        behavior: HitTestBehavior.opaque,
         onTap: () => setState(() => _open = true),
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
@@ -131,8 +204,10 @@ class _CoachBubbleState extends State<CoachBubble> {
             borderRadius: BorderRadius.circular(20),
             boxShadow: const [BoxShadow(color: Colors.black54, blurRadius: 8)],
           ),
-          child: Text('🎯 Görev ${i + 1}/${goals.length}',
-              style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 12)),
+          child: Text(
+            '🎯 Görev ${i + 1}/${goals.length}',
+            style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 12),
+          ),
         ),
       );
     }
@@ -145,24 +220,43 @@ class _CoachBubbleState extends State<CoachBubble> {
         border: Border.all(color: AppColors.accent.withValues(alpha: 0.7)),
         boxShadow: const [BoxShadow(color: Colors.black54, blurRadius: 12)],
       ),
-      child: Row(children: [
-        Expanded(
-          child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
-            Text('🎯 Görev ${i + 1}/${goals.length} · ${g.$1}',
-                style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 13)),
-            Text('${g.$2} Ödül: ${g.$4} 💎',
-                style: const TextStyle(color: AppColors.textDim, fontSize: 11)),
-          ]),
-        ),
-        const SizedBox(width: 6),
-        AccentButton('Git', compact: true, onTap: () => widget.onGo(i)),
-        IconButton(
-          visualDensity: VisualDensity.compact,
-          onPressed: () => setState(() => _open = false),
-          icon: const Icon(Icons.expand_more_rounded, size: 20, color: AppColors.textDim),
-        ),
-      ]),
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  '🎯 Görev ${i + 1}/${goals.length} · ${g.$1}',
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w900,
+                    fontSize: 13,
+                  ),
+                ),
+                Text(
+                  '${g.$2} Ödül: ${g.$4} 💎',
+                  style: const TextStyle(
+                    color: AppColors.textDim,
+                    fontSize: 11,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 6),
+          AccentButton('Git', compact: true, onTap: () => widget.onGo(i)),
+          IconButton(
+            visualDensity: VisualDensity.compact,
+            onPressed: () => setState(() => _open = false),
+            icon: const Icon(
+              Icons.expand_more_rounded,
+              size: 20,
+              color: AppColors.textDim,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
-
