@@ -1,0 +1,131 @@
+# Rakip oyunlardaki şikâyetlerden çıkan dersler
+
+Bu liste, benzer oyunların topluluk yorumlarında görülen hatalardan çıkarıldı.
+Her yeni özellik eklenirken bu listeye karşı kontrol edilir.
+
+1. **Çevrimdışı hesap simetrik olmalı.** Gelir ve gider aynı motorla, aynı adımlarla işlenir
+   (`Game._advance`). Test: `test/economy_test.dart` → "çevrimdışı gelir de işlenir".
+2. **Satın alınan her şeyin etkisi açıkça yazılmalı** (tek seferlik mi, süreli mi, kalıcı mı).
+3. **Bulut kaydı:** cihaz sıfırlansa da ilerleme kaybolmamalı (Aşama 3, Firebase Auth + Firestore).
+4. **Tek kişilik içerik internetsiz çalışmalı.** Online işlemlerde anlaşılır hata + otomatik yeniden deneme.
+5. **Oyun her açılışta ana ekranda başlamalı.**
+6. **Tek para birimi**, çok büyük sayılar doğru biçimlenmeli (Mr, Tn, Ktr).
+7. **Saat hilesine karşı koruma:** geri alınan saat yok sayılır; online'da sunucu saati esastır.
+8. **Arkadaş/ortaklık gibi sosyal özellikler** yayına çıkmadan önce iki gerçek hesapla uçtan uca test edilmeli.
+9. **Oyuncuya seçim hakkı:** otomatik işlemler (ör. yöneticiler) oyuncunun tercihine göre ayarlanabilmeli.
+
+## Ekonomi dengesi (v0.5)
+`test/sim/balance_sim.dart` makul oynayan bir botla oyunu 300 gün oynatır:
+`flutter test test/sim/balance_sim.dart`. Hedef: stüdyo seviyelerine yaklaşık
+13 / 37 / 70 / 128 / 184. günde ulaşılması (1 gün = 1 dk). Sayılar değişince bu
+simülasyon tekrar çalıştırılmalı.
+
+Olaylar ve kararlar oyunu yönlendirmemeli: reyting etkisi ±%20 ile sınırlı,
+kararlar oyunu durdurmaz ve cevap verilmezse güvenli seçenek otomatik seçilir.
+
+## Rekabet dengesi (v0.6)
+Simülasyon iki bot oynatır: AKILLI (reklam ayarı, tür-kuşak uyumu, kadro güçlendirme,
+holding) ve ÖZENSİZ (ayar yok, rastgele tür, kadro güçlendirme yok).
+Hedef: akıllı oyuncu son seviyeye ~200-220. günde, 300. günde şirket değeri
+özensizin ~5-8 katı; özensiz oyuncu da ilerleyebilmeli (imkânsız değil).
+Kaçak liderliği frenleyen kurallar: rakip baskısı (zamanla en fazla -%35),
+aynı türe yığılma cezası (her ek program -%12), boştaki kadroya yarım maaş.
+Online sıralama ölçüsü: Şirket Değeri (kasa + varlıklar - borç).
+
+## Uzun vade: 1 yıllık zirve (v0.7)
+`flutter test test/sim/long_sim.dart --dart-define=DAYS=80000` akıllı botu 80.000 gün oynatır.
+Varsayım: ciddi oyuncu gerçek günde ~180-200 oyun günü ilerler (aktif oyun + çevrimdışı).
+Ölçülen: ilk 100 ~800. gün, 12. (son) stüdyo seviyesi ~65.000. gün (~1 yıl), o anda
+zenginler listesinde ~9. sıra. Birincilik için borsa al-satı gerekir.
+Uzun simülasyonun yakaladığı hatalar: sınırsız katlanan YouTuber takipçisi (doyma tavanı
+eklendi) ve üst üste binen zamlar (maaş tavanı = piyasa maaşının 2 katı).
+
+## Genel denetim (v0.8.2)
+`test/chaos_test.dart`: 12 senaryoda 6000'er rastgele hareket; her adımda oyunun
+tutarlılığı (kasa, kadro-program bağları, kuşaklar, hisse sınırları, kaydet/yükle) denetlenir.
+Bulunan ve kapatılan açıklar:
+- Kanal al-sat ile para basma (satış %80 > pazarlık tabanı %74) → satış %65.
+- Borsada büyük al-sat ile para basma (fiyat etkisi) → işlem ortalama fiyattan.
+- Bitmiş program/film her törende tekrar ödül alıyordu → sadece son 30 gün.
+- Sezon bitince sponsor programda kalıyordu → temizleniyor.
+- 1 dakikadan kısa ayrılıklarda zaman kayboluyordu → sessizce işleniyor.
+- Satın alınan kanal oyuncuya transfer teklifi yapabiliyordu → engellendi.
+Bilinen sınır: telefon saatiyle oynanarak çevrimdışı ilerleme tekrarlanabilir; online
+sıralamada sunucu bunu reddeder (oyun zamanı gerçek zamandan hızlı akamaz).
+
+## Gerçek takvim dengesi (v0.9)
+Hedef oyuncu: günde ~1 saat (3 x 20 dk) oynar; aralarda kanal 8 saate kadar, yarı hızda
+çalışır (Genel Müdür biten sezonları yeniler). `flutter test test/sim/calendar_sim.dart`
+ile ölçülür (~1 dk). Ölçülen: 1. gün 5. seviye, ~9. gün 7. seviye, ~1. ay ilk 100,
+~341. gün son seviye (12), 1 yıl sonunda ~ilk 10-15. 1 numara ekstra emek ister
+(borsa, sinema, kanallar, daha sık oynamak). Online'da sıralamayı gerçek oyuncular belirler.
+
+## v0.10 notları
+- Sentezlenmiş karakter sesleri ve kahkaha kulağa kötü geldiği için kaldırıldı;
+  yerine sahneye özel konuşma balonları (film: "Motor!/Kestik!", bilgi yarışması:
+  "A şıkkı, son kararım!" …). Sadece kısık alkış/tribün sesi kaldı.
+- 10 kuşak (5 zaman dilimi x 2). Eski 4 kuşaklı kayıtlar otomatik taşınır.
+- Tuzak: önce biten program en iyi kuşağı kapıyor, Genel Müdür de herkesi aynı
+  yere geri koyuyordu → "Kuşak değiştir" (taşı/yer değiştir) ve "⭐ Önerilen" etiketi.
+- Genel Müdür maaşlı çalışan; maaşı günlük net hesabına dahil (hata düzeltildi).
+- Günlük görevler sadece oyuncunun yapabileceği türden seçilir.
+
+## v0.11: Gerçek ekipmanlar ve devlet ihaleleri
+- 9 yeni ekipman (steadicam, 8K, su altı, örümcek kamera, helikopter, IMAX, Dolby Atmos,
+  uplink, motion capture). Bazı formatlar ve ihaleler bunları şart koşar; IMAX/Atmos gişeyi artırır.
+- Devlet ihaleleri: kapalı zarf, "fiyat ÷ kalite" puanı, %5 teminat (kaybedince iade),
+  yapım maliyeti kazanınca ödenir, teslimde ödeme + kalite primi + prestij.
+  Online'da rakip şirketlerin yerini gerçek oyuncular alacak (teklifler sunucuda).
+
+## v0.12: Şirket kimliği, harita, ajans, yönetim kurulu, markalar
+- Şirket adı + ek (Yapım, Film, A.Ş. …) + logo (28 sembol × 14 renk × 6 çerçeve = 2352 logo).
+  Yeni yapım başlarken "… sunar" logo animasyonu (ayarlardan kapatılabilir).
+- Prodüksiyon bütçesi (Düşük → Mega) ve ünlü konuk (Yerel ünlü → Dünya yıldızı).
+  DERS: yapım maliyeti gelire göre çok küçük (sezon geliri maliyetin 30-400 katı);
+  sabit ücretle herkes hep en pahalısını seçerdi. Çözüm: büyük yapım ve ünlü konuk
+  yayın gelirinden "bölüm başı pay" alır. Sonuç: en pahalı seçenek ~%10-25 net kâr
+  getirir ama riskli değil, azalan getirili (test/sim/roi_sim.dart).
+- Senaryo kararları (kim ölsün, kim kazansın…) sadece oyun açıkken çıkar, ihtimaller görünür.
+  Başında olan oyuncuya ekstra reyting = "telefon başında daha çok kazanç".
+- Türkiye (12) + dünya (13) çekim lokasyonu: uyumlu türde kalite bonusu, dış çekim payı,
+  bakım gideri; bazılarında etkinlik (podyum, gala, festival, dizi fuarı).
+- Yetenek ajansı (9 seviye): genç yetenek, akademi, potansiyel, şöhret, transfer pazarı,
+  satış teklifleri. Al-sat ile para basılamaz: alış 1,3× değer, teklif en fazla 1,2×,
+  hemen satış 0,6×. Gerçek oyuncularla takas online sürümde.
+- Yönetim kurulu (8 koltuk): orta/iyi/uzman adaylar her gün yenilenir; yetenek arttıkça
+  etki üstel artar (güç = (yetenek/100)^1,5), maaş da artar.
+- Marka teklifleri gelen kutusu (prestije göre marka seviyesi), Pazarlama Müdürü otomatik kabul eder.
+- DENGE: tüm yeni özellikleri kullanan akıllı bot ~2 kat hızlı zenginleşti. Patron listesi
+  tabanı 2e13 → 5,4e13 yapıldı. Ölçülen (her şeyi kullanan, günde ~1 saat): 30. gün #98,
+  90. gün #65, 180. gün #38, 300. gün #15, 365. gün #8. Yeni özellikleri hiç kullanmayan oyuncu yıl sonunda
+  ~#25 civarında kalır.
+
+## v0.12.1: Stres testleri
+- Sunucu pazarı (server/functions/src/trade.ts): oyuncular arası ilan, hemen al, pazarlık teklifi
+  (bloke para), açık artırma. test/stress.test.ts: 10.000 oyuncu, 600 bin (elle 5 milyon) işlem,
+  oyuncular "eski ekrana" bakarak karar verir (aynı ilana iki kişi basar, fiyat değişmiş olabilir,
+  başkasının oyuncusunu satma denemesi, NaN/eksi tutar). Her 50 bin işlemde: para korunumu,
+  bloke = açık teklifler, emanet tutarlılığı. Kasıtlı hata eklenince test yakalıyor (doğrulandı).
+- Kaos testi 80 yeni tohumla (480 bin hamle) temiz. SEED0/SEEDS ile genişletilebilir.
+- Arayüz maymun testi (test/ui_monkey_test.dart): her sayfadaki her butona basar, zengin ve fakir
+  oyunda. DERS: test yazı tipi kare harfli ve çok geniş → sahte taşma; gerçek Roboto yükle.
+  Bulunanlar: görev balonu butonların üstünü kapatıyordu (artık kendi şeridinde), bildirim
+  dokunuşları yutuyordu (artık geçirgen), boş alanı olan butonlar kenardan basılmıyordu
+  (HitTestBehavior.opaque), uzun etiketler taşıyordu, sahne konuşma zamanlayıcısı kapanınca
+  iptal edilmiyordu, pasif butonlar sebep söylemiyordu, haritada üst üste binen iğneler (çip listesi eklendi).
+- Performans (test/perf_test.dart): geç oyunda adım 0,01 ms, kayıt ~300 KB, açılış ~50 ms.
+
+## v0.14: Geri bildirim düzeltmeleri
+- Karakter görünümü konumdan hesaplanıyordu → yürürken kıyafet değişiyordu. Artık sabit özelliklerden
+  (renkler, boy) ya da kişinin kimliğinden. Kadın/erkek görünümü isimden.
+- Seyirci sesleri tamamen kaldırıldı. Butonların köşesindeki kare gölge: gölge dış kapta, dokunma
+  efekti yuvarlak kırpılmış iç katmanda.
+- Çekimdeki film için film seti sahnesi (kamera, yönetmen, klaket, oyuncular).
+- İhale: kaydırıcı yerine 4 strateji + kazanma şansı (rakip davranışıyla aynı Monte Carlo).
+- Reklam: kaydırıcı yerine Az/En iyi/Çok + izleyici sadakati (az reklamla +%25'e kadar) ve günlük reklam talebi.
+- İşe alım: her rolde iyi aday, rol filtresi, geri sayım, tek rol yenileme (1 💎); yönetici adayları 5 günde bir.
+- Film: lisans/hak karşılaştırması ve öneri; lisans ücreti 0,35 → 0,45 (12 ayda lisans > hak satışı).
+- 81 il haritası (geoBoundaries CC BY 4.0, Douglas-Peucker ile 104 KB). Şehir açmak: erişim +%15'e kadar,
+  bölge türlerine +%3'e kadar. DERS: ilk denemede (+%30/+%5) yıllık servet 2 kat arttı; bileşik büyüme
+  küçük yüzdeleri büyütür. Patron tabanı 7,6e13.
+- Lüks: sınırlı üretim, seri no, ikinci el pazar (ilan ≥1,2× değer > teklif ≤1,15× değer: al-sat ile para basılmaz).
