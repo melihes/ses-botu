@@ -114,3 +114,18 @@ ile ölçülür (~1 dk). Ölçülen: 1. gün 5. seviye, ~9. gün 7. seviye, ~1. 
   (HitTestBehavior.opaque), uzun etiketler taşıyordu, sahne konuşma zamanlayıcısı kapanınca
   iptal edilmiyordu, pasif butonlar sebep söylemiyordu, haritada üst üste binen iğneler (çip listesi eklendi).
 - Performans (test/perf_test.dart): geç oyunda adım 0,01 ms, kayıt ~300 KB, açılış ~50 ms.
+
+## v0.14: Geri bildirim düzeltmeleri
+- Karakter görünümü konumdan hesaplanıyordu → yürürken kıyafet değişiyordu. Artık sabit özelliklerden
+  (renkler, boy) ya da kişinin kimliğinden. Kadın/erkek görünümü isimden.
+- Seyirci sesleri tamamen kaldırıldı. Butonların köşesindeki kare gölge: gölge dış kapta, dokunma
+  efekti yuvarlak kırpılmış iç katmanda.
+- Çekimdeki film için film seti sahnesi (kamera, yönetmen, klaket, oyuncular).
+- İhale: kaydırıcı yerine 4 strateji + kazanma şansı (rakip davranışıyla aynı Monte Carlo).
+- Reklam: kaydırıcı yerine Az/En iyi/Çok + izleyici sadakati (az reklamla +%25'e kadar) ve günlük reklam talebi.
+- İşe alım: her rolde iyi aday, rol filtresi, geri sayım, tek rol yenileme (1 💎); yönetici adayları 5 günde bir.
+- Film: lisans/hak karşılaştırması ve öneri; lisans ücreti 0,35 → 0,45 (12 ayda lisans > hak satışı).
+- 81 il haritası (geoBoundaries CC BY 4.0, Douglas-Peucker ile 104 KB). Şehir açmak: erişim +%15'e kadar,
+  bölge türlerine +%3'e kadar. DERS: ilk denemede (+%30/+%5) yıllık servet 2 kat arttı; bileşik büyüme
+  küçük yüzdeleri büyütür. Patron tabanı 7,6e13.
+- Lüks: sınırlı üretim, seri no, ikinci el pazar (ilan ≥1,2× değer > teklif ≤1,15× değer: al-sat ile para basılmaz).

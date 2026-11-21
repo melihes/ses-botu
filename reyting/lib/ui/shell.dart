@@ -30,6 +30,7 @@ import 'screens/production_screen.dart';
 import 'screens/staff_screen.dart';
 import 'screens/studio_screen.dart';
 import 'widgets/common.dart';
+import 'widgets/company_logo.dart';
 
 enum PageId {
   home,
@@ -389,31 +390,35 @@ class _Sidebar extends StatelessWidget {
       color: AppColors.sidebar,
       child: Column(
         children: [
-          // Logo: kayıt ışığı
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: 10),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Container(
-                  width: 9,
-                  height: 9,
-                  decoration: const BoxDecoration(
-                    color: AppColors.accent,
-                    shape: BoxShape.circle,
+          // Şirket logosu ve adı her sayfada görünür (dokununca düzenlenir)
+          Builder(
+            builder: (context) {
+              final game = GameScope.of(context);
+              return GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: () => showIdentityDialog(context),
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(4, 8, 4, 6),
+                  child: Column(
+                    children: [
+                      CompanyLogoView(logo: game.logo, size: 38),
+                      const SizedBox(height: 3),
+                      Text(
+                        game.companyFullName,
+                        textAlign: TextAlign.center,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w900,
+                          fontSize: 9,
+                          height: 1.15,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-                const SizedBox(width: 5),
-                const Text(
-                  'REYTİNG',
-                  style: TextStyle(
-                    fontWeight: FontWeight.w900,
-                    fontSize: 11,
-                    letterSpacing: 1.2,
-                  ),
-                ),
-              ],
-            ),
+              );
+            },
           ),
           Expanded(
             child: ListView(

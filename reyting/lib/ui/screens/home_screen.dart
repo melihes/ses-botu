@@ -385,22 +385,111 @@ class _TileGrid extends StatelessWidget {
       ),
     ];
 
-    return LayoutBuilder(
-      builder: (ctx, c) {
-        const cols = 4, gap = 8.0;
-        final rows = (tiles.length / cols).ceil();
-        final tw = (c.maxWidth - gap * (cols - 1)) / cols;
-        final th = (c.maxHeight - gap * (rows - 1)) / rows;
-        return Wrap(
-          spacing: gap,
-          runSpacing: gap,
-          children: [
-            for (final t in tiles) SizedBox(width: tw, height: th, child: t),
-          ],
-        );
-      },
+    // Sade düzen: 4 ana iş büyük kutularda, geri kalanlar tek sıra simge
+    final minis = [
+      _Mini(Icons.smart_display_rounded, 'Dijital', AppColors.accent, PageId.digital, null),
+      _Mini(Icons.domain_rounded, 'Stüdyo', AppColors.purple, PageId.studio,
+          nextLevel != null && g.cash >= nextLevel.upgradeCost ? '!' : null),
+      _Mini(Icons.map_rounded, 'Harita', AppColors.cyan, PageId.map, null),
+      _Mini(Icons.star_rounded, 'Ajans', AppColors.pink, PageId.agency,
+          g.transferOffers.isNotEmpty ? '${g.transferOffers.length}' : null),
+      _Mini(Icons.groups_3_rounded, 'Yönetim', AppColors.blue, PageId.board, null),
+      _Mini(Icons.handshake_rounded, 'Markalar', AppColors.yellow, PageId.brands,
+          g.brandOffers.isNotEmpty ? '${g.brandOffers.length}' : null),
+      _Mini(Icons.business_center_rounded, 'Holding', AppColors.green, PageId.holding, null),
+      _Mini(Icons.gavel_rounded, 'İhaleler', AppColors.orange, PageId.tenders, null),
+    ];
+    return Column(
+      children: [
+        Expanded(
+          child: LayoutBuilder(
+            builder: (ctx, c) {
+              const gap = 8.0;
+              final tw = (c.maxWidth - gap) / 2;
+              final th = (c.maxHeight - gap) / 2;
+              return Wrap(
+                spacing: gap,
+                runSpacing: gap,
+                children: [
+                  for (final t in tiles.take(4)) SizedBox(width: tw, height: th, child: t),
+                ],
+              );
+            },
+          ),
+        ),
+        const SizedBox(height: 8),
+        SizedBox(
+          height: 62,
+          child: Row(
+            children: [
+              for (final m in minis)
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 2),
+                    child: _MiniButton(m: m),
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ],
     );
   }
+}
+
+class _Mini {
+  final IconData icon;
+  final String label;
+  final Color color;
+  final PageId page;
+  final String? badge;
+  const _Mini(this.icon, this.label, this.color, this.page, this.badge);
+}
+
+class _MiniButton extends StatelessWidget {
+  final _Mini m;
+  const _MiniButton({required this.m});
+  @override
+  Widget build(BuildContext context) => GestureDetector(
+    behavior: HitTestBehavior.opaque,
+    onTap: () => ShellNav.go(context, m.page),
+    child: Container(
+      decoration: BoxDecoration(
+        color: AppColors.panel,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Stack(
+        children: [
+          Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(m.icon, color: m.color, size: 24),
+                const SizedBox(height: 2),
+                Text(
+                  m.label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w800),
+                ),
+              ],
+            ),
+          ),
+          if (m.badge != null)
+            Positioned(
+              right: 4,
+              top: 4,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                decoration: BoxDecoration(color: AppColors.green, borderRadius: BorderRadius.circular(8)),
+                child: Text(m.badge!, style: const TextStyle(fontSize: 9, fontWeight: FontWeight.w900)),
+              ),
+            ),
+        ],
+      ),
+    ),
+  );
 }
 
 class _Tile extends StatelessWidget {

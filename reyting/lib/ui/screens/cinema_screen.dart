@@ -91,8 +91,10 @@ class _FilmCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           StageScene(
-            talk: f.status == FilmStatus.producing,
-            prop: Prop.film,
+            talk: true,
+            // çekimdeyken set, sonra sinema salonu
+            prop: f.status == FilmStatus.producing ? Prop.filmSet : Prop.film,
+            live: f.status == FilmStatus.producing,
             color: f.def.color,
             tier: f.tier,
             width: 120,
@@ -291,6 +293,47 @@ Future<void> showLicenseDialog(BuildContext context, Film f) {
                     fontSize: 12,
                   ),
                 ),
+                const SizedBox(height: 8),
+                // Lisans mı, hak satışı mı? Karşılaştırma ve öneri
+                Builder(builder: (_) {
+                  final now = game.licensablePlatforms(f).fold(0.0, (a, p) => a + game.licenseOfferFor(f, p));
+                  final life = game.licenseLifetime(f);
+                  final rights = game.rightsValueFor(f);
+                  final licBetter = life > rights * 1.1;
+                  return Panel(
+                    padding: const EdgeInsets.all(10),
+                    color: AppColors.panelHi,
+                    borderColor: AppColors.yellow.withValues(alpha: 0.5),
+                    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                      Row(children: [
+                        Expanded(child: StatBlock('Bu ay tüm platformlar', fmtShort(now), color: AppColors.cyan)),
+                        Expanded(child: StatBlock('12 ayda lisanslarla', fmtShort(life), color: AppColors.green)),
+                        Expanded(child: StatBlock('Hakları şimdi sat', fmtShort(rights), color: AppColors.yellow)),
+                      ]),
+                      const SizedBox(height: 6),
+                      Text(
+                        licBetter
+                            ? '💡 Öneri: Lisansla. Haklar sende kalır, her ay tekrar satarsın; 12 ayda hak satışının '
+                                '${fmtDec(life / max(1, rights), 1)} katı kazanırsın. Hemen paraya ihtiyacın varsa hakları sat.'
+                            : '💡 Öneri: Hakları sat. Bu film için platformlar az ödüyor; tek seferde daha çok kazanırsın.',
+                        style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
+                      ),
+                      const SizedBox(height: 6),
+                      Row(children: [
+                        if (now > 0)
+                          AccentButton('Hepsine lisansla · ${fmtShort(now)}', compact: true, onTap: () {
+                            report(c, game.licenseAll(f));
+                          }),
+                        const SizedBox(width: 6),
+                        GhostButton('Hakları sat · ${fmtShort(rights)}', compact: true, color: AppColors.yellow,
+                            onTap: () {
+                          report(c, game.sellRights(f));
+                          Navigator.pop(c);
+                        }),
+                      ]),
+                    ]),
+                  );
+                }),
                 const SizedBox(height: 8),
                 for (final p in platformDefs) _offerRow(c, game, f, p),
               ],
@@ -533,7 +576,8 @@ class _NewFilmWizardState extends State<NewFilmWizard> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         StageScene(
-          prop: Prop.film,
+          prop: Prop.filmSet,
+          talk: true,
           color: def.color,
           tier: _tier,
           height: 100,

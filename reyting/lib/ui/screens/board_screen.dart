@@ -23,7 +23,7 @@ class BoardScreen extends StatelessWidget {
             Expanded(
               child: PageHint(
                 'Sen telefon başında değilken işleri yöneticiler yürütür. Orta seviye yöneticiler ucuzdur ama az kazandırır; '
-                'uzmanlar pahalıdır ama çok daha yüksek kâr getirir. Adaylar her gün yenilenir. '
+                'uzmanlar pahalıdır ama çok daha yüksek kâr getirir. Adaylar 5 günde bir yenilenir (sıradaki: ${game.execRefreshDays} gün sonra). '
                 'Toplam maaş: ${fmtShort(game.execSalaries)}/gün',
               ),
             ),
@@ -107,8 +107,7 @@ class _Seat extends StatelessWidget {
                 ),
                 child: Row(
                   children: [
-                    PersonAvatar(
-                      seed: cur.id.hashCode,
+                    PersonAvatar(name: cur.name, seed: cur.id.hashCode,
                       color: d.color,
                       size: 36,
                     ),
@@ -181,7 +180,7 @@ class _Seat extends StatelessWidget {
       padding: const EdgeInsets.only(top: 4),
       child: Row(
         children: [
-          PersonAvatar(seed: e.id.hashCode, color: d.color, size: 26),
+          PersonAvatar(name: e.name, seed: e.id.hashCode, color: d.color, size: 26),
           const SizedBox(width: 6),
           Expanded(
             child: Text(

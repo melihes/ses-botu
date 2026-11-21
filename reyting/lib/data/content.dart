@@ -357,6 +357,22 @@ const showNameIdeas = <Genre, List<String>>{
   ],
 };
 
+/// Kadın isimleri (çizimde kişinin görünümü isme uysun diye)
+const femaleNames = {
+  'Ayla', 'Cemre', 'Ece', 'Gizem', 'Irmak', 'Lale', 'Nehir', 'Pelin', 'Selin',
+  'Umay', 'Yaren', 'Ceyda', 'Elif', 'Fulya', 'İlkin', 'Kumsal', 'Melis', 'Nazlı',
+  'Tuana', 'Yağmur', 'Defne', 'Ayşe', 'Zeynep', 'Cansu', 'Derin', 'Leyla', 'Neşe',
+  'Hatice', 'Nevin', 'Ana', 'Nova', 'Diva', 'Sude', 'Esra', 'Merve',
+};
+
+/// İsimden cinsiyet tahmini: 1 kadın, 0 erkek. (Unvanlar atlanır: "Pop yıldızı Ece Ilgaz")
+int genderOfName(String full) {
+  for (final w in full.split(' ')) {
+    if (femaleNames.contains(w)) return 1;
+  }
+  return 0;
+}
+
 /// Rastgele kurgusal kişi adları için ad/soyad havuzları
 const firstNames = [
   'Ayla',
@@ -502,6 +518,12 @@ class LuxuryDef {
   final double price;
   final int prestige;
   final bool negotiable;
+
+  /// Sınırlı üretim adedi (null: sınırsız). Her parçanın seri numarası olur.
+  final int? edition;
+
+  /// Görsel için başka bir eşyanın çizimi kullanılabilir
+  final String? art;
   const LuxuryDef(
     this.id,
     this.cat,
@@ -510,7 +532,10 @@ class LuxuryDef {
     this.price,
     this.prestige, {
     this.negotiable = false,
+    this.edition,
+    this.art,
   });
+  String get artId => art ?? id;
 }
 
 const luxuryDefs = [
@@ -538,6 +563,7 @@ const luxuryDefs = [
     6000000,
     40,
     negotiable: true,
+    edition: 500,
   ),
   LuxuryDef(
     'c1',
@@ -554,6 +580,7 @@ const luxuryDefs = [
     'İki kapılı İtalyan tarzı GT.',
     9000000,
     35,
+    edition: 2000,
   ),
   LuxuryDef(
     'c3',
@@ -563,6 +590,7 @@ const luxuryDefs = [
     45000000,
     90,
     negotiable: true,
+    edition: 99,
   ),
   LuxuryDef(
     'h1',
@@ -616,6 +644,7 @@ const luxuryDefs = [
     900000000,
     500,
     negotiable: true,
+    edition: 12,
   ),
   LuxuryDef(
     'j1',
@@ -634,6 +663,7 @@ const luxuryDefs = [
     1500000000,
     700,
     negotiable: true,
+    edition: 40,
   ),
   LuxuryDef(
     'i1',
@@ -643,6 +673,7 @@ const luxuryDefs = [
     600000000,
     450,
     negotiable: true,
+    edition: 1,
   ),
   LuxuryDef(
     'i2',
@@ -652,6 +683,48 @@ const luxuryDefs = [
     3000000000,
     1200,
     negotiable: true,
+    edition: 1,
+  ),
+  LuxuryDef(
+    'w4',
+    LuxCat.saat,
+    'Derin Mavi Dalgıç',
+    '300 metreye dayanıklı, seramik çerçeve.',
+    2500000,
+    22,
+    edition: 2500,
+    art: 'w2',
+  ),
+  LuxuryDef(
+    'c4',
+    LuxCat.araba,
+    'Rüzgâr 9X Speedster',
+    'Arkadan motorlu efsane spor araba. Sınırlı seri.',
+    15000000,
+    50,
+    edition: 1000,
+    art: 'c2',
+  ),
+  LuxuryDef(
+    'c5',
+    LuxCat.araba,
+    'Kartal 1967 Klasik',
+    'Fabrikada yeniden üretilen klasik. Sadece 67 adet.',
+    30000000,
+    70,
+    edition: 67,
+    art: 'c1',
+  ),
+  LuxuryDef(
+    'c6',
+    LuxCat.araba,
+    'Volta E-Hiper',
+    'Elektrikli hiper otomobil, 0-100 iki saniye.',
+    70000000,
+    110,
+    negotiable: true,
+    edition: 250,
+    art: 'c3',
   ),
 ];
 
@@ -1459,6 +1532,7 @@ enum Prop {
   kidsStage,
   // diğer
   film,
+  filmSet,
   studio,
 }
 

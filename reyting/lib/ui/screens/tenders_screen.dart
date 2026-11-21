@@ -6,6 +6,7 @@ import '../../data/content.dart';
 import '../../engine/game.dart';
 import '../../models/models.dart';
 import '../widgets/common.dart';
+import 'production_screen.dart';
 import '../widgets/item_art.dart';
 import '../widgets/scene.dart';
 
@@ -245,7 +246,7 @@ class _Bid extends StatefulWidget {
 }
 
 class _BidState extends State<_Bid> {
-  double _pct = 0.9;
+  double _pct = 0.84;
   final Set<String> _crew = {};
   bool _filled = false;
 
@@ -258,6 +259,55 @@ class _BidState extends State<_Bid> {
         _crew.add(p.id);
       }
     });
+  }
+
+  Widget _step(String label, VoidCallback onTap) => GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: onTap,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+          decoration: BoxDecoration(
+            color: AppColors.panelHi,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: AppColors.border),
+          ),
+          child: Text(label, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 12)),
+        ),
+      );
+
+  Widget _strategy(Game game, Tender t, double q, String label, double pct) {
+    final bid = (t.budget * pct / 1000).round() * 1000.0;
+    final ch = game.tenderWinChance(t, bid, q);
+    final sel = (_pct - pct).abs() < 0.005;
+    final profit = bid - t.productionCost;
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: () => setState(() => _pct = pct),
+      child: Container(
+        margin: const EdgeInsets.only(right: 6),
+        padding: const EdgeInsets.all(8),
+        decoration: BoxDecoration(
+          color: sel ? AppColors.accent.withValues(alpha: 0.18) : AppColors.panelHi,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: sel ? AppColors.accent : AppColors.border, width: sel ? 2 : 1),
+        ),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text(label, maxLines: 1, overflow: TextOverflow.ellipsis,
+              style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 12)),
+          Text('%${(pct * 100).round()} · ${fmtShort(bid)}',
+              style: const TextStyle(color: AppColors.textDim, fontSize: 11)),
+          Text('Kâr ${fmtSigned(profit)}',
+              style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w800,
+                  color: profit >= 0 ? AppColors.green : AppColors.red)),
+          const SizedBox(height: 4),
+          Bar(ch, color: ch >= 0.6 ? AppColors.green : (ch >= 0.3 ? AppColors.yellow : AppColors.red), height: 5),
+          Text('Şans %${(ch * 100).round()}',
+              style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w800)),
+        ]),
+      ),
+    );
   }
 
   @override
@@ -318,13 +368,39 @@ class _BidState extends State<_Bid> {
                           ),
                         ],
                       ),
-                      Slider(
-                        value: _pct,
-                        min: 0.5,
-                        max: 1.2,
-                        divisions: 70,
-                        onChanged: (v) => setState(() => _pct = v),
+                      const SizedBox(height: 6),
+                      // Hazır stratejiler: kazanma şansı ve kâr yan yana
+                      Row(
+                        children: [
+                          for (final st in const [
+                            ('🛡️ Garantici', 0.76),
+                            ('⚖️ Dengeli', 0.84),
+                            ('💰 Kârlı', 0.92),
+                            ('🎲 Riskli', 1.0),
+                          ])
+                            Expanded(child: _strategy(game, t, q, st.$1, st.$2)),
+                        ],
                       ),
+                      const SizedBox(height: 6),
+                      Row(
+                        children: [
+                          const Text('İnce ayar',
+                              style: TextStyle(color: AppColors.textDim, fontSize: 12)),
+                          const SizedBox(width: 8),
+                          _step('−1%', () => setState(() => _pct = (_pct - 0.01).clamp(0.5, 1.2))),
+                          const SizedBox(width: 6),
+                          _step('+1%', () => setState(() => _pct = (_pct + 0.01).clamp(0.5, 1.2))),
+                          const Spacer(),
+                          Builder(builder: (_) {
+                            final ch = game.tenderWinChance(t, bid, q);
+                            return Tag('Kazanma şansı %${(ch * 100).round()}',
+                                color: ch >= 0.6
+                                    ? AppColors.green
+                                    : (ch >= 0.3 ? AppColors.yellow : AppColors.red));
+                          }),
+                        ],
+                      ),
+                      const SizedBox(height: 6),
                       Text(
                         'Yapım maliyeti ${fmtShort(t.productionCost)} (kazanırsan ödenir)',
                         style: const TextStyle(
@@ -421,8 +497,7 @@ class _BidState extends State<_Bid> {
                                   child: Row(
                                     mainAxisSize: MainAxisSize.min,
                                     children: [
-                                      PersonAvatar(
-                                        seed: p.id.hashCode,
+                                      PersonAvatar(name: p.name, seed: p.id.hashCode,
                                         color: e.key.color,
                                         size: 20,
                                       ),
@@ -437,6 +512,20 @@ class _BidState extends State<_Bid> {
                               ),
                           ],
                         ),
+                        if (crew.where((c) => c.role == e.key).length < e.value)
+                          Padding(
+                            padding: const EdgeInsets.only(top: 4),
+                            child: GhostButton(
+                              '${e.key.label} işe al',
+                              compact: true,
+                              color: AppColors.orange,
+                              icon: Icons.person_add_alt_1_rounded,
+                              onTap: () async {
+                                final hired = await showQuickHire(context, e.key);
+                                if (hired != null) setState(() => _crew.add(hired.id));
+                              },
+                            ),
+                          ),
                         const SizedBox(height: 4),
                       ],
                     ],

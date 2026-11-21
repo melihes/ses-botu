@@ -17,6 +17,7 @@ class StaffScreen extends StatefulWidget {
 
 class _StaffScreenState extends State<StaffScreen> {
   int _tab = 1;
+  Role? _role; // iş ilanlarında rol filtresi
 
   @override
   void initState() {
@@ -28,7 +29,9 @@ class _StaffScreenState extends State<StaffScreen> {
   @override
   Widget build(BuildContext context) {
     final game = GameScope.of(context);
-    final list = _tab == 0 ? game.staff : game.market;
+    final all = _tab == 0 ? game.staff : game.market;
+    final list = _role == null ? all : all.where((p) => p.role == _role).toList();
+    final star = _tab == 1 && game.market.isNotEmpty ? game.market.first : null;
     return ListView(
       padding: const EdgeInsets.all(14),
       children: [
@@ -50,6 +53,46 @@ class _StaffScreenState extends State<StaffScreen> {
                 icon: Icons.refresh_rounded,
                 onTap: () => report(context, game.refreshMarketPaid()),
               ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        // rol filtresi: sadece istediğin mesleği gör
+        Row(
+          children: [
+            for (final r in <Role?>[null, ...Role.values])
+              Padding(
+                padding: const EdgeInsets.only(right: 6),
+                child: GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTap: () => setState(() => _role = r),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: _role == r
+                          ? (r?.color ?? AppColors.accent).withValues(alpha: 0.25)
+                          : AppColors.panel,
+                      borderRadius: BorderRadius.circular(18),
+                      border: Border.all(
+                          color: _role == r ? (r?.color ?? AppColors.accent) : AppColors.border),
+                    ),
+                    child: Text(
+                      r == null ? 'Tümü' : '${r.label} ${all.where((p) => p.role == r).length}',
+                      style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 12),
+                    ),
+                  ),
+                ),
+              ),
+            const Spacer(),
+            if (_tab == 1)
+              Tag('Yeni adaylar ${game.marketRefreshSeconds} sn sonra',
+                  color: AppColors.textDim, icon: Icons.schedule_rounded),
+            if (_tab == 1 && _role != null) ...[
+              const SizedBox(width: 6),
+              GhostButton('Yeni ${_role!.label.toLowerCase()} · 1 💎',
+                  compact: true,
+                  icon: Icons.refresh_rounded,
+                  onTap: () => report(context, game.refreshRole(_role!))),
+            ],
           ],
         ),
         const SizedBox(height: 10),
@@ -79,7 +122,7 @@ class _StaffScreenState extends State<StaffScreen> {
               _PersonCard(
                 person: list[i],
                 hired: _tab == 0,
-                featured: _tab == 1 && i == 0,
+                featured: identical(list[i], star),
               ),
           ],
         ),
@@ -111,8 +154,7 @@ class _PersonCard extends StatelessWidget {
         children: [
           Row(
             children: [
-              PersonAvatar(
-                seed: p.id.hashCode,
+              PersonAvatar(name: p.name, seed: p.id.hashCode,
                 color: p.role.color,
                 size: 46,
                 badgeIcon: p.role.icon,

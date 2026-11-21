@@ -3,6 +3,7 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 
 import '../../core/theme.dart';
+import '../../data/content.dart';
 import 'scene.dart';
 
 /// Her eşyanın (lüks, ekipman, işletme) kendine özgü hareketli resmi.
@@ -1464,12 +1465,16 @@ class PersonAvatar extends StatelessWidget {
   final Color color;
   final double size;
   final IconData? badgeIcon;
+
+  /// Kişinin adı: görünüm (kadın/erkek) isme uyar
+  final String? name;
   const PersonAvatar({
     super.key,
     required this.seed,
     required this.color,
     this.size = 48,
     this.badgeIcon,
+    this.name,
   });
 
   @override
@@ -1481,7 +1486,7 @@ class PersonAvatar extends StatelessWidget {
         ClipOval(
           child: CustomPaint(
             size: Size(size, size),
-            painter: _AvatarPainter(seed, color),
+            painter: _AvatarPainter(seed, color, name == null ? -1 : genderOfName(name!)),
           ),
         ),
         if (badgeIcon != null)
@@ -1506,7 +1511,8 @@ class PersonAvatar extends StatelessWidget {
 class _AvatarPainter extends CustomPainter {
   final int seed;
   final Color color;
-  _AvatarPainter(this.seed, this.color);
+  final int gender;
+  _AvatarPainter(this.seed, this.color, this.gender);
   @override
   void paint(Canvas canvas, Size size) {
     final d = Draw(canvas, size);
@@ -1527,15 +1533,17 @@ class _AvatarPainter extends CustomPainter {
       AppColors.blue,
       Color(0xFF2A2440),
     ];
+    final female = gender == 1 || (gender < 0 && r.nextBool());
     d.person(
-      // çok küçük kaydırma: her kişiye farklı saç/gözlük/sakal düşsün
-      0.5 + (r.nextInt(41) - 20) * 0.0011,
+      0.5,
       1.85,
       1.75,
       shirt: shirts[r.nextInt(shirts.length)],
       skin: r.nextInt(4),
       hair: r.nextInt(5),
-      longHair: r.nextBool(),
+      longHair: female && r.nextInt(3) > 0,
+      gender: female ? 1 : 0,
+      look: seed.abs(),
       sunglasses: r.nextInt(6) == 0,
       legsHidden: true,
     );
@@ -1543,5 +1551,5 @@ class _AvatarPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant _AvatarPainter old) =>
-      old.seed != seed || old.color != color;
+      old.seed != seed || old.color != color || old.gender != gender;
 }

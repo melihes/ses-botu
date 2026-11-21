@@ -8,6 +8,7 @@ import '../../data/content.dart';
 import '../../data/content2.dart';
 import '../../engine/game.dart';
 import '../widgets/common.dart';
+import 'city_map.dart';
 
 /// Çekim lokasyonları: Türkiye haritası + dünya haritası
 class MapScreen extends StatefulWidget {
@@ -55,8 +56,10 @@ class _MapScreenState extends State<MapScreen>
               const SizedBox(width: 10),
               Expanded(
                 child: Text(
-                  'Set kurduğun yerde, uyumlu türlerde çekim yaparsan kalite artar. '
-                  'Doğu doğa ve dram, batı yüksek bütçeli bilim kurgu…',
+                  world
+                      ? 'Dünyada set kur: uyumlu türlerde kalite artar, etkinlik düzenle.'
+                      : 'Şehir aç: izleyici erişimin büyür, bölgenin sevdiği türlerde reyting artar. '
+                          'Şehirdeki sete dokunup kur.',
                   maxLines: 2,
                   style: const TextStyle(
                     color: AppColors.textDim,
@@ -65,11 +68,14 @@ class _MapScreenState extends State<MapScreen>
                 ),
               ),
               Tag(
-                '📍 $owned set · ${fmtShort(game.locationUpkeep)}/gün',
+                '🏙️ ${game.openedCities.length}/81 şehir · 📍 $owned set',
                 color: AppColors.cyan,
               ),
             ],
           ),
+          const SizedBox(height: 6),
+          if (!world) const Expanded(child: CityMapView()),
+          if (world) ...[
           const SizedBox(height: 6),
           // Haritada iğneler üst üste binebilir: her lokasyon buradan da seçilebilir
           SizedBox(
@@ -152,6 +158,7 @@ class _MapScreenState extends State<MapScreen>
               ],
             ),
           ),
+          ],
         ],
       ),
     );

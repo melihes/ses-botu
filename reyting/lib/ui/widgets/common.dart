@@ -84,51 +84,58 @@ class AccentButton extends StatelessWidget {
   Widget build(BuildContext context) {
     final enabled = onTap != null;
     final h = compact ? 36.0 : 46.0;
+    final radius = BorderRadius.circular(h / 2);
+    // Gölge dışarıda, dokunma efekti içeride ve yuvarlak kesilir:
+    // köşelerde kare gölge/iz görünmez.
     return Opacity(
       opacity: enabled ? 1 : 0.45,
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: onTap,
-          borderRadius: BorderRadius.circular(h / 2),
-          child: Ink(
-            height: h,
-            width: expand ? double.infinity : null,
-            padding: EdgeInsets.symmetric(horizontal: compact ? 14 : 22),
-            decoration: BoxDecoration(
-              gradient: enabled ? AppColors.accentGradient : null,
-              color: enabled ? null : AppColors.border,
-              borderRadius: BorderRadius.circular(h / 2),
-              boxShadow: enabled
-                  ? [
-                      BoxShadow(
-                        color: AppColors.accent.withValues(alpha: 0.35),
-                        blurRadius: 12,
-                        offset: const Offset(0, 4),
+      child: Container(
+        height: h,
+        width: expand ? double.infinity : null,
+        decoration: BoxDecoration(
+          gradient: enabled ? AppColors.accentGradient : null,
+          color: enabled ? null : AppColors.border,
+          borderRadius: radius,
+          boxShadow: enabled
+              ? [
+                  BoxShadow(
+                    color: AppColors.accent.withValues(alpha: 0.30),
+                    blurRadius: 10,
+                    offset: const Offset(0, 3),
+                  ),
+                ]
+              : null,
+        ),
+        child: Material(
+          type: MaterialType.transparency,
+          borderRadius: radius,
+          clipBehavior: Clip.antiAlias,
+          child: InkWell(
+            onTap: onTap,
+            customBorder: RoundedRectangleBorder(borderRadius: radius),
+            child: Padding(
+              padding: EdgeInsets.symmetric(horizontal: compact ? 14 : 22),
+              child: Row(
+                mainAxisSize: expand ? MainAxisSize.max : MainAxisSize.min,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  if (icon != null) ...[
+                    Icon(icon, size: compact ? 16 : 20, color: Colors.white),
+                    const SizedBox(width: 6),
+                  ],
+                  Flexible(
+                    child: Text(
+                      label,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontWeight: FontWeight.w800,
+                        fontSize: compact ? 13 : 15,
+                        color: Colors.white,
                       ),
-                    ]
-                  : null,
-            ),
-            child: Row(
-              mainAxisSize: expand ? MainAxisSize.max : MainAxisSize.min,
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                if (icon != null) ...[
-                  Icon(icon, size: compact ? 16 : 20, color: Colors.white),
-                  const SizedBox(width: 6),
-                ],
-                Flexible(
-                  child: Text(
-                    label,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      fontWeight: FontWeight.w800,
-                      fontSize: compact ? 13 : 15,
-                      color: Colors.white,
                     ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         ),
@@ -161,7 +168,9 @@ class GhostButton extends StatelessWidget {
     return Opacity(
       opacity: onTap == null ? 0.45 : 1,
       child: Material(
-        color: Colors.transparent,
+        type: MaterialType.transparency,
+        borderRadius: BorderRadius.circular(h / 2),
+        clipBehavior: Clip.antiAlias,
         child: InkWell(
           onTap: onTap,
           borderRadius: BorderRadius.circular(h / 2),

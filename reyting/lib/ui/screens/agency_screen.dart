@@ -249,8 +249,7 @@ class _AgencyScreenState extends State<AgencyScreen> {
                     padding: const EdgeInsets.all(8),
                     child: Row(
                       children: [
-                        PersonAvatar(
-                          seed: p.id.hashCode,
+                        PersonAvatar(name: p.name, seed: p.id.hashCode,
                           color: p.role.color,
                           size: 34,
                         ),
@@ -330,8 +329,7 @@ class TalentCard extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          PersonAvatar(
-            seed: p.id.hashCode,
+          PersonAvatar(name: p.name, seed: p.id.hashCode,
             color: p.role.color,
             size: 54,
             badgeIcon: p.role.icon,

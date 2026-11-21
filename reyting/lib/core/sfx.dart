@@ -52,7 +52,10 @@ class Sfx {
   }
 
   /// Seyirci: alkış ya da tribün coşkusu (seyrek ve kısık).
+  /// Seyirci sesleri kullanıcı isteğiyle kapatıldı (kulak tırmalıyordu).
   static void crowd(String kind) {
+    return;
+    // ignore: dead_code
     final now = DateTime.now();
     if (now.difference(_lastCrowd).inSeconds < 12) return;
     _lastCrowd = now;

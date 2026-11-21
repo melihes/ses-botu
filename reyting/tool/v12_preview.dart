@@ -90,6 +90,9 @@ Future<void> _main() async {
     'production' || 'story' => PageId.production,
     'home' => PageId.home,
     'staff' => PageId.staff,
+    'luxury' => PageId.luxury,
+    'broadcast' => PageId.broadcast,
+    'cinema' => PageId.cinema,
     _ => PageId.home,
   };
   runApp(GameScope(

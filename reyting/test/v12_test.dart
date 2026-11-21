@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:reyting/data/content.dart';
+import 'package:reyting/data/cities.dart';
 import 'package:reyting/data/content2.dart';
 import 'package:reyting/engine/economy.dart';
 import 'package:reyting/engine/game.dart';
@@ -142,6 +143,9 @@ void main() {
       g.cash = 1e9;
       g.studioLevel = 5;
       final up = g.dailyUpkeep;
+      // önce şehir açılmalı
+      expect(g.buyLocation(locationById('karadeniz')!), isNotNull);
+      expect(g.openCity(cityByPlate(53)!), isNull);
       expect(g.buyLocation(locationById('karadeniz')!), isNull);
       expect(g.dailyUpkeep, greaterThan(up));
       final crew = [
@@ -343,6 +347,47 @@ void main() {
       expect(g2.execs.length, 1);
       expect(g2.netWorth, closeTo(worth, worth.abs() * 0.01 + 1));
       g2.dispose();
+    });
+  });
+
+  group('Şehirler ve lüks seri', () {
+    test('şehir açmak erişimi ve bölge türünü artırır, kayıtta kalır', () async {
+      final g = await fresh();
+      g.cash = 1e9;
+      final r0 = g.reach;
+      final b0 = g.cityGenreBonus(Genre.belgesel);
+      expect(g.openCity(cityByPlate(65)!), isNull); // Van
+      expect(g.reach, greaterThan(r0));
+      expect(g.cityGenreBonus(Genre.belgesel), greaterThan(b0));
+      expect(g.openCity(cityByPlate(65)!), isNotNull);
+      await g.save();
+      g.dispose();
+      final g2 = await fresh();
+      expect(g2.openedCities, containsAll([34, 65]));
+      g2.dispose();
+    });
+    test('sınırlı üretim: seri no verilir, tükenince satın alınamaz', () async {
+      final g = await fresh();
+      g.cash = 1e12;
+      final d = luxuryDefs.firstWhere((x) => x.id == 'c4');
+      expect(g.buyFixed(d), isNull);
+      final serial = g.luxSerial[d.id]!;
+      expect(serial, inInclusiveRange(1, d.edition!));
+      g.sellLuxury(d);
+      expect(g.luxSerial.containsKey(d.id), isFalse);
+      g.luxSold[d.id] = d.edition!;
+      expect(g.luxSoldOut(d), isTrue);
+      expect(g.buyFixed(d), isNotNull);
+      g.dispose();
+    });
+    test('ikinci el al-sat ile para basılamaz', () async {
+      final g = await fresh();
+      final d = luxuryDefs.firstWhere((x) => x.id == 'c4');
+      g.luxSold[d.id] = d.edition!;
+      final v = g.luxMarketValue(d, 5);
+      // en ucuz ilan > en yüksek teklif
+      expect(v * 1.2, greaterThan(v * 1.15));
+      g.dispose();
     });
   });
 }

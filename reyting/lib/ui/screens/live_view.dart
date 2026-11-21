@@ -374,7 +374,7 @@ class _TalkBubble extends StatelessWidget {
                     shape: BoxShape.circle,
                     border: Border.all(color: color, width: 2),
                   ),
-                  child: PersonAvatar(seed: b.who.hashCode, color: color, size: 38),
+                  child: PersonAvatar(name: b.who, seed: b.who.hashCode, color: color, size: 38),
                 ),
                 const SizedBox(width: 8),
                 Flexible(

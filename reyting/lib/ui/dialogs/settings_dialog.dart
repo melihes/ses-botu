@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-import '../../core/sfx.dart';
 import '../../core/theme.dart';
 import '../../engine/game.dart';
 import '../widgets/common.dart';
@@ -106,43 +105,6 @@ class _SettingsState extends State<_Settings> {
                 style: TextStyle(fontSize: 12, color: AppColors.textDim),
               ),
             ),
-            SwitchListTile(
-              contentPadding: EdgeInsets.zero,
-              value: Sfx.enabled,
-              onChanged: (v) async {
-                await Sfx.setEnabled(v);
-                setState(() {});
-                if (v) Sfx.crowd('applause');
-              },
-              title: const Text(
-                '🔊 Sesler',
-                style: TextStyle(fontWeight: FontWeight.w800),
-              ),
-              subtitle: const Text(
-                'Seyirci alkışı ve tribün sesleri',
-                style: TextStyle(fontSize: 12, color: AppColors.textDim),
-              ),
-            ),
-            if (Sfx.enabled)
-              Row(
-                children: [
-                  const Icon(
-                    Icons.volume_down_rounded,
-                    color: AppColors.textDim,
-                  ),
-                  Expanded(
-                    child: Slider(
-                      value: Sfx.volume,
-                      onChanged: (v) => setState(() => Sfx.volume = v),
-                      onChangeEnd: (v) {
-                        Sfx.setVolume(v);
-                        Sfx.crowd('applause');
-                      },
-                    ),
-                  ),
-                  const Icon(Icons.volume_up_rounded, color: AppColors.textDim),
-                ],
-              ),
             const SizedBox(height: 8),
             const SectionLabel(
               'Test modu · zaman hızı',
@@ -180,7 +142,7 @@ class _SettingsState extends State<_Settings> {
             ),
             const SizedBox(height: 12),
             const Text(
-              'Reyting · v0.13',
+              'Reyting · v0.14',
               style: TextStyle(color: AppColors.textFaint, fontSize: 11),
             ),
           ],

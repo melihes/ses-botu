@@ -137,6 +137,7 @@ class _CreatorCard extends StatelessWidget {
           Row(
             children: [
               PersonAvatar(
+                name: c.name,
                 seed: c.look,
                 color: c.niche.color,
                 size: 52,

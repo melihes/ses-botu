@@ -149,7 +149,7 @@ double boxOfficeForDay(Film f, int dayIndex, double reach, double bonus) {
 
 /// Bir platformun bu film için önerdiği lisans ücreti (30 gün).
 double licenseOffer(Film f, PlatformDef p, double bonus) =>
-    filmValue(f) * 0.35 * p.payMult * f.def.streaming * (1 + bonus);
+    filmValue(f) * 0.45 * p.payMult * f.def.streaming * (1 + bonus);
 
 /// Hakların tamamen satışı.
 double rightsSaleValue(Film f) => filmValue(f) * 1.6;

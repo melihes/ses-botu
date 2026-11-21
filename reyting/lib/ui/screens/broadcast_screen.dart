@@ -55,8 +55,8 @@ class _BroadcastScreenState extends State<BroadcastScreen> {
         const SizedBox(height: 10),
         if (_tab == 0) ...[
           const PageHint(
-            'Reklam süresini kaydırarak ayarla: reklam uzadıkça gelir artar ama izleyici kaçar. '
-            'Kaliteli programlar daha uzun reklamı kaldırır. En iyi noktayı bul!',
+            'Reklam: ⭐ En iyi bugünkü geliri en yükseğe çıkarır. 🌱 Az reklam izleyici sadakati kazandırır '
+            '(reytinge +%25\'e kadar), 💸 çok reklam sadakati eritir. Reklam talebi her gün değişir.',
           ),
           for (final band in Band.values) ...[
             Padding(
@@ -473,13 +473,60 @@ class _OnAir extends StatelessWidget {
             ),
           ],
         ),
-        Slider(
-          value: m,
-          min: 0,
-          max: 24,
-          divisions: 24,
-          label: '${m.round()} dk',
-          onChanged: (v) => game.setAdMinutes(id, v),
+        // hazır seçenekler: gelir ve izleyici etkisi önceden görünür
+        Builder(
+          builder: (_) {
+            final best = adTolerance(s.quality).roundToDouble().clamp(1.0, 24.0);
+            final opts = [
+              ('🌱 Az', (best * 0.55).roundToDouble().clamp(1.0, 24.0), 'Sadakat büyür'),
+              ('⭐ En iyi', best, 'En yüksek gelir'),
+              ('💸 Çok', (best * 1.35).roundToDouble().clamp(1.0, 24.0), 'Sadakat erir'),
+            ];
+            return Row(
+              children: [
+                for (final o in opts)
+                  Expanded(
+                    child: GestureDetector(
+                      behavior: HitTestBehavior.opaque,
+                      onTap: () => game.setAdMinutes(id, o.$2),
+                      child: Container(
+                        margin: const EdgeInsets.only(right: 6, top: 4),
+                        padding: const EdgeInsets.all(6),
+                        decoration: BoxDecoration(
+                          color: m == o.$2 ? AppColors.accent.withValues(alpha: 0.18) : AppColors.panelHi,
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(color: m == o.$2 ? AppColors.accent : AppColors.border),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text('${o.$1} · ${fmtDec(o.$2, 0)} dk',
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 11)),
+                            Text('+${fmtShort(game.revenueWithAds(s, o.$2))}/gün',
+                                style: const TextStyle(color: AppColors.green, fontSize: 10, fontWeight: FontWeight.w800)),
+                            Text(o.$3, style: const TextStyle(color: AppColors.textDim, fontSize: 9)),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                Column(
+                  children: [
+                    _adStep('+', () => game.setAdMinutes(id, (m + 1).clamp(0, 24).toDouble())),
+                    const SizedBox(height: 4),
+                    _adStep('−', () => game.setAdMinutes(id, (m - 1).clamp(0, 24).toDouble())),
+                  ],
+                ),
+              ],
+            );
+          },
+        ),
+        const SizedBox(height: 4),
+        Text(
+          'Sadakat +%${(s.loyalty * 100).round()} · reklam talebi bugün ×${fmtDec(game.adDemand, 2)}',
+          style: const TextStyle(color: AppColors.textDim, fontSize: 11),
         ),
         Row(
           children: [
@@ -629,4 +676,20 @@ Future<void> showMoveDialog(BuildContext context, Show s) => showDialog(
       ],
     );
   },
+);
+
+Widget _adStep(String label, VoidCallback onTap) => GestureDetector(
+  behavior: HitTestBehavior.opaque,
+  onTap: onTap,
+  child: Container(
+    width: 34,
+    height: 26,
+    alignment: Alignment.center,
+    decoration: BoxDecoration(
+      color: AppColors.panelHi,
+      borderRadius: BorderRadius.circular(8),
+      border: Border.all(color: AppColors.border),
+    ),
+    child: Text(label, style: const TextStyle(fontWeight: FontWeight.w900)),
+  ),
 );

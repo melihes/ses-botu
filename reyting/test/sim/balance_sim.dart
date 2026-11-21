@@ -5,6 +5,7 @@ import 'dart:math';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:reyting/core/format.dart';
 import 'package:reyting/data/content.dart';
+import 'package:reyting/data/cities.dart';
 import 'package:reyting/data/content2.dart';
 import 'package:reyting/engine/economy.dart';
 import 'package:reyting/engine/game.dart';
@@ -260,6 +261,14 @@ void botDay(Game g) {
       if (!part('e')) break;
       if (cur != null && cur.skill >= e.skill) continue;
       if (e.salary < net * 0.04 && g.cash > e.signingFee * 6) g.hireExec(e);
+    }
+    // şehirler: büyükten küçüğe, kârlıysa
+    if (part('l')) {
+      final cs = cityDefs.where((c) => !g.openedCities.contains(c.plate)).toList()
+        ..sort((a, b) => b.weight.compareTo(a.weight));
+      for (final c in cs) {
+        if (g.cash > c.price * 6 + burn(g) * 4) g.openCity(c);
+      }
     }
     // lokasyonlar
     for (final l in locationDefs) {

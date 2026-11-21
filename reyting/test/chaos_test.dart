@@ -4,6 +4,7 @@ import 'dart:math';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:reyting/data/content.dart';
+import 'package:reyting/data/cities.dart';
 import 'package:reyting/data/content2.dart';
 import 'package:reyting/engine/economy.dart';
 import 'package:reyting/engine/game.dart';
@@ -105,6 +106,16 @@ List<String> invariants(Game g) {
     if (p.skill > 99 || p.skill < 1) e.add('yetenek aralık dışı');
   }
   if (bad(g.netWorth)) e.add('servet bozuk');
+  for (final d in luxuryDefs) {
+    final ed = d.edition;
+    if (ed == null) continue;
+    if ((g.luxSold[d.id] ?? 0) > ed) e.add('üretim adedi aşıldı ${d.id}');
+    if (g.ownedLuxury.contains(d.id) && !g.luxSerial.containsKey(d.id)) e.add('seri no yok ${d.id}');
+  }
+  for (final o in g.luxOffers) {
+    if (!g.ownedLuxury.contains(o.defId)) e.add('sahipsiz lüks teklif');
+  }
+  if (!g.openedCities.contains(34)) e.add('ev şehri kapalı');
   return e;
 }
 
@@ -117,7 +128,7 @@ Future<void> chaos(int seed, int steps) async {
   T pick<T>(List<T> l) => l[r.nextInt(l.length)];
   final log = <String>[];
   for (int i = 0; i < steps; i++) {
-    final a = r.nextInt(38);
+    final a = r.nextInt(42);
     String act = 'a$a';
     try {
       switch (a) {
@@ -366,6 +377,24 @@ Future<void> chaos(int seed, int steps) async {
             act = 'bütçe/konuk yükselt';
             final s = pick(live);
             r.nextBool() ? g.upgradeShowBudget(s) : g.upgradeShowGuest(s);
+          }
+        case 38:
+          act = 'şehir';
+          g.openCity(pick(cityDefs));
+        case 39:
+          final k = r.nextInt(4);
+          act = 'lüks pazar $k';
+          if (k == 0 && g.luxListings.isNotEmpty) g.buyLuxListing(pick(g.luxListings));
+          if (k == 1) g.toggleLuxSale(pick(luxuryDefs));
+          if (k == 2 && g.luxOffers.isNotEmpty) g.acceptLuxOffer(pick(g.luxOffers));
+          if (k == 3) g.buyFixed(pick(luxuryDefs.where((d) => !d.negotiable).toList()));
+        case 40:
+          act = 'rol yenile';
+          g.refreshRole(pick(Role.values));
+        case 41:
+          if (g.films.isNotEmpty) {
+            act = 'hepsine lisans';
+            g.licenseAll(pick(g.films));
           }
         case 30:
           act = 'uzaklaş';

@@ -1076,8 +1076,7 @@ class _NewShowWizardState extends State<NewShowWizard> {
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          PersonAvatar(
-                            seed: p.id.hashCode,
+                          PersonAvatar(name: p.name, seed: p.id.hashCode,
                             color: role.color,
                             size: 22,
                           ),
@@ -1110,70 +1109,66 @@ Future<Staff?> showQuickHire(BuildContext context, Role role) {
       final cands = game.market.where((p) => p.role == role).toList()
         ..sort((a, b) => b.skill.compareTo(a.skill));
       return AlertDialog(
-        title: Text('${role.label} işe al'),
+        title: Row(children: [
+          Expanded(child: Text('${role.label} işe al')),
+          Tag('Yeni adaylar ${game.marketRefreshSeconds} sn sonra',
+              color: AppColors.textDim, icon: Icons.schedule_rounded),
+        ]),
         content: SizedBox(
-          width: 460,
-          child: cands.isEmpty
-              ? Text(
-                  'Şu an iş ilanlarında ${role.label.toLowerCase()} yok. '
-                  'Kadro ekranından "Yeni adaylar" ile listeyi yenileyebilirsin.',
-                )
-              : SingleChildScrollView(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      for (final p in cands)
-                        Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 4),
-                          child: Row(
+          width: 520,
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (cands.isEmpty)
+                  Text('Şu an iş ilanlarında ${role.label.toLowerCase()} yok.',
+                      style: const TextStyle(color: AppColors.textDim)),
+                for (final p in cands)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 4),
+                    child: Row(
+                      children: [
+                        PersonAvatar(name: p.name, seed: p.id.hashCode, color: role.color, size: 38),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              PersonAvatar(
-                                seed: p.id.hashCode,
-                                color: role.color,
-                                size: 36,
-                              ),
-                              const SizedBox(width: 8),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      '${p.name} · yetenek ${p.skill}',
-                                      style: const TextStyle(
-                                        fontWeight: FontWeight.w800,
-                                      ),
-                                    ),
-                                    Text(
-                                      'Maaş ${fmtShort(p.salary)}/gün',
-                                      style: const TextStyle(
-                                        color: AppColors.textDim,
-                                        fontSize: 12,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              AccentButton(
-                                'İşe al · ${fmtShort(p.signingFee)}',
-                                compact: true,
-                                onTap: () {
-                                  final err = game.hire(p);
-                                  report(c, err);
-                                  if (err == null) Navigator.pop(c, p);
-                                },
-                              ),
+                              Text('${p.name} · yetenek ${p.skill}${p.isStar ? ' ⭐' : ''}',
+                                  style: TextStyle(
+                                      fontWeight: FontWeight.w800,
+                                      color: p.skill >= 70 ? AppColors.green : AppColors.text)),
+                              Text('${p.specDef.label} · maaş ${fmtShort(p.salary)}/gün',
+                                  style: const TextStyle(color: AppColors.textDim, fontSize: 12)),
                             ],
                           ),
                         ),
-                    ],
+                        AccentButton(
+                          'İşe al · ${fmtShort(game.signingFeeFor(p))}',
+                          compact: true,
+                          onTap: () {
+                            final err = game.hire(p);
+                            report(c, err);
+                            if (err == null) Navigator.pop(c, p);
+                          },
+                        ),
+                      ],
+                    ),
                   ),
+                const SizedBox(height: 8),
+                GhostButton(
+                  'Bu rol için yeni adaylar getir · 1 💎 (en az 2 iyi aday)',
+                  compact: true,
+                  icon: Icons.refresh_rounded,
+                  onTap: () => report(c, game.refreshRole(role)),
                 ),
+              ],
+            ),
+          ),
         ),
         actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(c),
-            child: const Text('Kapat'),
-          ),
+          TextButton(onPressed: () => Navigator.pop(c), child: const Text('Kapat')),
         ],
       );
     },

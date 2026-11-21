@@ -116,8 +116,10 @@ class Show {
   int guest; // ünlü konuk seviyesi (guestTiers index)
   String? guestName;
   String? location; // çekim lokasyonu id
+  double loyalty; // izleyici sadakati (az reklamla büyür, 0..0.25)
 
   Show({
+    this.loyalty = 0,
     this.budget = 1,
     this.guest = 0,
     this.guestName,
@@ -177,6 +179,7 @@ class Show {
     'guest': guest,
     'guestName': guestName,
     'loc': location,
+    'loy': loyalty,
   };
 
   factory Show.fromJson(Map<String, dynamic> j) => Show(
@@ -208,6 +211,7 @@ class Show {
     guest: j['guest'] ?? 0,
     guestName: j['guestName'],
     location: j['loc'],
+    loyalty: (j['loy'] as num? ?? 0).toDouble(),
   );
 }
 
@@ -815,4 +819,29 @@ class CompanyLogo {
   List<int> toJson() => [shape, palette, frame];
   factory CompanyLogo.fromJson(List j) =>
       CompanyLogo(shape: j[0], palette: j[1], frame: j[2]);
+}
+
+
+/// İkinci el pazarda satılan sınırlı üretim lüks parça
+class LuxListing {
+  final String defId;
+  final int serial;
+  final double price;
+  final String seller;
+  LuxListing(this.defId, this.serial, this.price, this.seller);
+  List toJson() => [defId, serial, price, seller];
+  factory LuxListing.fromJson(List j) =>
+      LuxListing(j[0], j[1], (j[2] as num).toDouble(), j[3]);
+}
+
+/// Satışa koyduğun lüks parçaya gelen teklif
+class LuxOffer {
+  final String defId;
+  final String from;
+  final double amount;
+  final int expires;
+  LuxOffer(this.defId, this.from, this.amount, this.expires);
+  List toJson() => [defId, from, amount, expires];
+  factory LuxOffer.fromJson(List j) =>
+      LuxOffer(j[0], j[1], (j[2] as num).toDouble(), j[3]);
 }

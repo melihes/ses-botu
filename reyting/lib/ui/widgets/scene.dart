@@ -3,7 +3,6 @@ import 'dart:math';
 
 import 'package:flutter/material.dart';
 
-import '../../core/sfx.dart';
 import '../../core/theme.dart';
 import '../../data/content.dart';
 
@@ -307,12 +306,14 @@ class _StageSceneState extends State<StageScene>
       'Alkışlar minik yıldıza!',
       'Bir daha söyle!',
     ],
-    Prop.film: [
+    Prop.film: ['Film başlıyor! 🍿', 'Şşş, sessiz olun!', 'Bu sahne efsane!', 'Mısır kimde?'],
+    Prop.filmSet: [
       'Motor!',
       'Kestik!',
       'Bir daha alalım!',
       'Işıklar hazır mı?',
       'Sahne 12, çekim 3!',
+      'Mükemmeldi, kestik!',
     ],
     Prop.studio: [
       'Yayına 5 dakika!',
@@ -320,24 +321,6 @@ class _StageSceneState extends State<StageScene>
       'Reji, beni duyuyor musun?',
       'Reklamdan dönüyoruz.',
     ],
-  };
-  static const _applauseProps = {
-    Prop.quiz,
-    Prop.wheel,
-    Prop.voice,
-    Prop.talent,
-    Prop.awards,
-    Prop.kidsStage,
-    Prop.newYear,
-    Prop.redCarpet,
-    Prop.gossip,
-  };
-  static const _cheerProps = {
-    Prop.football,
-    Prop.derby,
-    Prop.tournament,
-    Prop.basketball,
-    Prop.island,
   };
 
   @override
@@ -407,6 +390,11 @@ class _StageSceneState extends State<StageScene>
     Prop.redCarpet: [('Bu elbise kimin?', 'Yerli bir tasarımcı! ✨', 2)],
     Prop.kidsStage: [('Hep bir ağızdan!', '♪ La la la ♪', 2)],
     Prop.puppet: [('Topu kim sakladı?', 'Arkanda, arkanda! 😂', 1)],
+    Prop.filmSet: [
+      ('Motor!', 'Kestik! Mükemmeldi! 👏', 2),
+      ('Sahne 12, çekim 3!', 'Duygu daha yoğun olsun!', 0),
+      ('Repliğimi unuttum…', 'Bir daha alalım! 😂', 1),
+    ],
   };
 
   int _reaction = 0;
@@ -448,10 +436,6 @@ class _StageSceneState extends State<StageScene>
       } else {
         final lines = _lines[p] ?? const ['Yayındayız!'];
         _say(lines[_rnd.nextInt(lines.length)], 0.15 + _rnd.nextDouble() * 0.5);
-      }
-      if (_rnd.nextDouble() < 0.2) {
-        if (_applauseProps.contains(p)) Sfx.crowd('applause');
-        if (_cheerProps.contains(p)) Sfx.crowd('cheer');
       }
     }
     _scheduleTalk();
@@ -674,6 +658,8 @@ class Draw {
     double walk = 0,
     bool talking = false,
     int moodOverride = -1,
+    int? look,
+    int gender = -1,
   }) {
     final px = x * W, fy = feet * H, ph = h * H;
     final skinC = skinTones[skin % skinTones.length];
@@ -725,8 +711,16 @@ class Draw {
       );
     }
     // ---- kişiye özel görünüm (konuma göre sabit) ----
-    final sd = ((x * 997).round() * 31 + (h * 1000).round() * 7 + skin * 13 + hair * 17).abs();
-    final female = longHair || sd % 5 == 2;
+    // Görünüm konumdan değil sabit özelliklerden gelir: yürürken kıyafet değişmez
+    final sd = look ??
+        ((shirt.toARGB32() % 9973) * 31 +
+                (pants.toARGB32() % 997) * 7 +
+                (h * 1000).round() * 3 +
+                skin * 13 +
+                hair * 17 +
+                (longHair ? 5 : 0))
+            .abs();
+    final female = gender == 1 || (gender < 0 && (longHair || sd % 5 == 2));
     var mood = this.mood;
     if (moodOverride >= 0) mood = moodOverride;
     // seyirci tepkisi: mikrofonsuz herkes güler / şaşırır
@@ -862,7 +856,9 @@ class Draw {
     final head = Offset(px, fy - ph * 0.9 + bounce);
     final hr = ph * 0.1;
     final hairP = p(hairC);
-    final style = longHair ? 6 : (female ? [4, 5, 6][sd % 3] : [0, 1, 2, 3, 7][sd % 5]);
+    final style = female
+        ? (longHair ? 6 : [4, 5, 6][sd % 3])
+        : [0, 1, 2, 3, 7][sd % 5];
     // arkadaki saç
     if (style == 6) {
       c.drawRRect(
@@ -1168,7 +1164,7 @@ class ScenePainter extends CustomPainter {
     _prop(d, t, w, floor);
 
     final outdoor = _outdoor.contains(prop);
-    if (!outdoor && prop != Prop.film) {
+    if (!outdoor && prop != Prop.film && prop != Prop.filmSet) {
       // tavan ışıkları ve spotlar
       d.rect(0, 0, 1, 0.06, Colors.black.withValues(alpha: 0.6));
       final lamps = 3 + min(tier, 4) * 2;
@@ -2967,6 +2963,69 @@ class ScenePainter extends CustomPainter {
         final spots = 1 + min(tier, 2);
         for (int i = 0; i < spots; i++) {
           d.circle((i + 1) / (spots + 1), 0.04, 0.02, AppColors.yellow);
+        }
+        // salondaki seyirciler (arkadan)
+        for (double x = 0.08; x < 0.95; x += 0.09) {
+          d.circle(x, 0.79, 0.045, const Color(0xFF2A1A24));
+        }
+      case Prop.filmSet:
+        // film seti: dekor, ışıklar, kamera, yönetmen, klaket ve oyuncular
+        d.rect(0.05, 0.12, 0.9, floor - 0.12, Color.lerp(color, Colors.black, 0.35)!);
+        d.skyline(5, floor, Color.lerp(color, Colors.black, 0.55)!, w, lit: true);
+        // dekor iskelesi
+        d.line(0.05, 0.12, 0.05, floor, const Color(0xFF8D6E63), 3);
+        d.line(0.95, 0.12, 0.95, floor, const Color(0xFF8D6E63), 3);
+        // ışık ayakları
+        for (final lx in [0.1, 0.9]) {
+          d.line(lx, floor + 0.02, lx, 0.3, Colors.white54, 2);
+          d.rrect(lx - 0.04, 0.22, 0.08, 0.08, 3, const Color(0xFF333333));
+          d.glow(lx, 0.27, 0.18, AppColors.yellow.withValues(alpha: 0.35));
+        }
+        // boom mikrofon
+        final boomX = 0.5 + sin(w) * 0.03;
+        d.line(0.82, 0.2, boomX, 0.3, Colors.white70, 2);
+        d.oval(boomX, 0.32, 0.06, 0.05, const Color(0xFF555555));
+        // oyuncular (sahneyi oynuyor)
+        d.person(0.42, floor + 0.02, 0.42,
+            shirt: AppColors.pink, longHair: true, hair: 1, gender: 1, look: 101,
+            armL: 0.4 + sin(w * 2) * 0.2, armR: 1.2 + sin(w * 3) * 0.3, talking: sin(w * 2) > 0);
+        d.person(0.58, floor + 0.02, 0.44,
+            shirt: AppColors.blue, hair: 0, gender: 0, look: 202,
+            armL: 1.0 + cos(w * 2) * 0.3, armR: 0.3, talking: sin(w * 2) <= 0);
+        // kamera dolly ve kameraman
+        d.rect(0.12, floor + 0.08, 0.2, 0.02, Colors.white38);
+        final camX = 0.2 + sin(w * 0.5) * 0.03;
+        d.rrect(camX - 0.06, floor - 0.2, 0.12, 0.08, 4, const Color(0xFF1E1E1E));
+        d.circle(camX + 0.07, floor - 0.16, 0.035, const Color(0xFF3A3A3A));
+        d.line(camX, floor - 0.12, camX, floor + 0.08, Colors.white54, 2);
+        d.person(camX - 0.08, floor + 0.12, 0.36,
+            shirt: const Color(0xFF37474F), hat: const Color(0xFF263238), gender: 0, look: 303,
+            armR: 1.6, armL: 1.4);
+        // yönetmen koltuğu ve megafon
+        d.rect(0.78, floor - 0.02, 0.1, 0.02, const Color(0xFF6D4C41));
+        d.rect(0.78, floor - 0.1, 0.1, 0.05, const Color(0xFF212121));
+        d.text('YÖNETMEN', 0.83, floor - 0.095, 0.03, Colors.white, center: true);
+        d.person(0.83, floor + 0.12, 0.38,
+            shirt: const Color(0xFF5D4037), legsHidden: true, gender: 0, sunglasses: true, look: 404,
+            armR: 2.3 + sin(w * 2) * 0.2, armL: 0.5, talking: (t * 4) % 1 < 0.3);
+        // klaket: her döngüde bir kez çarpar
+        final clap = (t * 4) % 1;
+        final open = clap < 0.15 ? (0.15 - clap) / 0.15 : 0.0;
+        if (clap < 0.35) {
+          d.rect(0.46, floor - 0.42, 0.1, 0.07, const Color(0xFF111111));
+          d.text('SAHNE 12', 0.51, floor - 0.405, 0.025, Colors.white, center: true);
+          d.c.save();
+          d.c.translate(0.46 * d.W, (floor - 0.42) * d.H);
+          d.c.rotate(-open * 0.6);
+          for (int k = 0; k < 4; k++) {
+            d.c.drawRect(Rect.fromLTWH(k * 0.025 * d.W, -0.025 * d.H, 0.025 * d.W, 0.025 * d.H),
+                d.p(k.isEven ? Colors.white : Colors.black));
+          }
+          d.c.restore();
+        }
+        if (live) {
+          d.circle(0.92, 0.08, 0.02, sin(w * 8) > 0 ? AppColors.red : AppColors.red.withValues(alpha: 0.3));
+          d.text('REC', 0.86, 0.06, 0.035, Colors.white);
         }
       case Prop.studio:
         d.rect(

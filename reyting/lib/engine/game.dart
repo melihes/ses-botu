@@ -7,6 +7,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../core/format.dart';
 import '../data/content.dart';
+import '../data/cities.dart';
 import '../data/content2.dart';
 import '../models/models.dart';
 import 'achievements.dart';
@@ -86,6 +87,12 @@ class Game extends ChangeNotifier {
   bool identitySet = false;
   bool stingOn = true;
   final Set<String> ownedLocations = {};
+  final Set<int> openedCities = {homeCityPlate};
+  final Map<String, int> luxSold = {}; // fabrikadan satılan adet
+  final Map<String, int> luxSerial = {}; // sahip olduğun parçanın seri no
+  final List<LuxListing> luxListings = [];
+  final Set<String> luxForSale = {};
+  final List<LuxOffer> luxOffers = [];
   final Map<String, int> eventReadyDay = {};
   int agencyLevel = 0;
   final List<Staff> academy = [];
@@ -99,6 +106,7 @@ class Game extends ChangeNotifier {
   final List<BrandOffer> brandOffers = [];
   final List<Deal> deals = [];
   int storyChoices = 0;
+  double adDemand = 1.0; // reklam verenlerin günlük talebi (0,85–1,2)
   int eventsHeld = 0;
 
   /// Yeni yapım başlarken oynatılan şirket logosu (yapım adı)
@@ -736,6 +744,13 @@ class Game extends ChangeNotifier {
         if (s.buffDays == 0) s.buff = 1.0;
       }
       if (r > bestRating) bestRating = r;
+      // izleyici sadakati: az reklam büyütür, çok reklam eritir
+      final ret = adRetention(slots[s.slot]!.adMinutes, s.quality);
+      if (ret >= 0.85) {
+        s.loyalty = min(0.25, s.loyalty + 0.01);
+      } else if (ret < 0.65) {
+        s.loyalty = max(0.0, s.loyalty - 0.01);
+      }
       if (s.sponsorDays > 0) {
         s.sponsorDays--;
         if (s.sponsorDays == 0) {
@@ -981,7 +996,7 @@ class Game extends ChangeNotifier {
     for (final id in ownedEquip) {
       r += equipById(id)?.reachBonus ?? 0;
     }
-    return r;
+    return r * (1 + cityReachBonus);
   }
 
   int get prestige {
@@ -1031,6 +1046,9 @@ class Game extends ChangeNotifier {
       if (f.rightsOwned && f.score > 0) v += filmValue(f);
     }
     v += portfolioValue;
+    for (final c in cityDefs) {
+      if (openedCities.contains(c.plate)) v += c.price * 0.5;
+    }
     for (final l in locationDefs) {
       if (ownedLocations.contains(l.id)) v += l.price * 0.5;
     }
@@ -1061,6 +1079,7 @@ class Game extends ChangeNotifier {
 
   double ratingMultFor(Genre g) =>
       (1 + bizEffect(BizEffect.showRating, genre: g) + digitalBoost) *
+      (1 + cityGenreBonus(g)) *
       saturationFor(g) *
       rivalPressure;
 
@@ -1180,7 +1199,7 @@ class Game extends ChangeNotifier {
   double grossRevenuePerDay(Show s) {
     if (s.slot == null) return 0;
     final m = slots[s.slot]!.adMinutes;
-    return adRevenuePerDay(viewers(s), m, s.slot!, adBonus);
+    return adRevenuePerDay(viewers(s), m, s.slot!, adBonus) * adDemand;
   }
 
   double get totalViewers => shows
@@ -1268,11 +1287,39 @@ class Game extends ChangeNotifier {
     );
   }
 
+  /// Adayların yenilenmesine kalan gerçek süre (saniye)
+  int get marketRefreshSeconds =>
+      ((1 - dayProgress) * secondsPerDay / max(timeScale, 1)).ceil();
+
+  /// Her rolde en az bir iyi aday
+  Staff _goodPerson(Role r) {
+    final p = _randomPerson(r);
+    final target = min(95, 52 + studioLevel * 7 + _rng.nextInt(12));
+    if (p.skill < target) {
+      p.skill = target;
+      p.potential = max(p.potential, target);
+      p.salary = (salaryFor(target) * (0.9 + _rng.nextDouble() * 0.25) / 100).round() * 100.0;
+    }
+    return p;
+  }
+
+  /// Tek bir rol için yeni adaylar (1 elmas): biri mutlaka iyi
+  String? refreshRole(Role r) {
+    if (diamonds < 1) return 'Yeterli elmasın yok (1 💎 gerekli).';
+    diamonds -= 1;
+    market.removeWhere((p) => p.role == r);
+    market.add(_goodPerson(r));
+    market.add(_goodPerson(r));
+    market.add(_randomPerson(r));
+    _changed();
+    return null;
+  }
+
   void _refreshMarket() {
     market.clear();
     for (final r in Role.values) {
       market.add(_randomPerson(r));
-      market.add(_randomPerson(r));
+      market.add(_goodPerson(r));
     }
     market.add(_randomPerson(Role.values[_rng.nextInt(4)]));
     market.add(_randomPerson(Role.values[_rng.nextInt(4)]));
@@ -1496,6 +1543,7 @@ class Game extends ChangeNotifier {
     _refreshMarket();
     _log('Stüdyo büyüdü', '$channelName artık bir ${next.name}!', true);
     _notify('🏗️ Tebrikler! Artık bir ${next.name}sın!');
+    _ensureExecCandidates();
     _changed();
     return null;
   }
@@ -1553,9 +1601,11 @@ class Game extends ChangeNotifier {
 
   String? buyFixed(LuxuryDef d) {
     if (ownedLuxury.contains(d.id)) return 'Zaten sahipsin.';
+    if (luxSoldOut(d)) return 'Fabrikada kalmadı. İkinci el pazara bak.';
     if (cash < d.price) return 'Kasada yeterli para yok.';
     cash -= d.price;
     ownedLuxury.add(d.id);
+    _assignSerial(d);
     _notify('✨ ${d.name} artık senin! +${d.prestige} prestij');
     _changed();
     return null;
@@ -1565,6 +1615,7 @@ class Game extends ChangeNotifier {
 
   void sellLuxury(LuxuryDef d) {
     if (!ownedLuxury.remove(d.id)) return;
+    _dropLux(d.id);
     _gain(sellValueLuxury(d));
     _notify('${d.name} satıldı: +${fmtShort(sellValueLuxury(d))}');
     _changed();
@@ -1668,6 +1719,7 @@ class Game extends ChangeNotifier {
       );
     } else if (lux.isNotEmpty) {
       ownedLuxury.add(id);
+      _assignSerial(lux.first);
       _notify(
         '✨ ${lux.first.name} artık senin! +${lux.first.prestige} prestij',
       );
@@ -2512,7 +2564,7 @@ class Game extends ChangeNotifier {
   /// Kurgusal patronların servetleri (online'da gerçek oyuncular gelecek)
   /// Takvim simülasyonuna göre ayarlı: günde ~1 saat oynayan oyuncu
   /// ~1. ayda ilk 100'e, ~1 yılda ilk 10-15'e ulaşır; 1 numara ekstra emek ister.
-  double tycoonWorth(int i) => 5.4e13 * exp(-i * 0.0408) * (1 + day / 1e6);
+  double tycoonWorth(int i) => 7.6e13 * exp(-i * 0.0408) * (1 + day / 1e6);
 
   String tycoonName(int i) =>
       '${firstNames[(i * 17 + 3) % firstNames.length]} '
@@ -2599,6 +2651,26 @@ class Game extends ChangeNotifier {
   }
 
   /// Fiyat+kalite puanı için kalite çarpanı: ekip yeteneği ve fazladan ekipman.
+  /// Bu teklifle ihaleyi kazanma ihtimali (rakiplerin olası tekliflerine göre).
+  /// Rakip davranışı [_resolveTender] ile aynıdır; sabit tohumla tahmin edilir.
+  double tenderWinChance(Tender t, double bid, double q) {
+    final r = Random(t.id.hashCode);
+    var wins = 0;
+    const n = 600;
+    final my = bid / q;
+    for (int i = 0; i < n; i++) {
+      final k = 2 + r.nextInt(3);
+      var best = double.infinity;
+      for (int j = 0; j < k; j++) {
+        final b = t.budget * (0.78 + r.nextDouble() * 0.22);
+        final rq = 0.95 + r.nextDouble() * 0.2;
+        best = min(best, b / rq);
+      }
+      if (my < best) wins++;
+    }
+    return wins / n;
+  }
+
   double tenderQuality(Tender t, List<Staff> crew) {
     final avg = crew.isEmpty
         ? 0

@@ -12,6 +12,15 @@ extension GameV12 on Game {
     logo = CompanyLogo();
     identitySet = false;
     ownedLocations.clear();
+    openedCities
+      ..clear()
+      ..add(homeCityPlate);
+    luxSold.clear();
+    luxSerial.clear();
+    luxListings.clear();
+    luxForSale.clear();
+    luxOffers.clear();
+    _luxInit();
     eventReadyDay.clear();
     agencyLevel = 0;
     academy.clear();
@@ -36,6 +45,12 @@ extension GameV12 on Game {
     'identitySet': identitySet,
     'stingOn': stingOn,
     'locations': ownedLocations.toList(),
+    'cities': openedCities.toList(),
+    'luxSold': luxSold,
+    'luxSerial': luxSerial,
+    'luxListings': luxListings.map((e) => e.toJson()).toList(),
+    'luxForSale': luxForSale.toList(),
+    'luxOffers': luxOffers.map((e) => e.toJson()).toList(),
     'eventReady': eventReadyDay,
     'agencyLevel': agencyLevel,
     'academy': academy.map((e) => e.toJson()).toList(),
@@ -50,6 +65,7 @@ extension GameV12 on Game {
     'deals': deals.map((e) => e.toJson()).toList(),
     'storyChoices': storyChoices,
     'eventsHeld': eventsHeld,
+    'adDemand': adDemand,
   };
 
   void _v12Load(Map<String, dynamic> j) {
@@ -64,6 +80,35 @@ extension GameV12 on Game {
     eventReadyDay
       ..clear()
       ..addAll(Map<String, int>.from(j['eventReady'] ?? {}));
+    openedCities
+      ..clear()
+      ..add(homeCityPlate)
+      ..addAll(List<int>.from(j['cities'] ?? []));
+    luxSold
+      ..clear()
+      ..addAll(Map<String, int>.from(j['luxSold'] ?? {}));
+    luxSerial
+      ..clear()
+      ..addAll(Map<String, int>.from(j['luxSerial'] ?? {}));
+    luxListings
+      ..clear()
+      ..addAll((j['luxListings'] as List? ?? []).map((e) => LuxListing.fromJson(e)));
+    luxForSale
+      ..clear()
+      ..addAll(List<String>.from(j['luxForSale'] ?? []));
+    luxOffers
+      ..clear()
+      ..addAll((j['luxOffers'] as List? ?? []).map((e) => LuxOffer.fromJson(e)));
+    if (luxSold.isEmpty) _luxInit();
+    for (final id in ownedLuxury) {
+      final d = luxuryDefs.where((x) => x.id == id).firstOrNull;
+      if (d != null && d.edition != null && !luxSerial.containsKey(id)) _assignSerial(d);
+    }
+    // eski kayıt: set kurulmuş lokasyonların şehirleri açık sayılır
+    for (final id in ownedLocations) {
+      final pl = locationCity[id];
+      if (pl != null) openedCities.add(pl);
+    }
     agencyLevel = j['agencyLevel'] ?? 0;
     List<Staff> ppl(String k) =>
         (j[k] as List? ?? []).map((e) => Staff.fromJson(e)).toList();
@@ -116,6 +161,7 @@ extension GameV12 on Game {
       ..addAll((j['deals'] as List? ?? []).map((e) => Deal.fromJson(e)));
     storyChoices = j['storyChoices'] ?? 0;
     eventsHeld = j['eventsHeld'] ?? 0;
+    adDemand = (j['adDemand'] as num? ?? 1).toDouble();
   }
 
   // =================================================================
@@ -256,7 +302,8 @@ extension GameV12 on Game {
       n++;
     }
     final fameBonus = n == 0 ? 0.0 : fame / n / 100 * 0.10;
-    return (1 + guestTiers[s.guest.clamp(0, guestTiers.length - 1)].boost) *
+    return (1 + s.loyalty) *
+        (1 + guestTiers[s.guest.clamp(0, guestTiers.length - 1)].boost) *
         (1 + fameBonus) *
         (1 + execBonus(ExecRole.yayin));
   }
@@ -405,7 +452,49 @@ extension GameV12 on Game {
       .where((l) => ownedLocations.contains(l.id))
       .fold(0.0, (a, l) => a + l.upkeep);
 
+  // =================================================================
+  // Şehirler (81 il)
+  // =================================================================
+  /// Açık şehirler izleyici erişimini en fazla %15 büyütür (nüfusa göre)
+  double get cityReachBonus =>
+      0.15 *
+      cityDefs.where((c) => openedCities.contains(c.plate)).fold(0.0, (a, c) => a + c.weight) /
+      totalCityWeight;
+
+  /// Bölgede açılan şehirler oranında o bölgenin sevdiği türlere +%5'e kadar reyting
+  double cityGenreBonus(Genre g) {
+    var b = 0.0;
+    for (int r = 0; r < regionDefs.length; r++) {
+      if (!regionDefs[r].genres.contains(g)) continue;
+      var tot = 0.0, open = 0.0;
+      for (final c in cityDefs) {
+        if (c.region != r) continue;
+        tot += c.weight;
+        if (openedCities.contains(c.plate)) open += c.weight;
+      }
+      if (tot > 0) b += 0.03 * open / tot;
+    }
+    return b;
+  }
+
+  double cityReachShare(CityDef c) => 0.15 * c.weight / totalCityWeight;
+
+  String? openCity(CityDef c) {
+    if (openedCities.contains(c.plate)) return '${c.name} zaten açık.';
+    if (cash < c.price) return '${c.name} için ${fmtShort(c.price)} gerekli.';
+    cash -= c.price;
+    openedCities.add(c.plate);
+    _count('city');
+    _notify('🏙️ ${c.name} yayın ağına katıldı! Erişim +%${fmtDec(cityReachShare(c) * 100, 1)}');
+    _changed();
+    return null;
+  }
+
   String? locationLockReason(LocationDef l) {
+    final pl = locationCity[l.id];
+    if (!l.world && pl != null && !openedCities.contains(pl)) {
+      return 'Önce ${cityByPlate(pl)!.name} şehrini aç';
+    }
     if (studioLevel + 1 < l.reqLevel)
       return 'Stüdyo seviyesi ${l.reqLevel} gerekli';
     if (l.reqEquip != null && !ownedEquip.contains(l.reqEquip)) {
@@ -796,6 +885,9 @@ extension GameV12 on Game {
     return e.def.maxBonus * e.power;
   }
 
+  /// Yönetici adaylarının yenilenmesine kalan gün
+  int get execRefreshDays => 5 - (day % 5);
+
   double get execSalaries => execs.values.fold(0.0, (a, e) => a + e.salary);
 
   double execSalaryFor(ExecRole r, int skill) =>
@@ -819,6 +911,18 @@ extension GameV12 on Game {
             (execSalaryFor(r, skill) / 100).round() * 100.0,
           ),
         );
+      }
+    }
+  }
+
+  /// Yeni açılan koltukların adayları beklemeden gelsin
+  void _ensureExecCandidates() {
+    for (final r in ExecRole.values) {
+      if (!execUnlocked(r) || execCandidates.any((e) => e.role == r)) continue;
+      for (final band in const [(35, 20), (60, 18), (82, 17)]) {
+        final skill = min(99, band.$1 + _rng.nextInt(band.$2));
+        execCandidates.add(Exec(_newId('e'), _name(), r, skill,
+            (execSalaryFor(r, skill) / 100).round() * 100.0));
       }
     }
   }
@@ -1139,10 +1243,179 @@ extension GameV12 on Game {
   // =================================================================
   // Günlük
   // =================================================================
+  /// Belirli reklam süresiyle bu programın günlük net geliri (önizleme)
+  double revenueWithAds(Show s, double m) {
+    final slot = s.slot;
+    if (slot == null) return 0;
+    final rating = showRating(s, slot, m) * ratingMultFor(s.genre) * showExtraMult(s);
+    final v = viewersFor(rating, slot, reach);
+    return adRevenuePerDay(v, m, slot, adBonus) * adDemand * runShare(s);
+  }
+
+  /// Bu ay lisans verilebilecek platformlar
+  List<PlatformDef> licensablePlatforms(Film f) => [
+        for (final p in platformDefs)
+          if (!ownedPlatforms.contains(p.id) &&
+              !f.licenses.any((l) => l.platformId == p.id) &&
+              f.score >= minScoreFor(p))
+            p
+      ];
+
+  /// 12 ay boyunca her ay uygun tüm platformlara lisans verilirse toplam kazanç (tahmin)
+  double licenseLifetime(Film f) {
+    if (!f.rightsOwned || f.score <= 0) return 0;
+    final eligible = platformDefs
+        .where((p) => !ownedPlatforms.contains(p.id) && f.score >= minScoreFor(p))
+        .toList();
+    var sold = f.licensesSold;
+    var total = 0.0;
+    for (int month = 0; month < 12; month++) {
+      for (final p in eligible) {
+        final v = f.cost * pow(f.score / 5, 2.2) * 1.2 * pow(0.85, sold);
+        total += v * 0.45 * p.payMult * f.def.streaming * (1 + licenseBonus);
+        sold++;
+      }
+    }
+    return total;
+  }
+
+  /// Uygun tüm platformlara tek seferde lisans ver
+  String? licenseAll(Film f) {
+    final ps = licensablePlatforms(f);
+    if (ps.isEmpty) return 'Şu an lisans verilebilecek platform yok.';
+    for (final p in ps) {
+      final err = licenseFilm(f, p);
+      if (err != null) return err;
+    }
+    return null;
+  }
+
+  // =================================================================
+  // Sınırlı üretim lüks parçalar ve ikinci el pazar
+  // =================================================================
+  void _luxInit() {
+    for (final d in luxuryDefs) {
+      final e = d.edition;
+      if (e == null) continue;
+      // tek parça (ada) başta satışta; diğerlerinin bir kısmı satılmış
+      luxSold[d.id] = e <= 1 ? 0 : (e * (0.3 + _rng.nextDouble() * 0.5)).round();
+    }
+  }
+
+  int luxLeft(LuxuryDef d) => d.edition == null ? 1 << 30 : d.edition! - (luxSold[d.id] ?? 0);
+  bool luxSoldOut(LuxuryDef d) => d.edition != null && luxLeft(d) <= 0;
+
+  void _assignSerial(LuxuryDef d) {
+    if (d.edition == null) return;
+    final sold = luxSold[d.id] ?? 0;
+    luxSerial[d.id] = min(d.edition!, sold + 1);
+    luxSold[d.id] = min(d.edition!, sold + 1);
+  }
+
+  void _dropLux(String id) {
+    luxSerial.remove(id);
+    luxForSale.remove(id);
+    luxOffers.removeWhere((o) => o.defId == id);
+  }
+
+  /// Koleksiyon değeri: tükenen ve düşük seri numaralı parçalar daha değerli
+  double luxMarketValue(LuxuryDef d, int? serial) {
+    var v = d.price * (luxSoldOut(d) ? 1.15 : 0.8);
+    if (serial != null && serial <= 10) v *= 1.2;
+    if (d.edition == 1) v = d.price * 1.1;
+    return v;
+  }
+
+  String? buyLuxListing(LuxListing l) {
+    final d = luxuryDefs.firstWhere((x) => x.id == l.defId);
+    if (ownedLuxury.contains(d.id)) return 'Bu parçadan zaten var.';
+    if (cash < l.price) return 'Kasada yeterli para yok.';
+    cash -= l.price;
+    luxListings.remove(l);
+    ownedLuxury.add(d.id);
+    luxSerial[d.id] = l.serial;
+    _notify('✨ ${d.name} #${l.serial} artık senin! (${l.seller} sattı)');
+    _changed();
+    return null;
+  }
+
+  void toggleLuxSale(LuxuryDef d) {
+    if (!ownedLuxury.contains(d.id)) return;
+    if (!luxForSale.remove(d.id)) {
+      luxForSale.add(d.id);
+    } else {
+      luxOffers.removeWhere((o) => o.defId == d.id);
+    }
+    _changed();
+  }
+
+  String? acceptLuxOffer(LuxOffer o) {
+    if (!ownedLuxury.contains(o.defId) || o.expires < day) {
+      luxOffers.remove(o);
+      _changed();
+      return 'Teklif artık geçerli değil.';
+    }
+    final d = luxuryDefs.firstWhere((x) => x.id == o.defId);
+    ownedLuxury.remove(d.id);
+    _dropLux(d.id);
+    _gain(o.amount);
+    _notify('💰 ${d.name}, ${o.from} tarafından ${fmtShort(o.amount)} karşılığında alındı.');
+    _changed();
+    return null;
+  }
+
+  static const _collectors = [
+    'Koleksiyoncu Rıfat', 'Galerici Nail', 'Kaptan Sinan', 'Mücevherci Leyla',
+    'Turizmci Selim', 'Holdingci Necla', 'Antikacı Zafer', 'Pilot Derya',
+  ];
+
+  void _luxDaily() {
+    // fabrikadan diğer zenginler de alıyor
+    for (final d in luxuryDefs) {
+      final e = d.edition;
+      if (e == null || e <= 1 || luxSoldOut(d)) continue;
+      if (_rng.nextDouble() < 0.5) {
+        luxSold[d.id] = min(e, (luxSold[d.id] ?? 0) + 1 + _rng.nextInt(max(1, e ~/ 250)));
+      }
+    }
+    // tükenen parçalar ikinci el pazarda (5 günde bir yenilenir)
+    if (day % 5 == 0) {
+      luxListings.clear();
+      for (final d in luxuryDefs) {
+        if (!luxSoldOut(d) || ownedLuxury.contains(d.id) || d.edition == 1) continue;
+        final n = 1 + _rng.nextInt(2);
+        for (int i = 0; i < n; i++) {
+          final serial = 1 + _rng.nextInt(d.edition!);
+          luxListings.add(LuxListing(d.id, serial,
+              (luxMarketValue(d, serial) * (1.2 + _rng.nextDouble() * 0.35) / 1000).round() * 1000.0,
+              _collectors[_rng.nextInt(_collectors.length)]));
+        }
+      }
+    }
+    // satıştaki parçalarına teklifler
+    luxOffers.removeWhere((o) => o.expires < day || !ownedLuxury.contains(o.defId));
+    for (final id in luxForSale) {
+      if (_rng.nextDouble() > 0.5) continue;
+      final d = luxuryDefs.firstWhere((x) => x.id == id);
+      luxOffers.add(LuxOffer(id, _collectors[_rng.nextInt(_collectors.length)],
+          (luxMarketValue(d, luxSerial[id]) * (0.85 + _rng.nextDouble() * 0.3) / 1000).round() * 1000.0,
+          day + 3));
+    }
+  }
+
   void _v12Daily() {
+    _luxDaily();
+    // reklam talebi ortalamaya dönen rastgele yürüyüş
+    adDemand = (adDemand + (1 - adDemand) * 0.2 + (_rng.nextDouble() - 0.5) * 0.12)
+        .clamp(0.85, 1.2);
     _agencyDaily();
     _brandDaily();
     _execDaily();
-    _refreshExecCandidates();
+    // yönetici adayları 5 günde bir değişir (sürekli değişmesin)
+    if (day % 5 == 0) {
+      _refreshExecCandidates();
+    } else {
+      _ensureExecCandidates();
+    }
   }
 }
