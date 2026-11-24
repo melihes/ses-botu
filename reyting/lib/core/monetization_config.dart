@@ -2,16 +2,19 @@
 // Gerçek kimlikler gelene kadar Google'ın resmi TEST reklamları kullanılır
 // (test reklamıyla para kazanılmaz ama hesap da cezalandırılmaz).
 
-/// true: test reklamları. Gerçek AdMob kimlikleri girilince false yapılır.
-const useTestAds = true;
+/// Gerçek reklamlar SADECE Play Store sürümünde açılır:
+///   flutter build appbundle --dart-define=REAL_ADS=true
+/// Elle yüklenen deneme APK'larında test reklamı çıkar; böylece kendi
+/// reklamına tıklayıp AdMob hesabını riske atmazsın.
+const useTestAds = !bool.fromEnvironment('REAL_ADS');
 
 // Google'ın resmi test kimlikleri (herkes kullanabilir)
 const _testRewarded = 'ca-app-pub-3940256099942544/5224354917';
 const _testInterstitial = 'ca-app-pub-3940256099942544/1033173712';
 
 // AdMob'dan alınacak gerçek reklam birimi kimlikleri
-const _realRewarded = 'ca-app-pub-XXXXXXXXXXXXXXXX/YYYYYYYYYY';
-const _realInterstitial = 'ca-app-pub-XXXXXXXXXXXXXXXX/ZZZZZZZZZZ';
+const _realRewarded = 'ca-app-pub-2899895845706024/6886397887';
+const _realInterstitial = 'ca-app-pub-2899895845706024/3442811040';
 
 String get rewardedUnitId => useTestAds ? _testRewarded : _realRewarded;
 String get interstitialUnitId => useTestAds ? _testInterstitial : _realInterstitial;
