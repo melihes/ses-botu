@@ -45,6 +45,9 @@ class Cloud extends ChangeNotifier {
 
   bool get signedIn => user != null;
 
+  /// Misafir (anonim) hesap: Google'a bağlanmadıysa
+  bool get isGuest => user?.isAnonymous ?? false;
+
   late final FirebaseFunctions _fn =
       FirebaseFunctions.instanceFor(region: 'europe-west1');
 
@@ -69,7 +72,56 @@ class Cloud extends ChangeNotifier {
     if (signedIn) {
       sync();
       refreshTop();
+    } else {
+      autoSignIn();
     }
+  }
+
+  /// Açılışta otomatik giriş: önce sessiz/tek dokunuş Google, olmazsa misafir.
+  /// Oyuncu hiçbir düğmeye basmadan online olur.
+  Future<void> autoSignIn() async {
+    if (!ready || signedIn) return;
+    try {
+      final acc = await GoogleSignIn.instance.attemptLightweightAuthentication();
+      if (acc != null) {
+        await _firebaseWithGoogle(acc);
+      }
+    } catch (e) {
+      debugPrint('Sessiz giriş olmadı: $e');
+    }
+    if (!signedIn) {
+      try {
+        final res = await FirebaseAuth.instance.signInAnonymously();
+        user = res.user;
+      } catch (e) {
+        debugPrint('Misafir giriş olmadı: $e');
+      }
+    }
+    if (signedIn) {
+      if ((_game?.timeScale ?? 1) > 1) _game!.setTimeScale(1);
+      await _offerCloudSave();
+      await sync(force: true);
+      await refreshTop();
+    }
+    notifyListeners();
+  }
+
+  /// Google hesabıyla Firebase'e gir; misafirsen hesabını Google'a bağla
+  Future<void> _firebaseWithGoogle(GoogleSignInAccount acc) async {
+    final cred = GoogleAuthProvider.credential(idToken: acc.authentication.idToken);
+    final cur = FirebaseAuth.instance.currentUser;
+    if (cur != null && cur.isAnonymous) {
+      try {
+        final res = await cur.linkWithCredential(cred);
+        user = res.user;
+        return;
+      } on FirebaseAuthException catch (e) {
+        // bu Google hesabı zaten başka bir oyuncu kaydına bağlı: ona geç
+        if (e.code != 'credential-already-in-use') rethrow;
+      }
+    }
+    final res = await FirebaseAuth.instance.signInWithCredential(cred);
+    user = res.user;
   }
 
   Future<String?> signIn() async {
@@ -79,10 +131,7 @@ class Cloud extends ChangeNotifier {
     notifyListeners();
     try {
       final acc = await GoogleSignIn.instance.authenticate();
-      final idToken = acc.authentication.idToken;
-      final cred = GoogleAuthProvider.credential(idToken: idToken);
-      final res = await FirebaseAuth.instance.signInWithCredential(cred);
-      user = res.user;
+      await _firebaseWithGoogle(acc);
       if ((_game?.timeScale ?? 1) > 1) _game!.setTimeScale(1); // online'da hızlı zaman yok
       await _offerCloudSave();
       await sync(force: true);
@@ -210,7 +259,8 @@ class Cloud extends ChangeNotifier {
   /// Oyun kapanırken son durumu gönder
   Future<void> onPause() => sync();
 
-  String get displayName => user?.displayName ?? user?.email ?? 'Oyuncu';
+  String get displayName =>
+      isGuest ? 'Misafir oyuncu' : (user?.displayName ?? user?.email ?? 'Oyuncu');
 
   /// Hata ayıklama için
   String debugState() => jsonEncode({'ready': ready, 'signedIn': signedIn});

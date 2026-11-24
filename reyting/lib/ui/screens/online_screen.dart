@@ -168,6 +168,26 @@ class _OnlinePanel extends StatelessWidget {
               ]),
             ),
           if (c.cloudSaveRaw != null) const SizedBox(height: 10),
+          if (c.isGuest) ...[
+            Panel(
+              borderColor: AppColors.cyan,
+              child: Row(children: [
+                const Icon(Icons.shield_rounded, color: AppColors.cyan, size: 36),
+                const SizedBox(width: 10),
+                const Expanded(
+                  child: Text(
+                      'Misafir olarak oynuyorsun. Telefonu değiştirir ya da oyunu silersen ilerlemen kaybolabilir. '
+                      'Google hesabına bağla, ilerlemen hep korunsun.',
+                      style: TextStyle(fontWeight: FontWeight.w700, fontSize: 12)),
+                ),
+                AccentButton(c.busy ? 'Bağlanıyor…' : 'Google ile koru',
+                    compact: true,
+                    icon: Icons.link_rounded,
+                    onTap: c.busy ? null : () async => report(context, await c.signIn())),
+              ]),
+            ),
+            const SizedBox(height: 10),
+          ],
           Panel(
             child: Row(children: [
               const Icon(Icons.verified_user_rounded, color: AppColors.green, size: 32),
@@ -185,8 +205,10 @@ class _OnlinePanel extends StatelessWidget {
                   onTap: () => c.sync(force: true)),
               const SizedBox(width: 6),
               GhostButton('Yenile', compact: true, icon: Icons.refresh_rounded, onTap: c.refreshTop),
-              const SizedBox(width: 6),
-              GhostButton('Çıkış', compact: true, color: AppColors.textDim, onTap: c.signOut),
+              if (!c.isGuest) ...[
+                const SizedBox(width: 6),
+                GhostButton('Çıkış', compact: true, color: AppColors.textDim, onTap: c.signOut),
+              ],
             ]),
           ),
           const SizedBox(height: 10),
