@@ -8,12 +8,14 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../core/format.dart';
 import '../data/content.dart';
 import '../data/cities.dart';
+import '../core/monetization_config.dart';
 import '../data/content2.dart';
 import '../models/models.dart';
 import 'achievements.dart';
 import 'economy.dart';
 
 part 'game_v12.dart';
+part 'game_shop.dart';
 
 /// Oyunun tüm durumunu tutan ve zamanı ilerleten motor.
 /// Ekranlar bunu dinler; her değişiklikte notifyListeners() çağrılır.
@@ -32,6 +34,11 @@ class Game extends ChangeNotifier {
   double dayProgress = 0;
   int studioLevel = 0; // studioLevels index
   bool vip = false;
+  bool noAds = false; // "Reklamsız" paketi
+  final Map<String, int> adBoosts = {}; // reklamla hızlandırılan yapımlar
+  int lastAdDiscountDay = -999; // reklamla indirim en son ne zaman kullanıldı
+  int adsWatched = 0;
+  double purchasedCash = 0; // gerçek parayla alınan oyun parası (toplam)
   double timeScale = 1; // test modu için hızlandırma
 
   /// Test modu bu kariyerde hiç kullanıldı mı (kullanıldıysa online sıralamaya giremez)
@@ -1551,11 +1558,12 @@ class Game extends ChangeNotifier {
   // Stüdyo, ekipman
   // =================================================================
 
-  String? upgradeStudio() {
+  String? upgradeStudio({double discount = 0}) {
     if (studioLevel >= studioLevels.length - 1) return 'Zaten en üst seviye!';
     final next = studioLevels[studioLevel + 1];
-    if (cash < next.upgradeCost) return 'Kasada yeterli para yok.';
-    cash -= next.upgradeCost;
+    final cost = next.upgradeCost * (1 - discount);
+    if (cash < cost) return 'Kasada yeterli para yok.';
+    cash -= cost;
     studioLevel++;
     _refreshMarket();
     _log('Stüdyo büyüdü', '$channelName artık bir ${next.name}!', true);
@@ -1565,13 +1573,14 @@ class Game extends ChangeNotifier {
     return null;
   }
 
-  String? buyEquip(EquipDef e) {
+  String? buyEquip(EquipDef e, {double discount = 0}) {
     if (ownedEquip.contains(e.id)) return 'Zaten sahipsin.';
     if (studioLevel + 1 < e.reqLevel) {
       return 'Stüdyo seviyesi ${e.reqLevel} gerekli.';
     }
-    if (cash < e.price) return 'Kasada yeterli para yok.';
-    cash -= e.price;
+    final cost = e.price * (1 - discount);
+    if (cash < cost) return 'Kasada yeterli para yok.';
+    cash -= cost;
     ownedEquip.add(e.id);
     _notify('🛠️ ${e.name} satın alındı!');
     _changed();
@@ -1616,11 +1625,12 @@ class Game extends ChangeNotifier {
   // Lüks ve kanallar (pazarlık)
   // =================================================================
 
-  String? buyFixed(LuxuryDef d) {
+  String? buyFixed(LuxuryDef d, {double discount = 0}) {
     if (ownedLuxury.contains(d.id)) return 'Zaten sahipsin.';
     if (luxSoldOut(d)) return 'Fabrikada kalmadı. İkinci el pazara bak.';
-    if (cash < d.price) return 'Kasada yeterli para yok.';
-    cash -= d.price;
+    final cost = d.price * (1 - discount);
+    if (cash < cost) return 'Kasada yeterli para yok.';
+    cash -= cost;
     ownedLuxury.add(d.id);
     _assignSerial(d);
     _notify('✨ ${d.name} artık senin! +${d.prestige} prestij');

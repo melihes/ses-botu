@@ -99,6 +99,7 @@ export function validateSave(
   elapsedMs: number,
   reserved: number,
   accountAgeMs: number = Number.POSITIVE_INFINITY,
+  bonus: number = 0,
 ): Verdict {
   const worth = serverWorth(next);
   if (next.tainted) {
@@ -142,6 +143,7 @@ export function validateSave(
   const allowance =
     maxNetPerDay[level] * 3 * (dayDelta + 1) + // normal kazanç
     portfolioWorth(next) * 0.5 + // borsa dalgalanması
+    Math.max(0, bonus) + // gerçek parayla alınan, sunucuda doğrulanmış para
     5e6; // küçük tolerans
   if (worth - prev.worth > allowance) {
     return { ok: false, reason: 'Servet olağan dışı hızlı arttı.', worth };

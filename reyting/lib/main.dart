@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 
+import 'core/ads.dart';
 import 'core/cloud.dart';
+import 'core/shop.dart';
 import 'core/sfx.dart';
 import 'core/theme.dart';
 import 'engine/game.dart';
@@ -79,6 +81,9 @@ class _ReytingAppState extends State<ReytingApp> with WidgetsBindingObserver {
     await until(4000);
     Cloud.instance.attach(game);
     if (mounted) setState(() => _game = game);
+    // reklam ve mağaza oyun açıldıktan sonra (açılışı yavaşlatmasın)
+    Ads.instance.init();
+    Shop.instance.init(game);
   }
 
   @override
@@ -92,6 +97,7 @@ class _ReytingAppState extends State<ReytingApp> with WidgetsBindingObserver {
     final g = _game;
     if (g == null) return;
     Sfx.pause(state != AppLifecycleState.resumed);
+    Ads.instance.pause(state != AppLifecycleState.resumed);
     if (state == AppLifecycleState.paused) {
       g.onPause();
       Cloud.instance.onPause();

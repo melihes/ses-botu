@@ -5,6 +5,7 @@ import '../../core/theme.dart';
 import '../../data/content.dart';
 import '../../engine/game.dart';
 import '../dialogs/negotiation_dialog.dart';
+import '../dialogs/shop_dialog.dart';
 import '../widgets/common.dart';
 import '../widgets/item_art.dart';
 
@@ -264,12 +265,31 @@ class _LuxCard extends StatelessWidget {
                     ),
                   )
                 else
-                  AccentButton(
-                    'Satın al',
-                    compact: true,
-                    icon: Icons.shopping_bag_rounded,
-                    onTap: () => report(context, game.buyFixed(d)),
-                  ),
+                  Wrap(spacing: 6, runSpacing: 6, children: [
+                    AccentButton(
+                      'Satın al',
+                      compact: true,
+                      icon: Icons.shopping_bag_rounded,
+                      onTap: () => report(context, game.buyFixed(d)),
+                    ),
+                    if (game.adDiscountReady)
+                      GhostButton(
+                        '📺 %15 indirim',
+                        compact: true,
+                        color: AppColors.green,
+                        onTap: () async {
+                          if (game.cash < d.price * 0.85) {
+                            game.showToast('Kasada yeterli para yok.');
+                            return;
+                          }
+                          if (await watchAd(context)) {
+                            final err = game.buyFixed(d, discount: 0.15);
+                            if (err == null) game.useAdDiscount();
+                            if (context.mounted) report(context, err);
+                          }
+                        },
+                      ),
+                  ]),
               ],
             ),
           ),

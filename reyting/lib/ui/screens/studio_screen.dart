@@ -3,7 +3,9 @@ import 'package:flutter/material.dart';
 import '../../core/format.dart';
 import '../../core/theme.dart';
 import '../../data/content.dart';
+import '../../engine/game.dart';
 import '../widgets/common.dart';
+import '../dialogs/shop_dialog.dart';
 import '../widgets/item_art.dart';
 import '../widgets/scene.dart';
 
@@ -116,6 +118,26 @@ class StudioScreen extends StatelessWidget {
                             icon: Icons.upgrade_rounded,
                             onTap: () => report(context, game.upgradeStudio()),
                           ),
+                          if (game.adDiscountReady) ...[
+                            const SizedBox(height: 6),
+                            GhostButton(
+                              '📺 Reklamla %15 indirim · ${fmtShort(next.upgradeCost * 0.85)}',
+                              compact: true,
+                              expand: true,
+                              color: AppColors.green,
+                              onTap: () async {
+                                if (game.cash < next.upgradeCost * 0.85) {
+                                  game.showToast('Kasada yeterli para yok.');
+                                  return;
+                                }
+                                if (await watchAd(context)) {
+                                  final err = game.upgradeStudio(discount: 0.15);
+                                  if (err == null) game.useAdDiscount();
+                                  if (context.mounted) report(context, err);
+                                }
+                              },
+                            ),
+                          ],
                         ],
                       ),
               ),
@@ -225,11 +247,30 @@ class _EquipCard extends StatelessWidget {
                     icon: Icons.lock_rounded,
                   )
                 else
-                  AccentButton(
-                    'Satın al · ${fmtShort(e.price)}',
-                    compact: true,
-                    onTap: () => report(context, game.buyEquip(e)),
-                  ),
+                  Wrap(spacing: 6, runSpacing: 6, children: [
+                    AccentButton(
+                      'Satın al · ${fmtShort(e.price)}',
+                      compact: true,
+                      onTap: () => report(context, game.buyEquip(e)),
+                    ),
+                    if (game.adDiscountReady)
+                      GhostButton(
+                        '📺 %15 indirim',
+                        compact: true,
+                        color: AppColors.green,
+                        onTap: () async {
+                          if (game.cash < e.price * 0.85) {
+                            game.showToast('Kasada yeterli para yok.');
+                            return;
+                          }
+                          if (await watchAd(context)) {
+                            final err = game.buyEquip(e, discount: 0.15);
+                            if (err == null) game.useAdDiscount();
+                            if (context.mounted) report(context, err);
+                          }
+                        },
+                      ),
+                  ]),
               ],
             ),
           ),

@@ -7,6 +7,8 @@ import '../engine/game.dart';
 import '../core/theme.dart';
 import 'dialogs/offline_dialog.dart';
 import 'dialogs/settings_dialog.dart';
+import 'dialogs/shop_dialog.dart';
+import '../core/ads.dart';
 import 'screens/agency_screen.dart';
 import 'screens/bank_screen.dart';
 import 'screens/board_screen.dart';
@@ -207,6 +209,12 @@ class Shell extends StatefulWidget {
 class _ShellState extends State<Shell> {
   // Oyun her açılışta ana ekranda başlar (bkz. docs/DERSLER.md #5)
   late PageId _page = widget.initial;
+
+  /// Sayfa değiştir; süresi geldiyse araya reklam girer (reklamsız pakette yok)
+  void _go(PageId p) {
+    if (p != _page && !GameScope.read(context).noAds) Ads.instance.maybeInterstitial();
+    setState(() => _page = p);
+  }
   bool _offlineShowing = false;
 
   Widget _body() => switch (_page) {
@@ -303,7 +311,7 @@ class _ShellState extends State<Shell> {
     if (!setup && game.pendingOffline == null) _maybeShowEvents();
     final item = _nav.firstWhere((n) => n.id == _page);
     return ShellNav(
-      goTo: (p) => setState(() => _page = p),
+      goTo: _go,
       child: Scaffold(
         body: SafeArea(
           child: Stack(
@@ -312,7 +320,7 @@ class _ShellState extends State<Shell> {
                 children: [
                   _Sidebar(
                     selected: _page,
-                    onTap: (p) => setState(() => _page = p),
+                    onTap: _go,
                   ),
                   Expanded(
                     child: Column(
@@ -356,6 +364,7 @@ class _ShellState extends State<Shell> {
                 child: Center(child: DecisionCard()),
               ),
               const _ToastHost(),
+            const Positioned(left: 94, bottom: 12, child: RewardOfferCard()),
               Positioned.fill(
                 child: ValueListenableBuilder<String?>(
                   valueListenable: game.sting,
@@ -579,9 +588,7 @@ class _TopBar extends StatelessWidget {
                 narrow ? '' : 'Mağaza',
                 icon: Icons.storefront_rounded,
                 compact: true,
-                onTap: () => game.showToast(
-                  '🛍️ Mağaza (elmas, VIP, dekorlar) Aşama 5\'te açılacak.',
-                ),
+                onTap: () => showShopDialog(context),
               ),
               const SizedBox(width: 6),
               IconButton(

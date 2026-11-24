@@ -10,6 +10,7 @@ import '../../engine/economy.dart';
 import '../../engine/game.dart';
 import '../../models/models.dart';
 import '../widgets/common.dart';
+import '../dialogs/shop_dialog.dart';
 import '../widgets/scene.dart';
 import 'production_screen.dart' show showQuickHire;
 
@@ -159,6 +160,17 @@ class _FilmCard extends StatelessWidget {
                 style: const TextStyle(fontSize: 12),
               ),
               const Spacer(),
+              if (game.adBoostsLeft(f.id) > 0) ...[
+                GhostButton(
+                  '📺 1 gün',
+                  compact: true,
+                  color: AppColors.green,
+                  onTap: () async {
+                    if (await watchAd(context)) report(context, game.adSpeedUpFilm(f));
+                  },
+                ),
+                const SizedBox(width: 6),
+              ],
               GhostButton(
                 'Hızlandır · ${game.filmSpeedUpCost(f)} 💎',
                 compact: true,

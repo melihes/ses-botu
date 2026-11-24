@@ -10,6 +10,7 @@ import '../../engine/economy.dart';
 import '../../engine/game.dart';
 import '../../models/models.dart';
 import '../widgets/common.dart';
+import '../dialogs/shop_dialog.dart';
 import 'live_view.dart';
 import '../widgets/item_art.dart';
 import '../widgets/scene.dart';
@@ -211,6 +212,17 @@ class _ShowCard extends StatelessWidget {
                 style: const TextStyle(fontSize: 12),
               ),
               const Spacer(),
+              if (game.adBoostsLeft(s.id) > 0) ...[
+                GhostButton(
+                  '📺 1 gün',
+                  compact: true,
+                  color: AppColors.green,
+                  onTap: () async {
+                    if (await watchAd(context)) report(context, game.adSpeedUpShow(s));
+                  },
+                ),
+                const SizedBox(width: 6),
+              ],
               GhostButton(
                 'Hızlandır · ${game.speedUpCost(s)} 💎',
                 compact: true,

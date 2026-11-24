@@ -265,6 +265,50 @@ class Cloud extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Satın almayı sunucuda Google'a doğrulatır.
+  /// true: geçerli, false: geçersiz, null: şu an doğrulanamadı (sonra tekrar)
+  Future<bool?> verifyPurchase({
+    required String productId,
+    required String token,
+    double? cashAmount,
+  }) async {
+    if (!signedIn) await autoSignIn();
+    if (!signedIn) return null;
+    try {
+      final res = await _fn.httpsCallable('verifyPurchase').call({
+        'productId': productId,
+        'token': token,
+        'cash': cashAmount ?? 0,
+      });
+      final data = Map<String, dynamic>.from(res.data as Map);
+      return data['ok'] == true;
+    } on FirebaseFunctionsException catch (e) {
+      if (e.code == 'permission-denied' || e.code == 'invalid-argument') return false;
+      return null;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  /// Hesabı ve sunucudaki tüm verileri kalıcı olarak siler
+  Future<String?> deleteAccount() async {
+    if (!signedIn) return 'Giriş yapılmamış.';
+    try {
+      await _fn.httpsCallable('deleteAccount').call();
+      await FirebaseAuth.instance.signOut();
+      try {
+        await GoogleSignIn.instance.signOut();
+      } catch (_) {}
+      user = null;
+      myRank = null;
+      top = [];
+      notifyListeners();
+      return null;
+    } catch (e) {
+      return 'Hesap silinemedi, internet bağlantını kontrol et.';
+    }
+  }
+
   /// Oyun kapanırken son durumu gönder
   Future<void> onPause() => sync();
 

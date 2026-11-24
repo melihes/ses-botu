@@ -408,4 +408,66 @@ void main() {
       g2.dispose();
     });
   });
+
+  group('Reklam ve mağaza kuralları', () {
+    test('reklam ödülü kasanın %5\'i, geç oyunda günlük kazançla sınırlı', () async {
+      final g = await fresh();
+      g.cash = 10e6;
+      expect(g.adRewardAmount, closeTo(500000, 1));
+      g.cash = 50e12; // geç oyun: dev kasa
+      expect(g.adRewardAmount, lessThan(50e12 * 0.05));
+      final before = g.cash;
+      g.grantAdCash(g.adRewardAmount);
+      expect(g.cash, greaterThan(before));
+      expect(g.adsWatched, 1);
+      g.dispose();
+    });
+    test('reklamla hızlandırma her yapımda en fazla 2 kez', () async {
+      final g = await fresh();
+      g.cash = 1e9;
+      final crew = [
+        person('a', Role.yonetmen, 50),
+        person('b', Role.sunucu, 50),
+      ];
+      g.staff.addAll(crew);
+      expect(g.createShow('Ç', Genre.yarisma, 0, crew), isNull);
+      final s = g.shows.first;
+      s.prodLeft = 5;
+      expect(g.adSpeedUpShow(s), isNull);
+      expect(s.prodLeft, closeTo(4, 0.01));
+      expect(g.adSpeedUpShow(s), isNull);
+      expect(g.adSpeedUpShow(s), isNotNull);
+      g.dispose();
+    });
+    test('reklam indirimi 20 günde bir', () async {
+      final g = await fresh();
+      g.cash = 1e12;
+      expect(g.adDiscountReady, isTrue);
+      final e = equipDefs.first;
+      final c0 = g.cash;
+      expect(g.buyEquip(e, discount: 0.15), isNull);
+      g.useAdDiscount();
+      expect(c0 - g.cash, closeTo(e.price * 0.85, 1));
+      expect(g.adDiscountReady, isFalse);
+      g.debugAdvanceDays(20);
+      expect(g.adDiscountReady, isTrue);
+      g.dispose();
+    });
+    test('paketler: elmas, para ve VIP; reklamsız kayıtta kalır', () async {
+      final g = await fresh();
+      final d0 = g.diamonds;
+      g.grantPurchase('elmas_450');
+      expect(g.diamonds, d0 + 450);
+      final c0 = g.cash;
+      g.grantPurchase('para_kucuk', cashAmount: 3e6);
+      expect(g.cash, closeTo(c0 + 3e6, 1));
+      g.grantPurchase('vip_paket');
+      expect(g.vip && g.noAds, isTrue);
+      await g.save();
+      g.dispose();
+      final g2 = await fresh();
+      expect(g2.noAds, isTrue);
+      g2.dispose();
+    });
+  });
 }

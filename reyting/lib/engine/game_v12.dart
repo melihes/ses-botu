@@ -35,6 +35,7 @@ extension GameV12 on Game {
     deals.clear();
     storyChoices = 0;
     eventsHeld = 0;
+    _shopReset();
     _refreshExecCandidates();
   }
 
@@ -65,6 +66,7 @@ extension GameV12 on Game {
     'deals': deals.map((e) => e.toJson()).toList(),
     'storyChoices': storyChoices,
     'eventsHeld': eventsHeld,
+    ..._shopToJson(),
     'adDemand': adDemand,
   };
 
@@ -161,6 +163,7 @@ extension GameV12 on Game {
       ..addAll((j['deals'] as List? ?? []).map((e) => Deal.fromJson(e)));
     storyChoices = j['storyChoices'] ?? 0;
     eventsHeld = j['eventsHeld'] ?? 0;
+    _shopLoad(j);
     adDemand = (j['adDemand'] as num? ?? 1).toDouble();
   }
 

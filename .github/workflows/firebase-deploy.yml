@@ -48,7 +48,7 @@ jobs:
       - name: Firebase'e yükle
         env:
           GOOGLE_APPLICATION_CREDENTIALS: ${{ runner.temp }}/sa.json
-        run: npx --yes firebase-tools@14 deploy --only functions,firestore:rules --project reyting-e7d32 --non-interactive --force
+        run: npx --yes firebase-tools@14 deploy --only functions,firestore:rules,hosting --project reyting-e7d32 --non-interactive --force
 
       - name: Anahtarı sil
         if: always()

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
 import '../../core/theme.dart';
+import '../../core/ads.dart';
+import '../../core/cloud.dart';
 import '../../engine/game.dart';
 import '../widgets/common.dart';
 import '../widgets/company_logo.dart';
@@ -141,6 +143,42 @@ class _SettingsState extends State<_Settings> {
               },
             ),
             const SizedBox(height: 22),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                GhostButton(
+                  'Reklam gizlilik ayarları',
+                  icon: Icons.privacy_tip_rounded,
+                  compact: true,
+                  onTap: () => Ads.instance.showPrivacyOptions(),
+                ),
+                if (Cloud.instance.signedIn)
+                  GhostButton(
+                    'Hesabımı sil',
+                    icon: Icons.delete_forever_rounded,
+                    color: AppColors.red,
+                    compact: true,
+                    onTap: () async {
+                      final ok = await confirm(
+                        context,
+                        'Hesabın silinsin mi?',
+                        'Online hesabın, bulut kaydın ve zenginler listesindeki yerin kalıcı olarak silinir. '
+                            'Telefondaki oyunun kalır; istersen "Oyunu sıfırla" ile onu da silebilirsin. '
+                            'Satın aldığın Reklamsız/VIP hakları Google Play hesabına bağlıdır, geri yüklenebilir.',
+                        ok: 'Kalıcı olarak sil',
+                      );
+                      if (!ok) return;
+                      final err = await Cloud.instance.deleteAccount();
+                      if (context.mounted) {
+                        report(context, err);
+                        if (err == null) game.showToast('Hesabın ve sunucudaki verilerin silindi.');
+                      }
+                    },
+                  ),
+              ],
+            ),
+            const SizedBox(height: 10),
             GhostButton(
               'Oyunu sıfırla',
               icon: Icons.restart_alt_rounded,
@@ -161,7 +199,7 @@ class _SettingsState extends State<_Settings> {
             ),
             const SizedBox(height: 12),
             const Text(
-              'Reyting · v0.15',
+              'Reyting · v0.16',
               style: TextStyle(color: AppColors.textFaint, fontSize: 11),
             ),
           ],

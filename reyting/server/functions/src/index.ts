@@ -9,12 +9,15 @@
 //
 // Maliyet kuralları: bir oyuncu en fazla dakikada bir kayıt gönderebilir;
 // kaydın kendisi oyuncunun kendi belgesinde durur, istemci doğrudan okur.
+import { createHash } from 'node:crypto';
+import { GoogleAuth } from 'google-auth-library';
 import { initializeApp } from 'firebase-admin/app';
 import { getAuth } from 'firebase-admin/auth';
 import { FieldValue, getFirestore, Timestamp } from 'firebase-admin/firestore';
 import { setGlobalOptions } from 'firebase-functions/v2';
 import { HttpsError, onCall } from 'firebase-functions/v2/https';
 import { onSchedule } from 'firebase-functions/v2/scheduler';
+import { maxNetPerDay } from './gamedata';
 import { cleanName, summarize, validateSave } from './logic';
 
 initializeApp();
@@ -86,7 +89,9 @@ export const submitSave = onCall({ enforceAppCheck: false }, async (req) => {
     if (!verified) {
       return backupOnly(prevData?.unverifiedReason ?? 'Bu kariyer doğrulanamadı.');
     }
-    const verdict = validateSave(prev, next, prevAt ? now - prevAt : 0, 0, prev ? Number.POSITIVE_INFINITY : accountAgeMs);
+    const bonus = Number(prevData?.bonusAllowance ?? 0);
+    const verdict = validateSave(prev, next, prevAt ? now - prevAt : 0, 0,
+      prev ? Number.POSITIVE_INFINITY : accountAgeMs, bonus);
     if (verdict.unverified) return backupOnly(verdict.reason ?? 'Doğrulanamadı.');
     if (!verdict.ok) {
       tx.set(
@@ -99,12 +104,92 @@ export const submitSave = onCall({ enforceAppCheck: false }, async (req) => {
     tx.set(
       ref,
       { save: raw, day: next.day, worth: verdict.worth, level: next.studioLevel, name,
-        verified: true, updatedAt: stamp },
+        verified: true, updatedAt: stamp, bonusAllowance: 0 },
       { merge: true },
     );
     tx.set(lbRef, { name, worth: verdict.worth, level: next.studioLevel, day: next.day, updatedAt: stamp });
     return { ok: true, worth: verdict.worth };
   });
+});
+
+/**
+ * Satın almayı Google Play'e sorar. Geçerliyse aynı satın alma bir daha
+ * kullanılamasın diye kaydeder ve parayla alınan oyun parası için sıralama
+ * kontrolüne izin payı ekler.
+ */
+const PACKAGE = 'com.esmgames.reyting';
+const MONEY_MULT: Record<string, number> = { para_kucuk: 5, para_orta: 20, para_buyuk: 60 };
+const KNOWN = new Set(['elmas_80', 'elmas_450', 'elmas_1000', 'elmas_2500', 'reklamsiz', 'vip_paket',
+  ...Object.keys(MONEY_MULT)]);
+const playAuth = new GoogleAuth({ scopes: ['https://www.googleapis.com/auth/androidpublisher'] });
+
+export const verifyPurchase = onCall(async (req) => {
+  const uid = req.auth?.uid;
+  if (!uid) throw new HttpsError('unauthenticated', 'Önce giriş yapmalısın.');
+  const productId = String(req.data?.productId ?? '');
+  const token = String(req.data?.token ?? '');
+  if (!KNOWN.has(productId) || token.length < 10 || token.length > 4000) {
+    throw new HttpsError('invalid-argument', 'Geçersiz satın alma.');
+  }
+  const client = await playAuth.getClient();
+  const url = `https://androidpublisher.googleapis.com/androidpublisher/v3/applications/${PACKAGE}` +
+    `/purchases/products/${encodeURIComponent(productId)}/tokens/${encodeURIComponent(token)}`;
+  let purchase: any;
+  try {
+    purchase = (await client.request({ url })).data;
+  } catch (e: any) {
+    const status = e?.response?.status;
+    if (status === 400 || status === 404 || status === 410) {
+      throw new HttpsError('permission-denied', 'Satın alma bulunamadı.');
+    }
+    throw new HttpsError('unavailable', 'Google Play şu an doğrulanamadı.');
+  }
+  // purchaseState: 0 satın alındı, 1 iptal, 2 beklemede
+  if (purchase?.purchaseState !== 0) {
+    throw new HttpsError('permission-denied', 'Satın alma tamamlanmamış.');
+  }
+  const key = createHash('sha256').update(token).digest('hex');
+  const pRef = db.collection('purchases').doc(key);
+  const playerRef = db.collection('players').doc(uid);
+  const playerSnap = await playerRef.get();
+  const level = Math.max(0, Math.min(11, Number(playerSnap.get('level') ?? 0)));
+  const mult = MONEY_MULT[productId] ?? 0;
+  // para paketi: istemcinin söylediği tutar, seviyenin makul kazancıyla sınırlı
+  const cash = mult > 0 ? Math.min(Math.max(0, Number(req.data?.cash ?? 0)), mult * maxNetPerDay[level] * 1.5) : 0;
+  return db.runTransaction(async (tx) => {
+    const prev = await tx.get(pRef);
+    if (prev.exists) {
+      // aynı satın alma: başka hesap kullanamaz, aynı hesap için tekrar verilmez
+      // kalıcı haklar (reklamsız, VIP) aynı Play hesabıyla yeni oyun hesabına da geri yüklenebilir
+      const permanent = productId === 'reklamsiz' || productId === 'vip_paket';
+      if (prev.get('uid') !== uid && !permanent) {
+        throw new HttpsError('permission-denied', 'Bu satın alma başka hesaba ait.');
+      }
+      return { ok: true, already: true };
+    }
+    tx.set(pRef, { uid, productId, orderId: purchase.orderId ?? null, cash, at: Timestamp.now() });
+    if (cash > 0) tx.set(playerRef, { bonusAllowance: FieldValue.increment(cash) }, { merge: true });
+    return { ok: true };
+  });
+});
+
+/**
+ * Hesabı ve tüm sunucu verisini kalıcı olarak siler (Google Play zorunluluğu).
+ * Bulut kaydı, sıralama kaydı ve giriş hesabı silinir.
+ */
+export const deleteAccount = onCall(async (req) => {
+  const uid = req.auth?.uid;
+  if (!uid) throw new HttpsError('unauthenticated', 'Önce giriş yapmalısın.');
+  const batch = db.batch();
+  batch.delete(db.collection('players').doc(uid));
+  batch.delete(db.collection('leaderboard').doc(uid));
+  await batch.commit();
+  try {
+    await getAuth().deleteUser(uid);
+  } catch (e) {
+    // kullanıcı zaten yoksa sorun değil
+  }
+  return { ok: true };
 });
 
 /** İlk 100 listesi: her 10 dakikada tek belgeye yazılır */
