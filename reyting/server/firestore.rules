@@ -21,6 +21,11 @@ service cloud.firestore {
       allow read: if signedIn();
       allow write: if false;
     }
+    // İlk 100 listesi (sunucu her 10 dakikada yazar)
+    match /meta/{doc} {
+      allow read: if signedIn();
+      allow write: if false;
+    }
     match /auctions/{id} {
       allow read: if signedIn();
       allow write: if false;

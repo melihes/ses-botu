@@ -1,0 +1,50 @@
+# Sunucu kodlarını ve güvenlik kurallarını Firebase'e yükler.
+# Anahtar GitHub'da gizli olarak durur (FIREBASE_SERVICE_ACCOUNT); koda yazılmaz.
+name: Firebase deploy
+
+on:
+  push:
+    branches: [claude/reyting-mobile-game-6ffpgn]
+    paths:
+      - 'reyting/server/**'
+      - '.github/workflows/firebase-deploy.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: firebase-deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: reyting/server
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Bağımlılıklar
+        run: npm ci --prefix functions
+
+      - name: Testler (kurallar bozuksa yükleme yapılmaz)
+        run: npm test --prefix functions
+
+      - name: Anahtar dosyası
+        env:
+          SA: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+        run: |
+          if [ -z "$SA" ]; then echo "FIREBASE_SERVICE_ACCOUNT gizli değeri yok"; exit 1; fi
+          printf '%s' "$SA" > "$RUNNER_TEMP/sa.json"
+
+      - name: Firebase'e yükle
+        env:
+          GOOGLE_APPLICATION_CREDENTIALS: ${{ runner.temp }}/sa.json
+        run: npx --yes firebase-tools@14 deploy --only functions,firestore:rules --project reyting-e7d32 --non-interactive --force
+
+      - name: Anahtarı sil
+        if: always()
+        run: rm -f "$RUNNER_TEMP/sa.json"
