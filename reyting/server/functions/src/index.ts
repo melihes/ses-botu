@@ -10,6 +10,7 @@
 // Maliyet kuralları: bir oyuncu en fazla dakikada bir kayıt gönderebilir;
 // kaydın kendisi oyuncunun kendi belgesinde durur, istemci doğrudan okur.
 import { initializeApp } from 'firebase-admin/app';
+import { getAuth } from 'firebase-admin/auth';
 import { FieldValue, getFirestore, Timestamp } from 'firebase-admin/firestore';
 import { setGlobalOptions } from 'firebase-functions/v2';
 import { HttpsError, onCall } from 'firebase-functions/v2/https';
@@ -43,6 +44,15 @@ export const submitSave = onCall({ enforceAppCheck: false }, async (req) => {
   const ref = db.collection('players').doc(uid);
   const now = Date.now();
 
+  // ilk kayıtta hesabın yaşı gerekir (hızlandırıp sonra online olmayı engeller)
+  let accountAgeMs = Number.POSITIVE_INFINITY;
+  try {
+    const u = await getAuth().getUser(uid);
+    accountAgeMs = now - new Date(u.metadata.creationTime).getTime();
+  } catch {
+    accountAgeMs = 0;
+  }
+
   return db.runTransaction(async (tx) => {
     const snap = await tx.get(ref);
     const prevData = snap.exists ? snap.data()! : null;
@@ -51,10 +61,33 @@ export const submitSave = onCall({ enforceAppCheck: false }, async (req) => {
       // çok sık kayıt: sessizce atla (oyun zaten yerelde kaydediyor)
       return { ok: true, skipped: true, worth: prevData.worth ?? 0 };
     }
-    const prev = prevData
+    let prev = prevData && prevData.day != null
       ? { day: prevData.day ?? 0, worth: prevData.worth ?? 0, level: prevData.level ?? 0 }
       : null;
-    const verdict = validateSave(prev, next, prevAt ? now - prevAt : 0, 0);
+    let verified = prevData?.verified !== false;
+    // Yeni kariyer: oyuncu oyunu sıfırladı (gün başa döndü) → temiz sayfa
+    if (prev && next.day < prev.day && next.day <= 1440) {
+      prev = null;
+      verified = true;
+      accountAgeMs = Number.POSITIVE_INFINITY; // yeni kariyer şimdi başlıyor
+    }
+    const name = cleanName(String(req.data?.company ?? next.channelName));
+    const stamp = Timestamp.fromMillis(now);
+    const lbRef = db.collection('leaderboard').doc(uid);
+
+    const backupOnly = (reason: string) => {
+      // kayıt yedeklenir (ilerleme kaybolmaz) ama sıralamaya girmez
+      tx.set(ref, { save: raw, day: next.day, worth: 0, level: next.studioLevel, name,
+        verified: false, unverifiedReason: reason, updatedAt: stamp }, { merge: true });
+      tx.delete(lbRef);
+      return { ok: false, unverified: true, reason };
+    };
+
+    if (!verified) {
+      return backupOnly(prevData?.unverifiedReason ?? 'Bu kariyer doğrulanamadı.');
+    }
+    const verdict = validateSave(prev, next, prevAt ? now - prevAt : 0, 0, prev ? Number.POSITIVE_INFINITY : accountAgeMs);
+    if (verdict.unverified) return backupOnly(verdict.reason ?? 'Doğrulanamadı.');
     if (!verdict.ok) {
       tx.set(
         ref,
@@ -63,27 +96,13 @@ export const submitSave = onCall({ enforceAppCheck: false }, async (req) => {
       );
       return { ok: false, reason: verdict.reason ?? 'Kayıt reddedildi.' };
     }
-    const name = cleanName(String(req.data?.company ?? next.channelName));
-    const stamp = Timestamp.fromMillis(now);
     tx.set(
       ref,
-      {
-        save: raw,
-        day: next.day,
-        worth: verdict.worth,
-        level: next.studioLevel,
-        name,
-        updatedAt: stamp,
-      },
+      { save: raw, day: next.day, worth: verdict.worth, level: next.studioLevel, name,
+        verified: true, updatedAt: stamp },
       { merge: true },
     );
-    tx.set(db.collection('leaderboard').doc(uid), {
-      name,
-      worth: verdict.worth,
-      level: next.studioLevel,
-      day: next.day,
-      updatedAt: stamp,
-    });
+    tx.set(lbRef, { name, worth: verdict.worth, level: next.studioLevel, day: next.day, updatedAt: stamp });
     return { ok: true, worth: verdict.worth };
   });
 });

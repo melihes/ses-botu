@@ -97,3 +97,20 @@ test('çekim setleri değere yarı fiyatla eklenir, bilinmeyen id sayılmaz', ()
   const w1 = serverWorth(base({ locations: ['ist', 'ist', 'uydurma'] }));
   assert.equal(w1 - w0, 1.2e6 * 0.5);
 });
+
+
+test('test modu damgalı kayıt sıralamaya giremez', () => {
+  const v = validateSave(null, base({ tainted: true }), 0, 0, 60 * 60000);
+  assert.equal(v.ok, false);
+  assert.equal(v.unverified, true);
+});
+
+test('ilk kayıtta oyun günü hesap yaşını aşamaz (hızlandırıp sonra online olma)', () => {
+  // hesap 10 dakika önce açıldı ama oyun 5000. günde
+  const v = validateSave(null, base({ day: 5000 }), 0, 0, 10 * 60000);
+  assert.equal(v.ok, false);
+  assert.equal(v.unverified, true);
+  // 1 günlük çevrimdışı pay içinde kalan normal oyuncu kabul edilir
+  const ok = validateSave(null, base({ day: 900 }), 0, 0, 10 * 60000);
+  assert.equal(ok.ok, true);
+});

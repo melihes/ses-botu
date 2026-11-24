@@ -18,6 +18,8 @@ export interface SaveSummary {
   holdings: Record<string, number>;
   stockPrices: Record<string, number>;
   timeScale: number;
+  /** Test modu (hızlı zaman) bu kayıtta hiç kullanıldı mı */
+  tainted: boolean;
 }
 
 export function summarize(save: any): SaveSummary {
@@ -37,6 +39,7 @@ export function summarize(save: any): SaveSummary {
     holdings: typeof save.holdings === 'object' && save.holdings ? save.holdings : {},
     stockPrices: typeof save.stockPrices === 'object' && save.stockPrices ? save.stockPrices : {},
     timeScale: num(save.timeScale, 1),
+    tainted: save.tainted === true || num(save.timeScale, 1) > 1,
   };
 }
 
@@ -77,7 +80,12 @@ export interface Verdict {
   ok: boolean;
   reason?: string;
   worth: number;
+  /** Kayıt yedeklenir ama bu kariyer sıralamaya hiç giremez */
+  unverified?: boolean;
 }
+
+/** İlk online kayıtta hesabın açılmasından önce oynanmış olabilecek gün payı (≈24 saat) */
+export const OFFLINE_GRACE_DAYS = 1440;
 
 /**
  * Yeni kaydın, bir önceki onaylı kayda göre makul olup olmadığını denetler.
@@ -90,8 +98,17 @@ export function validateSave(
   next: SaveSummary,
   elapsedMs: number,
   reserved: number,
+  accountAgeMs: number = Number.POSITIVE_INFINITY,
 ): Verdict {
   const worth = serverWorth(next);
+  if (next.tainted) {
+    return {
+      ok: false,
+      unverified: true,
+      reason: 'Bu kayıtta test modu (hızlı zaman) kullanıldı; sıralamaya giremez.',
+      worth,
+    };
+  }
   if (next.timeScale > 1) {
     return { ok: false, reason: 'Online oyunda zaman hızlandırma kapalıdır.', worth };
   }
@@ -99,6 +116,16 @@ export function validateSave(
     return { ok: false, reason: 'İhalede bloke edilen para kasada yok.', worth };
   }
   if (!prev) {
+    // İlk kayıt: oyun günü, hesabın yaşından (1 gün = 1 dakika) fazla olamaz.
+    const maxDay = (accountAgeMs / 60000) * 1.05 + OFFLINE_GRACE_DAYS;
+    if (next.day > maxDay) {
+      return {
+        ok: false,
+        unverified: true,
+        reason: 'Bu kariyer çevrimdışı ilerlemiş ve doğrulanamıyor; sıralamaya yeni kariyerle girebilirsin.',
+        worth,
+      };
+    }
     // İlk kayıt: yeni oyuncu ya da eski çevrimdışı ilerlemesi.
     const maxDays = 3 * 24 * 60; // en fazla 3 günlük oyun (başlangıç toleransı)
     const cap = 50e6 + maxNetPerDay[next.studioLevel] * 3 * Math.min(next.day, maxDays);

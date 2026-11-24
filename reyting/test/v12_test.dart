@@ -390,4 +390,22 @@ void main() {
       g.dispose();
     });
   });
+
+  group('Online hile koruması', () {
+    test('test modu kariyeri kalıcı damgalar, yeni oyun temizler', () async {
+      final g = await fresh();
+      expect(g.tainted, isFalse);
+      g.setTimeScale(10);
+      g.setTimeScale(1);
+      expect(g.tainted, isTrue);
+      expect(jsonDecode(g.exportSave())['tainted'], isTrue);
+      await g.save();
+      g.dispose();
+      final g2 = await fresh();
+      expect(g2.tainted, isTrue);
+      await g2.resetGame();
+      expect(g2.tainted, isFalse);
+      g2.dispose();
+    });
+  });
 }

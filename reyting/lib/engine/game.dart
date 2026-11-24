@@ -34,6 +34,9 @@ class Game extends ChangeNotifier {
   bool vip = false;
   double timeScale = 1; // test modu için hızlandırma
 
+  /// Test modu bu kariyerde hiç kullanıldı mı (kullanıldıysa online sıralamaya giremez)
+  bool tainted = false;
+
   final List<Staff> staff = [];
   final List<Staff> market = [];
   final List<Show> shows = [];
@@ -151,6 +154,8 @@ class Game extends ChangeNotifier {
   }
 
   void _newGame() {
+    tainted = false;
+    timeScale = 1;
     channelName = 'Kanal 9';
     cash = startingCash;
     diamonds = startingDiamonds;
@@ -359,6 +364,7 @@ class Game extends ChangeNotifier {
 
   Map<String, dynamic> _toJson() => {
     'v': _saveVersion,
+    'tainted': tainted,
     'savedAt': DateTime.now().millisecondsSinceEpoch,
     'idCounter': _idCounter,
     'channelName': channelName,
@@ -424,6 +430,7 @@ class Game extends ChangeNotifier {
 
   void _load(Map<String, dynamic> j) {
     _idCounter = j['idCounter'] ?? 0;
+    tainted = j['tainted'] == true || ((j['timeScale'] as num?) ?? 1) > 1;
     channelName = j['channelName'];
     cash = (j['cash'] as num).toDouble();
     diamonds = j['diamonds'];
@@ -3017,6 +3024,7 @@ class Game extends ChangeNotifier {
 
   void setTimeScale(double s) {
     timeScale = s;
+    if (s > 1) tainted = true;
     _changed();
   }
 

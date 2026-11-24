@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 
 import '../../core/theme.dart';
-import '../../core/cloud.dart';
 import '../../engine/game.dart';
 import '../widgets/common.dart';
 import '../widgets/company_logo.dart';
@@ -117,14 +116,29 @@ class _SettingsState extends State<_Settings> {
               style: TextStyle(color: AppColors.textDim, fontSize: 12),
             ),
             const SizedBox(height: 8),
-            if (Cloud.instance.signedIn)
-              const Text('Online oynarken test modu kapalıdır (sıralama adil kalsın).',
-                  style: TextStyle(color: AppColors.textFaint, fontSize: 12))
-            else
-              PillTabs(
+            if (game.tainted)
+              const Padding(
+                padding: EdgeInsets.only(bottom: 6),
+                child: Text('⚠️ Bu kariyerde test modu kullanıldı: online sıralamaya giremez (bulut yedeği çalışır).',
+                    style: TextStyle(color: AppColors.orange, fontSize: 12, fontWeight: FontWeight.w700)),
+              ),
+            PillTabs(
               labels: const ['Normal', '10× hızlı', '60× hızlı'],
               selected: speeds.indexOf(game.timeScale).clamp(0, 2),
-              onChanged: (i) => game.setTimeScale(speeds[i]),
+              onChanged: (i) async {
+                if (speeds[i] > 1 && !game.tainted) {
+                  final ok = await confirm(
+                    context,
+                    'Test modu açılsın mı?',
+                    'Hızlı zaman sadece denemek içindir. Bir kez kullanırsan bu kariyer online zenginler '
+                        'listesine bir daha giremez (kayıt buluta yedeklenmeye devam eder). '
+                        'Listeye girmek için sonra yeni kariyer başlatman gerekir.',
+                    ok: 'Yine de aç',
+                  );
+                  if (!ok) return;
+                }
+                game.setTimeScale(speeds[i]);
+              },
             ),
             const SizedBox(height: 22),
             GhostButton(

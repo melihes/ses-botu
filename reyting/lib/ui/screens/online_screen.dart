@@ -168,6 +168,29 @@ class _OnlinePanel extends StatelessWidget {
               ]),
             ),
           if (c.cloudSaveRaw != null) const SizedBox(height: 10),
+          if (c.unverifiedReason != null || game.tainted) ...[
+            Panel(
+              borderColor: AppColors.orange,
+              child: Row(children: [
+                const Icon(Icons.gpp_maybe_rounded, color: AppColors.orange, size: 36),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                      '${c.unverifiedReason ?? 'Bu kariyerde test modu kullanıldı.'} '
+                      'İlerlemen buluta yedekleniyor ama zenginler listesine giremezsin.',
+                      style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 12)),
+                ),
+                GhostButton('Yeni kariyer başlat', compact: true, color: AppColors.orange, onTap: () async {
+                  if (await confirm(context, 'Yeni kariyer başlatılsın mı?',
+                      'Oyun Gün 1\'den başlar ve sıralamaya temiz girersin. Mevcut ilerleme silinir.',
+                      ok: 'Başlat')) {
+                    await c.startFreshCareer();
+                  }
+                }),
+              ]),
+            ),
+            const SizedBox(height: 10),
+          ],
           if (c.isGuest) ...[
             Panel(
               borderColor: AppColors.cyan,

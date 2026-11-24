@@ -45,6 +45,19 @@ class Cloud extends ChangeNotifier {
 
   bool get signedIn => user != null;
 
+  /// Bu kariyer neden sıralamaya giremiyor (null: giriyor)
+  String? unverifiedReason;
+
+  /// Sıralamaya temiz girmek için oyunu baştan başlat
+  Future<void> startFreshCareer() async {
+    final g = _game;
+    if (g == null) return;
+    await g.resetGame();
+    unverifiedReason = null;
+    await sync(force: true);
+    await refreshTop();
+  }
+
   /// Misafir (anonim) hesap: Google'a bağlanmadıysa
   bool get isGuest => user?.isAnonymous ?? false;
 
@@ -98,7 +111,6 @@ class Cloud extends ChangeNotifier {
       }
     }
     if (signedIn) {
-      if ((_game?.timeScale ?? 1) > 1) _game!.setTimeScale(1);
       await _offerCloudSave();
       await sync(force: true);
       await refreshTop();
@@ -132,7 +144,6 @@ class Cloud extends ChangeNotifier {
     try {
       final acc = await GoogleSignIn.instance.authenticate();
       await _firebaseWithGoogle(acc);
-      if ((_game?.timeScale ?? 1) > 1) _game!.setTimeScale(1); // online'da hızlı zaman yok
       await _offerCloudSave();
       await sync(force: true);
       await refreshTop();
@@ -198,11 +209,6 @@ class Cloud extends ChangeNotifier {
     final g = _game;
     if (!signedIn || g == null || busy && !force) return;
     if (cloudSaveRaw != null) return; // önce bulut/telefon seçimi yapılmalı
-    if (g.timeScale > 1) {
-      lastSyncNote = 'Test modunda (hızlı zaman) kayıt sıralamaya gönderilmez.';
-      notifyListeners();
-      return;
-    }
     try {
       final res = await _fn.httpsCallable('submitSave').call({
         'save': g.exportSave(),
@@ -210,7 +216,10 @@ class Cloud extends ChangeNotifier {
       });
       final data = Map<String, dynamic>.from(res.data as Map);
       lastSync = DateTime.now();
-      lastSyncNote = data['ok'] == true
+      unverifiedReason = data['unverified'] == true ? data['reason'] as String? : null;
+      lastSyncNote = data['unverified'] == true
+          ? 'Yedeklendi, ama bu kariyer sıralamaya girmiyor.'
+          : data['ok'] == true
           ? (data['skipped'] == true ? 'Az önce kaydedildi.' : 'Buluta kaydedildi.')
           : 'Kayıt reddedildi: ${data['reason']}';
     } catch (e) {
