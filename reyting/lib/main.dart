@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 
+import 'core/cloud.dart';
 import 'core/sfx.dart';
 import 'core/theme.dart';
 import 'engine/game.dart';
@@ -58,6 +59,8 @@ class _ReytingAppState extends State<ReytingApp> with WidgetsBindingObserver {
       _version = '0.8.0';
     }
     await Sfx.init();
+    step(0.15, 'Online sistem hazırlanıyor…');
+    await Cloud.instance.init();
     step(0.25, 'Kayıtların okunuyor…');
     final game = Game();
     await game.start();
@@ -74,6 +77,7 @@ class _ReytingAppState extends State<ReytingApp> with WidgetsBindingObserver {
     await until(3400);
     step(1.0, 'Yayındasın!');
     await until(4000);
+    Cloud.instance.attach(game);
     if (mounted) setState(() => _game = game);
   }
 
@@ -90,6 +94,7 @@ class _ReytingAppState extends State<ReytingApp> with WidgetsBindingObserver {
     Sfx.pause(state != AppLifecycleState.resumed);
     if (state == AppLifecycleState.paused) {
       g.onPause();
+      Cloud.instance.onPause();
     } else if (state == AppLifecycleState.inactive ||
         state == AppLifecycleState.hidden ||
         state == AppLifecycleState.detached) {

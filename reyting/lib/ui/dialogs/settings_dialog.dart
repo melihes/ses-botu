@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../core/theme.dart';
+import '../../core/cloud.dart';
 import '../../engine/game.dart';
 import '../widgets/common.dart';
 import '../widgets/company_logo.dart';
@@ -116,7 +117,11 @@ class _SettingsState extends State<_Settings> {
               style: TextStyle(color: AppColors.textDim, fontSize: 12),
             ),
             const SizedBox(height: 8),
-            PillTabs(
+            if (Cloud.instance.signedIn)
+              const Text('Online oynarken test modu kapalıdır (sıralama adil kalsın).',
+                  style: TextStyle(color: AppColors.textFaint, fontSize: 12))
+            else
+              PillTabs(
               labels: const ['Normal', '10× hızlı', '60× hızlı'],
               selected: speeds.indexOf(game.timeScale).clamp(0, 2),
               onChanged: (i) => game.setTimeScale(speeds[i]),

@@ -342,6 +342,16 @@ class Game extends ChangeNotifier {
     _saveDebounce = Timer(const Duration(milliseconds: 250), save);
   }
 
+  /// Bulut kaydı için oyunun tamamı (JSON metni)
+  String exportSave() => jsonEncode(_toJson());
+
+  /// Buluttan gelen kaydı yükle (yerel kaydın yerine geçer)
+  Future<void> importSave(String raw) async {
+    _load(jsonDecode(raw) as Map<String, dynamic>);
+    await save();
+    _changed();
+  }
+
   Future<void> save() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_saveKey, jsonEncode(_toJson()));

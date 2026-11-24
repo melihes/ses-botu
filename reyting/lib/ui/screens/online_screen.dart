@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
 import '../../core/theme.dart';
+import '../../core/cloud.dart';
+import '../../core/format.dart';
 import '../widgets/common.dart';
 
 /// Online özelliklerin tanıtım ekranı (Aşama 3-4'te gerçek olacak)
@@ -9,7 +11,7 @@ class OnlineScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    const items = [
+    final items = [
       (
         Icons.gavel_rounded,
         AppColors.accent,
@@ -35,12 +37,6 @@ class OnlineScreen extends StatelessWidget {
         'Başka bir kanalla güçlerini birleştir, büyük bütçeli yapımları birlikte çek.',
       ),
       (
-        Icons.emoji_events_rounded,
-        AppColors.purple,
-        'Liderlik tablosu',
-        'En zengin, en prestijli ve en çok izlenen kanallar.',
-      ),
-      (
         Icons.flight_takeoff_rounded,
         AppColors.orange,
         'Yurt dışına dizi satışı',
@@ -50,10 +46,10 @@ class OnlineScreen extends StatelessWidget {
     return ListView(
       padding: const EdgeInsets.all(14),
       children: [
-        const PageHint(
-          'Online arena yakında! Tüm ihale, lig ve ekonomi hesapları hile '
-          'yapılamasın diye sunucuda yapılacak.',
-        ),
+        const _OnlinePanel(),
+        const SizedBox(height: 14),
+        const SectionLabel('Sıradaki online özellikler'),
+        const SizedBox(height: 6),
         AutoGrid(
           minItemWidth: 300,
           spacing: 10,
@@ -100,6 +96,131 @@ class OnlineScreen extends StatelessWidget {
           ],
         ),
       ],
+    );
+  }
+}
+
+
+/// Google ile giriş, bulut kaydı ve gerçek oyuncularla zenginler listesi
+class _OnlinePanel extends StatelessWidget {
+  const _OnlinePanel();
+
+  @override
+  Widget build(BuildContext context) {
+    final game = GameScope.of(context);
+    return ListenableBuilder(
+      listenable: Cloud.instance,
+      builder: (context, _) {
+        final c = Cloud.instance;
+        if (!c.ready) {
+          return const Panel(
+            child: Text('Online sisteme şu an bağlanılamıyor. Oyun çevrimdışı oynanmaya devam eder.',
+                style: TextStyle(color: AppColors.textDim)),
+          );
+        }
+        if (!c.signedIn) {
+          return Panel(
+            gradient: const LinearGradient(colors: [Color(0xFF1F2A44), AppColors.panel]),
+            child: Row(children: [
+              const Icon(Icons.public_rounded, color: AppColors.cyan, size: 48),
+              const SizedBox(width: 12),
+              const Expanded(
+                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Text('Gerçek oyuncularla yarış',
+                      style: TextStyle(fontWeight: FontWeight.w900, fontSize: 18)),
+                  Text(
+                      'Google ile giriş yap: ilerlemen buluta kaydedilsin (telefon değişse de kaybolmaz) '
+                      've zenginler listesinde gerçek oyuncularla yarış.',
+                      style: TextStyle(color: AppColors.textDim, fontSize: 12)),
+                ]),
+              ),
+              const SizedBox(width: 10),
+              AccentButton(c.busy ? 'Bağlanıyor…' : 'Google ile giriş yap',
+                  icon: Icons.login_rounded,
+                  onTap: c.busy ? null : () async => report(context, await c.signIn())),
+            ]),
+          );
+        }
+        return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          if (c.cloudSaveRaw != null)
+            Panel(
+              borderColor: AppColors.yellow,
+              child: Row(children: [
+                const Icon(Icons.cloud_download_rounded, color: AppColors.yellow, size: 36),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                      'Bulutta bir kaydın var (Gün ${c.cloudDay ?? '?'}). Telefondaki oyun: Gün ${game.day}. '
+                      'Hangisiyle devam edelim?',
+                      style: const TextStyle(fontWeight: FontWeight.w700)),
+                ),
+                AccentButton('Buluttakini yükle', compact: true, onTap: () async {
+                  if (await confirm(context, 'Buluttaki kayıt yüklensin mi?',
+                      'Telefondaki ilerlemenin yerine buluttaki geçer.')) {
+                    await c.restoreCloud();
+                  }
+                }),
+                const SizedBox(width: 6),
+                GhostButton('Telefondakiyle devam', compact: true, onTap: () {
+                  c.dismissCloud();
+                  c.sync(force: true);
+                }),
+              ]),
+            ),
+          if (c.cloudSaveRaw != null) const SizedBox(height: 10),
+          Panel(
+            child: Row(children: [
+              const Icon(Icons.verified_user_rounded, color: AppColors.green, size: 32),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Text(c.displayName, style: const TextStyle(fontWeight: FontWeight.w900)),
+                  Text(
+                      '${c.lastSyncNote ?? 'Henüz buluta kaydedilmedi.'}'
+                      '${c.myRank != null ? ' · Gerçek sıran: #${c.myRank} / ${c.totalPlayers}' : ''}',
+                      style: const TextStyle(color: AppColors.textDim, fontSize: 12)),
+                ]),
+              ),
+              GhostButton('Şimdi kaydet', compact: true, icon: Icons.cloud_upload_rounded,
+                  onTap: () => c.sync(force: true)),
+              const SizedBox(width: 6),
+              GhostButton('Yenile', compact: true, icon: Icons.refresh_rounded, onTap: c.refreshTop),
+              const SizedBox(width: 6),
+              GhostButton('Çıkış', compact: true, color: AppColors.textDim, onTap: c.signOut),
+            ]),
+          ),
+          const SizedBox(height: 10),
+          SectionLabel('Zenginler listesi · gerçek oyuncular'
+              '${c.topUpdated != null ? ' · ${c.topUpdated!.hour.toString().padLeft(2, '0')}:${c.topUpdated!.minute.toString().padLeft(2, '0')} güncel' : ''}'),
+          const SizedBox(height: 6),
+          if (c.top.isEmpty)
+            const Text('Liste her 10 dakikada bir hazırlanır. Biraz sonra "Yenile"ye bas.',
+                style: TextStyle(color: AppColors.textDim, fontSize: 12))
+          else
+            Panel(
+              padding: const EdgeInsets.symmetric(vertical: 6),
+              child: Column(children: [
+                for (final r in c.top.take(100))
+                  Container(
+                    color: r.uid == c.user?.uid ? AppColors.accent.withValues(alpha: 0.15) : null,
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+                    child: Row(children: [
+                      SizedBox(
+                        width: 40,
+                        child: Text('#${r.rank}',
+                            style: TextStyle(
+                                fontWeight: FontWeight.w900,
+                                color: r.rank <= 3 ? AppColors.yellow : AppColors.textDim)),
+                      ),
+                      Expanded(child: Text(r.name, style: const TextStyle(fontWeight: FontWeight.w700))),
+                      Text('Sv ${r.level + 1}  ', style: const TextStyle(color: AppColors.textDim, fontSize: 12)),
+                      Text(fmtShort(r.worth), style: const TextStyle(fontWeight: FontWeight.w900, color: AppColors.green)),
+                    ]),
+                  ),
+              ]),
+            ),
+        ]);
+      },
     );
   }
 }
