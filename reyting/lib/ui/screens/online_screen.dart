@@ -76,7 +76,7 @@ class OnlineScreen extends StatelessWidget {
                                   ),
                                 ),
                               ),
-                              const Tag('YAKINDA', color: AppColors.textDim),
+                              const Tag('GÜNCELLEMEYLE', color: AppColors.textDim),
                             ],
                           ),
                           const SizedBox(height: 4),

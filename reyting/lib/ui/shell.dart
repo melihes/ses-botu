@@ -183,7 +183,7 @@ const _nav = [
   _NavItem(
     PageId.online,
     'Online',
-    'YAKINDA',
+    'SIRALAMA',
     'Online arena',
     Icons.public_rounded,
   ),

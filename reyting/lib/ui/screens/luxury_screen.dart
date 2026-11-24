@@ -192,7 +192,10 @@ class _LuxCard extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 4),
-                Row(
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 4,
+                  crossAxisAlignment: WrapCrossAlignment.center,
                   children: [
                     Text(
                       fmtShort(d.price),
@@ -201,7 +204,6 @@ class _LuxCard extends StatelessWidget {
                         fontWeight: FontWeight.w900,
                       ),
                     ),
-                    const SizedBox(width: 8),
                     Tag(
                       '+${d.prestige} prestij',
                       color: AppColors.yellow,

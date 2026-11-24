@@ -619,7 +619,7 @@ class Draw {
     final tp = TextPainter(
       text: TextSpan(
         text: t,
-        style: TextStyle(
+        style: TextStyle(fontFamily: 'Roboto', fontFamilyFallback: const ['NotoColorEmoji'], 
           color: col,
           fontSize: size * H,
           fontWeight: FontWeight.w900,
@@ -633,7 +633,7 @@ class Draw {
   double measure(String t, double size) => (TextPainter(
     text: TextSpan(
       text: t,
-      style: TextStyle(fontSize: size * H, fontWeight: FontWeight.w900),
+      style: TextStyle(fontFamily: 'Roboto', fontFamilyFallback: const ['NotoColorEmoji'], fontSize: size * H, fontWeight: FontWeight.w900),
     ),
     textDirection: TextDirection.ltr,
   )..layout()).width;
@@ -1234,7 +1234,7 @@ class ScenePainter extends CustomPainter {
       final tp = TextPainter(
         text: const TextSpan(
           text: 'CANLI',
-          style: TextStyle(
+          style: TextStyle(fontFamily: 'Roboto', fontFamilyFallback: const ['NotoColorEmoji'], 
             fontSize: 9,
             fontWeight: FontWeight.w900,
             color: Colors.white,

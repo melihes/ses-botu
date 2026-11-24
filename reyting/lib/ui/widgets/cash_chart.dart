@@ -284,7 +284,7 @@ class _ChartPainter extends CustomPainter {
       final tp = TextPainter(
         text: TextSpan(
           text: fmtShort(v),
-          style: const TextStyle(fontSize: 9, color: AppColors.textFaint),
+          style: TextStyle(fontFamily: 'Roboto', fontFamilyFallback: const ['NotoColorEmoji'], fontSize: 9, color: AppColors.textFaint),
         ),
         textDirection: TextDirection.ltr,
       )..layout();

@@ -90,7 +90,7 @@ class _OfflineBody extends StatelessWidget {
         if (capped) ...[
           const SizedBox(height: 8),
           const Text(
-            'VIP ile 16 saate kadar, tam hızda işlenir (yakında).',
+            'VIP paketle (Mağaza) 16 saate kadar, tam hızda işlenir.',
             style: TextStyle(color: AppColors.yellow, fontSize: 12),
           ),
         ],

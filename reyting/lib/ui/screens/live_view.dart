@@ -569,7 +569,7 @@ class _MarqueeState extends State<_Marquee> with SingleTickerProviderStateMixin 
   Widget build(BuildContext context) => ClipRect(
         child: LayoutBuilder(builder: (ctx, c) {
           final tp = TextPainter(
-            text: TextSpan(text: widget.text, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700)),
+            text: TextSpan(text: widget.text, style: TextStyle(fontFamily: 'Roboto', fontFamilyFallback: const ['NotoColorEmoji'], fontSize: 12, fontWeight: FontWeight.w700)),
             textDirection: TextDirection.ltr,
             maxLines: 1,
           )..layout();

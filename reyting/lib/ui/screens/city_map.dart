@@ -228,7 +228,7 @@ class _ProvPainter extends CustomPainter {
       final tp = TextPainter(
           text: TextSpan(
               text: t,
-              style: TextStyle(color: c, fontSize: fs, fontStyle: FontStyle.italic, letterSpacing: 3)),
+              style: TextStyle(fontFamily: 'Roboto', fontFamilyFallback: const ['NotoColorEmoji'], color: c, fontSize: fs, fontStyle: FontStyle.italic, letterSpacing: 3)),
           textDirection: TextDirection.ltr)
         ..layout();
       tp.paint(canvas, proj.of(lon, lat) - Offset(tp.width / 2, tp.height / 2));
@@ -280,7 +280,7 @@ class _ProvPainter extends CustomPainter {
       final tp = TextPainter(
           text: TextSpan(
               text: name,
-              style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w900)),
+              style: TextStyle(fontFamily: 'Roboto', fontFamilyFallback: const ['NotoColorEmoji'], color: Colors.white, fontSize: 13, fontWeight: FontWeight.w900)),
           textDirection: TextDirection.ltr)
         ..layout();
       final at = Offset(b.center.dx - tp.width / 2, max(2, b.top - tp.height - 8));
@@ -293,7 +293,7 @@ class _ProvPainter extends CustomPainter {
     // kaynak
     final src = TextPainter(
         text: const TextSpan(
-            text: 'Harita: geoBoundaries (CC BY 4.0)', style: TextStyle(color: Colors.white38, fontSize: 9)),
+            text: 'Harita: geoBoundaries (CC BY 4.0)', style: TextStyle(fontFamily: 'Roboto', fontFamilyFallback: const ['NotoColorEmoji'], color: Colors.white38, fontSize: 9)),
         textDirection: TextDirection.ltr)
       ..layout();
     src.paint(canvas, Offset(6, size.height - src.height - 4));

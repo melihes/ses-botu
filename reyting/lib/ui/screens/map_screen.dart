@@ -786,7 +786,7 @@ class _MapPainter extends CustomPainter {
         final tp = TextPainter(
           text: TextSpan(
             text: t,
-            style: const TextStyle(
+            style: TextStyle(fontFamily: 'Roboto', fontFamilyFallback: const ['NotoColorEmoji'], 
               color: Color(0x664FD1FF),
               fontSize: 11,
               fontStyle: FontStyle.italic,
