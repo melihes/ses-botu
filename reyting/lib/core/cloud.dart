@@ -96,6 +96,8 @@ class Cloud extends ChangeNotifier {
       _listenGrants();
       sync();
       refreshTop();
+      // misafirse: telefondaki Google hesabıyla sessizce bağlanmayı dene
+      if (isGuest) _silentGoogleLink();
     } else {
       autoSignIn();
     }
@@ -129,6 +131,23 @@ class Cloud extends ChangeNotifier {
       await refreshTop();
     }
     notifyListeners();
+  }
+
+  /// Açılışta, misafir hesabı telefondaki Google hesabına sessizce bağlar
+  /// (oyuncu hiçbir düğmeye basmaz; olmazsa misafir olarak devam eder).
+  Future<void> _silentGoogleLink() async {
+    try {
+      final acc = await GoogleSignIn.instance.attemptLightweightAuthentication();
+      if (acc == null) return;
+      await _firebaseWithGoogle(acc);
+      _listenGrants();
+      await _offerCloudSave();
+      await sync(force: true);
+      await refreshTop();
+      notifyListeners();
+    } catch (e) {
+      debugPrint('Sessiz Google bağlantısı olmadı: $e');
+    }
   }
 
   /// Google hesabıyla Firebase'e gir; misafirsen hesabını Google'a bağla
