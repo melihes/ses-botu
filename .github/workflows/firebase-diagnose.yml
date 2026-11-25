@@ -5,6 +5,11 @@ name: Firebase teşhis
 
 on:
   workflow_dispatch:
+  push:
+    branches: [claude/reyting-mobile-game-6ffpgn]
+    paths:
+      - '.github/workflows/firebase-diagnose.yml'
+      - '.github/diagnose-trigger'
 
 jobs:
   diagnose:
