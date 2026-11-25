@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:in_app_update/in_app_update.dart';
 import 'package:flutter/services.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 
@@ -84,6 +85,7 @@ class _ReytingAppState extends State<ReytingApp> with WidgetsBindingObserver {
     // reklam ve mağaza oyun açıldıktan sonra (açılışı yavaşlatmasın)
     Ads.instance.init();
     Shop.instance.init(game);
+    checkStoreUpdate();
   }
 
   @override
@@ -128,4 +130,20 @@ class _ReytingAppState extends State<ReytingApp> with WidgetsBindingObserver {
     if (g == null) return app;
     return GameScope(game: g, child: app);
   }
+}
+
+
+/// Play Store'da yeni sürüm varsa oyun açılırken güncelleme ister.
+/// (Sadece Play'den kurulan kopyalarda çalışır; diğerlerinde sessizce geçer.)
+Future<void> checkStoreUpdate() async {
+  try {
+    final info = await InAppUpdate.checkForUpdate();
+    if (info.updateAvailability != UpdateAvailability.updateAvailable) return;
+    if (info.immediateUpdateAllowed) {
+      await InAppUpdate.performImmediateUpdate();
+    } else if (info.flexibleUpdateAllowed) {
+      await InAppUpdate.startFlexibleUpdate();
+      await InAppUpdate.completeFlexibleUpdate();
+    }
+  } catch (_) {}
 }

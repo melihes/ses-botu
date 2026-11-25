@@ -20,7 +20,7 @@ import { onSchedule } from 'firebase-functions/v2/scheduler';
 import { maxNetPerDay } from './gamedata';
 import { cleanName, serverWorth, summarize, validateSave, type Verdict } from './logic';
 
-export { ackGrants, adminAction, adminList, adminPlayer, createTransferCode, redeemTransferCode } from './admin';
+export { ackGrants, adminAction, adminList, adminResetAll, adminPlayer, createTransferCode, redeemTransferCode } from './admin';
 
 initializeApp();
 setGlobalOptions({ region: 'europe-west1', maxInstances: 10, memory: '256MiB' });
@@ -56,7 +56,9 @@ export const submitSave = onCall({ enforceAppCheck: false }, async (req) => {
     const u = await getAuth().getUser(uid);
     accountAgeMs = now - new Date(u.metadata.creationTime).getTime();
     email = u.email ?? null;
-  } catch {
+  } catch (e: any) {
+    // hesap silinmiş: oyun yeni misafir hesap açsın
+    if (e?.code === 'auth/user-not-found') throw new HttpsError('unauthenticated', 'Hesap silinmiş.');
     accountAgeMs = 0;
   }
   // yalnız yönetici panelinde görünen özet (sıralamayı etkilemez)

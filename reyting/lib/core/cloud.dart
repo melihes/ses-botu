@@ -429,6 +429,19 @@ class Cloud extends ChangeNotifier {
           : data['ok'] == true
           ? (data['skipped'] == true ? 'Az önce kaydedildi.' : 'Buluta kaydedildi.')
           : 'Kayıt reddedildi: ${data['reason']}';
+    } on FirebaseFunctionsException catch (e) {
+      if (e.code == 'unauthenticated') {
+        // hesap yönetici tarafından silinmiş: yeni misafir hesapla devam et
+        await FirebaseAuth.instance.signOut();
+        user = null;
+        _grantUid = null;
+        await _grantSub?.cancel();
+        lastSyncNote = 'Yeni hesap açılıyor…';
+        notifyListeners();
+        await autoSignIn();
+        return;
+      }
+      lastSyncNote = 'Bağlantı yok, sonra tekrar denenecek.';
     } catch (e) {
       lastSyncNote = 'Bağlantı yok, sonra tekrar denenecek.';
       debugPrint('Senkron hatası: $e');

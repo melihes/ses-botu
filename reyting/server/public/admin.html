@@ -84,6 +84,7 @@
       <option value="day">Oyun günü</option>
     </select>
     <button id="btnRefresh">Yenile</button>
+    <button class="danger" id="btnResetAll">Herkesi sıfırla</button>
     <label style="display:flex;gap:6px;align-items:center;color:var(--dim)"><input type="checkbox" id="live" checked> Anlık (15 sn)</label>
     <span id="lastUp" class="mono"></span>
   </div>
@@ -201,6 +202,14 @@ function render() {
 $('search').oninput = render;
 $('order').onchange = load;
 $('btnRefresh').onclick = load;
+$('btnResetAll').onclick = async () => {
+  if (prompt('TÜM oyuncular sıfırlanacak ve sıralama boşalacak. Onay için HERKESI SIFIRLA yaz:') !== 'HERKESI SIFIRLA') return;
+  const keepMe = confirm('Kendi oyun hesabın sıfırlanmasın mı? (Tamam = benimkine dokunma)');
+  try {
+    const r = await call('adminResetAll', { confirm: 'HERKESI SIFIRLA', keep: keepMe ? [auth.currentUser.uid] : [] });
+    toast(r.count + ' oyuncu sıfırlandı. Oyunu açan herkes yeni kariyerle başlar.'); load();
+  } catch (e) { toast('Olmadı: ' + e.message, true); }
+};
 
 async function openPlayer(uid, quiet) {
   selected = uid; render();
@@ -268,7 +277,7 @@ async function openPlayer(uid, quiet) {
     </div>
 
     <div class="sec"><h3 style="color:var(--red)">Tehlikeli</h3>
-      <div class="row"><button class="danger" id="bReset">Hesabı sıfırla</button></div>
+      <div class="row"><button class="danger" id="bReset">Hesabı sıfırla</button><button class="danger" id="bDelete">Hesabı tamamen sil</button></div>
     </div>`;
   const act = async (data, okMsg) => {
     try { await call('adminAction', { uid, ...data }); toast(okMsg); setTimeout(() => { load(); openPlayer(uid, true); }, 1500); }
@@ -300,6 +309,12 @@ async function openPlayer(uid, quiet) {
   d.querySelector('#bVerify').onclick = () => act({ action: 'verify' }, 'Sıralamaya geri alındı.');
   d.querySelector('#bBan').onclick = () => { if (confirm('Bu oyuncu sıralamadan çıkarılsın mı?')) act({ action: 'ban' }, 'Sıralamadan çıkarıldı.'); };
   d.querySelector('#bMove').onclick = () => { const f = $('from').value.trim(); if (f && confirm('Kayıt taşınsın mı?')) act({ action: 'transfer', from: f }, 'Kayıt taşındı.'); };
+  d.querySelector('#bDelete').onclick = async () => {
+    if (prompt('Hesap ve tüm verisi silinecek. Onay için SİL yaz:') !== 'SİL') return;
+    try { await call('adminAction', { uid, action: 'delete' }); toast('Hesap silindi.'); selected = null;
+      $('detail').innerHTML = '<div class="empty">Hesap silindi.</div>'; load(); }
+    catch (e) { toast('Olmadı: ' + e.message, true); }
+  };
   d.querySelector('#bReset').onclick = () => {
     if (prompt('Hesap tamamen sıfırlanacak. Onay için SIFIRLA yaz:') === 'SIFIRLA') act({ action: 'reset' }, 'Hesap sıfırlandı.');
   };

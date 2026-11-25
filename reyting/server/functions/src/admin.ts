@@ -231,9 +231,45 @@ export const adminAction = onCall(async (req) => {
       const seq = await pushGrant(uid, { type: 'load' }, by);
       return { ok: true, seq };
     }
+    case 'delete': {
+      // hesabı ve tüm sunucu verisini sil (oyuncu açınca yeni misafir hesapla başlar)
+      const batch = db().batch();
+      batch.delete(pRef);
+      batch.delete(lbRef);
+      batch.delete(db().collection('grants').doc(uid));
+      await batch.commit();
+      try {
+        await getAuth().deleteUser(uid);
+      } catch {
+        // zaten yoksa sorun değil
+      }
+      return { ok: true };
+    }
     default:
       throw new HttpsError('invalid-argument', 'Bilinmeyen işlem.');
   }
+});
+
+/**
+ * Herkesi sıfırla (yayın öncesi temiz başlangıç): her oyuncuya "sıfırla"
+ * işlemi gönderilir, sıralama boşaltılır. Yöneticinin kendi hesabı hariç
+ * tutulabilir. Oyunu açmayan oyuncu, açtığı an sıfırlanır.
+ */
+export const adminResetAll = onCall(async (req) => {
+  const by = await requireAdmin(req);
+  if (req.data?.confirm !== 'HERKESI SIFIRLA') throw new HttpsError('invalid-argument', 'Onay metni yanlış.');
+  const keep = new Set<string>((req.data?.keep as string[] | undefined) ?? []);
+  const players = await db().collection('players').select().get();
+  let n = 0;
+  for (const d of players.docs) {
+    if (keep.has(d.id)) continue;
+    await pushGrant(d.id, { type: 'reset' }, by);
+    await db().collection('leaderboard').doc(d.id).delete();
+    await d.ref.set({ verified: true, unverifiedReason: FieldValue.delete(), banned: false }, { merge: true });
+    n++;
+  }
+  await db().collection('meta').doc('top100').set({ rows: [], total: 0, updatedAt: Timestamp.now() });
+  return { ok: true, count: n };
 });
 
 /** Bir hesabın kaydını başka hesaba kopyalar (eski hesap sıralamadan çıkar) */
