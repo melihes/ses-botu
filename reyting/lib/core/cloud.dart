@@ -163,7 +163,15 @@ class Cloud extends ChangeNotifier {
       await refreshTop();
       return null;
     } on GoogleSignInException catch (e) {
-      if (e.code == GoogleSignInExceptionCode.canceled) return null;
+      if (e.code == GoogleSignInExceptionCode.canceled) {
+        // Android, yapılandırma hatalarını da "iptal" diye bildirebiliyor:
+        // ayrıntıyı göster ki sorun anlaşılsın
+        final d = e.description ?? '';
+        error = d.isEmpty
+            ? 'Giriş tamamlanmadı (iptal edildi ya da Google girişi bu sürüm için ayarlı değil).'
+            : 'Giriş tamamlanmadı: ${_short(d)}';
+        return error;
+      }
       error = 'Giriş yapılamadı (${e.code.name}): ${_short(e.description ?? '')}';
       return error;
     } catch (e) {
