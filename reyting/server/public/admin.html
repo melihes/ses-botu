@@ -1,0 +1,309 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Reyting Yönetici</title>
+<link rel="manifest" href="/admin.webmanifest">
+<link rel="icon" href="/admin-icon-192.png">
+<meta name="theme-color" content="#130F1D">
+<style>
+  :root { --bg:#130F1D; --panel:#1E182B; --hi:#282038; --line:#3B3052; --text:#F2EEF8; --dim:#A79FB8;
+          --accent:#FF5C7A; --green:#5BE49B; --red:#FF5D5D; --yellow:#FFD166; --cyan:#36D6E7; }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--bg); color:var(--text); font:14px/1.4 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  button { font:inherit; cursor:pointer; border:0; border-radius:10px; padding:8px 14px; font-weight:700;
+           background:var(--hi); color:var(--text); border:1px solid var(--line); }
+  button.primary { background:linear-gradient(90deg,#FF5C7A,#FF8F5C); border:0; color:#fff; }
+  button.danger { background:#4a1520; border-color:#7a2232; color:#ffb3bf; }
+  button.ok { background:#123a27; border-color:#1f6b45; color:#b6f5d2; }
+  button:disabled { opacity:.5; cursor:default; }
+  input, select { font:inherit; background:#0f0c18; color:var(--text); border:1px solid var(--line); border-radius:8px; padding:7px 10px; }
+  input:focus, select:focus { outline:2px solid var(--accent); border-color:transparent; }
+  header { display:flex; align-items:center; gap:12px; padding:12px 18px; border-bottom:1px solid var(--line); background:#0D0A15; position:sticky; top:0; z-index:5; }
+  header img { width:34px; height:34px; border-radius:9px; }
+  header h1 { font-size:18px; margin:0; }
+  .grow { flex:1; }
+  .pill { display:inline-block; padding:2px 8px; border-radius:999px; font-size:11px; font-weight:800; }
+  .pill.ok { background:#123a27; color:var(--green); } .pill.bad { background:#4a1520; color:#ffb3bf; } .pill.warn { background:#3d3010; color:var(--yellow); }
+  .pill.guest { background:#25203a; color:var(--dim); }
+  #login { display:flex; flex-direction:column; align-items:center; justify-content:center; gap:16px; height:100vh; text-align:center; padding:20px; }
+  #login img { width:96px; border-radius:22px; }
+  #app { display:none; }
+  .bar { display:flex; gap:10px; flex-wrap:wrap; align-items:center; padding:12px 18px; }
+  .stats { display:flex; gap:10px; flex-wrap:wrap; padding:0 18px 6px; }
+  .stat { background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:10px 14px; min-width:140px; }
+  .stat b { display:block; font-size:20px; }
+  .stat span { color:var(--dim); font-size:12px; }
+  .layout { display:grid; grid-template-columns: 1fr 440px; gap:14px; padding:8px 18px 18px; }
+  @media (max-width: 1100px) { .layout { grid-template-columns: 1fr; } }
+  .card { background:var(--panel); border:1px solid var(--line); border-radius:14px; overflow:hidden; }
+  table { width:100%; border-collapse:collapse; }
+  th, td { padding:8px 10px; text-align:left; border-bottom:1px solid #2a2238; white-space:nowrap; }
+  th { color:var(--dim); font-size:12px; font-weight:800; position:sticky; top:0; background:var(--panel); }
+  tbody tr { cursor:pointer; } tbody tr:hover { background:var(--hi); } tbody tr.sel { background:#3a2440; }
+  td.num { text-align:right; font-variant-numeric: tabular-nums; }
+  .tablewrap { max-height: calc(100vh - 230px); overflow:auto; }
+  #detail { padding:14px; max-height: calc(100vh - 150px); overflow:auto; }
+  #detail h2 { margin:0 0 4px; font-size:18px; }
+  .kv { display:grid; grid-template-columns: 130px 1fr; gap:4px 10px; font-size:13px; margin:8px 0 12px; }
+  .kv div:nth-child(odd) { color:var(--dim); }
+  .sec { border-top:1px solid var(--line); padding-top:12px; margin-top:12px; }
+  .sec h3 { margin:0 0 8px; font-size:14px; color:var(--cyan); }
+  .row { display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-bottom:8px; }
+  .row input { width:150px; }
+  .mono { font-family: ui-monospace, Consolas, monospace; font-size:12px; color:var(--dim); }
+  #toast { position:fixed; right:18px; bottom:18px; background:#0D0A15; border:1px solid var(--line); padding:10px 14px; border-radius:12px; display:none; max-width:420px; }
+  .empty { color:var(--dim); padding:30px; text-align:center; }
+</style>
+</head>
+<body>
+<div id="login">
+  <img src="/admin-icon-512.png" alt="">
+  <h1 style="margin:0">Reyting Yönetici Paneli</h1>
+  <div style="color:var(--dim)">Sadece yetkili hesap girebilir.</div>
+  <button class="primary" id="btnLogin">Google ile giriş yap</button>
+  <div id="loginErr" style="color:var(--red)"></div>
+</div>
+
+<div id="app">
+  <header>
+    <img src="/admin-icon-192.png" alt="">
+    <h1>Reyting Yönetici</h1>
+    <div class="grow"></div>
+    <span id="who" class="mono"></span>
+    <button id="btnLogout">Çıkış</button>
+  </header>
+  <div class="bar">
+    <input id="search" placeholder="Ara: şirket, e-posta ya da kimlik" style="width:320px">
+    <select id="order">
+      <option value="updatedAt">Son görülme</option>
+      <option value="worth">Servet</option>
+      <option value="cash">Kasa</option>
+      <option value="day">Oyun günü</option>
+    </select>
+    <button id="btnRefresh">Yenile</button>
+    <label style="display:flex;gap:6px;align-items:center;color:var(--dim)"><input type="checkbox" id="live" checked> Anlık (15 sn)</label>
+    <span id="lastUp" class="mono"></span>
+  </div>
+  <div class="stats" id="stats"></div>
+  <div class="layout">
+    <div class="card"><div class="tablewrap"><table>
+      <thead><tr><th>Şirket</th><th>Hesap</th><th>Sv</th><th>Gün</th><th class="num">Kasa</th><th class="num">💎</th><th class="num">Servet</th><th>Durum</th><th>Son görülme</th></tr></thead>
+      <tbody id="rows"><tr><td colspan="9" class="empty">Yükleniyor…</td></tr></tbody>
+    </table></div></div>
+    <div class="card" id="detail"><div class="empty">Ayrıntı için soldan bir oyuncu seç.</div></div>
+  </div>
+</div>
+<div id="toast"></div>
+
+<script type="module">
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/11.10.0/firebase-app.js';
+import { getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/11.10.0/firebase-auth.js';
+import { getFunctions, httpsCallable } from 'https://www.gstatic.com/firebasejs/11.10.0/firebase-functions.js';
+
+const config = await (await fetch('/__/firebase/init.json')).json();
+const app = initializeApp(config);
+const auth = getAuth(app);
+const fns = getFunctions(app, 'europe-west1');
+const call = (name, data) => httpsCallable(fns, name)(data).then(r => r.data);
+
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const nf = new Intl.NumberFormat('tr-TR');
+function money(v) {
+  if (v == null) return '—';
+  const a = Math.abs(v), s = v < 0 ? '-' : '';
+  if (a >= 1e12) return s + (a/1e12).toFixed(2).replace('.', ',') + ' Tn';
+  if (a >= 1e9) return s + (a/1e9).toFixed(2).replace('.', ',') + ' Mr';
+  if (a >= 1e6) return s + (a/1e6).toFixed(1).replace('.', ',') + ' M';
+  if (a >= 1e3) return s + Math.round(a/1e3) + ' B';
+  return s + Math.round(a);
+}
+function ago(ms) {
+  if (!ms) return '—';
+  const d = (Date.now() - ms) / 1000;
+  if (d < 60) return 'şimdi';
+  if (d < 3600) return Math.floor(d/60) + ' dk önce';
+  if (d < 86400) return Math.floor(d/3600) + ' sa önce';
+  return Math.floor(d/86400) + ' gün önce';
+}
+function toast(msg, bad) {
+  const t = $('toast'); t.textContent = msg; t.style.display = 'block'; t.style.borderColor = bad ? 'var(--red)' : 'var(--green)';
+  clearTimeout(toast.h); toast.h = setTimeout(() => t.style.display = 'none', 4000);
+}
+function parseMoney(s) {
+  s = String(s).trim().toLowerCase().replace(/\s/g, '').replace(/\./g, '').replace(',', '.');
+  const m = s.match(/^(-?[0-9.]+)(tn|mr|m|b|k)?$/);
+  if (!m) return NaN;
+  const mult = { tn:1e12, mr:1e9, m:1e6, b:1e3, k:1e3 }[m[2]] ?? 1;
+  return parseFloat(m[1]) * mult;
+}
+
+$('btnLogin').onclick = async () => {
+  $('loginErr').textContent = '';
+  try { await signInWithPopup(auth, new GoogleAuthProvider()); }
+  catch (e) { $('loginErr').textContent = 'Giriş olmadı: ' + (e.code || e.message); }
+};
+$('btnLogout').onclick = () => signOut(auth);
+
+let rows = [], selected = null, timer = null;
+
+onAuthStateChanged(auth, async (u) => {
+  if (!u) { $('login').style.display = 'flex'; $('app').style.display = 'none'; clearInterval(timer); return; }
+  try {
+    await load();
+    $('login').style.display = 'none'; $('app').style.display = 'block';
+    $('who').textContent = u.email;
+    clearInterval(timer);
+    timer = setInterval(() => { if ($('live').checked) { load(); if (selected) openPlayer(selected, true); } }, 15000);
+  } catch (e) {
+    $('loginErr').textContent = (e.message || 'Yetki yok') + ' (' + u.email + ')';
+    await signOut(auth);
+  }
+});
+
+async function load() {
+  const res = await call('adminList', { order: $('order').value, limit: 500 });
+  rows = res.rows;
+  const day = Date.now() - 86400e3, hour = Date.now() - 3600e3;
+  const active24 = rows.filter(r => r.updatedAt > day).length;
+  const active1 = rows.filter(r => r.updatedAt > hour).length;
+  const totalCash = rows.reduce((a, r) => a + (r.cash || 0), 0);
+  $('stats').innerHTML = [
+    ['Toplam oyuncu', nf.format(res.total)], ['Son 1 saatte', nf.format(active1)], ['Son 24 saatte', nf.format(active24)],
+    ['Sıralama dışı', nf.format(rows.filter(r => !r.verified).length)], ['Listede toplam kasa', money(totalCash)],
+  ].map(([k, v]) => `<div class="stat"><b>${v}</b><span>${k}</span></div>`).join('');
+  $('lastUp').textContent = 'güncellendi ' + new Date().toLocaleTimeString('tr-TR');
+  render();
+}
+
+function status(r) {
+  if (r.banned) return '<span class="pill bad">Yasaklı</span>';
+  if (!r.verified) return '<span class="pill warn">Sıralama dışı</span>';
+  return '<span class="pill ok">Normal</span>';
+}
+
+function render() {
+  const q = $('search').value.trim().toLowerCase();
+  const list = rows.filter(r => !q || [r.name, r.email, r.uid].some(x => String(x ?? '').toLowerCase().includes(q)));
+  $('rows').innerHTML = list.length ? list.map(r => `
+    <tr data-uid="${esc(r.uid)}" class="${r.uid === selected ? 'sel' : ''}">
+      <td><b>${esc(r.name)}</b></td>
+      <td>${r.email ? esc(r.email) : '<span class="pill guest">misafir</span>'}</td>
+      <td>${r.level + 1}</td><td>${nf.format(r.day)}</td>
+      <td class="num">${money(r.cash)}</td><td class="num">${r.diamonds ?? '—'}</td><td class="num">${money(r.worth)}</td>
+      <td>${status(r)}</td><td>${ago(r.updatedAt)}</td>
+    </tr>`).join('') : '<tr><td colspan="9" class="empty">Oyuncu yok.</td></tr>';
+  for (const tr of $('rows').querySelectorAll('tr[data-uid]')) tr.onclick = () => openPlayer(tr.dataset.uid);
+}
+$('search').oninput = render;
+$('order').onchange = load;
+$('btnRefresh').onclick = load;
+
+async function openPlayer(uid, quiet) {
+  selected = uid; render();
+  if (!quiet) $('detail').innerHTML = '<div class="empty">Yükleniyor…</div>';
+  let p;
+  try { p = await call('adminPlayer', { uid }); } catch (e) { $('detail').innerHTML = `<div class="empty">${esc(e.message)}</div>`; return; }
+  if (quiet && document.activeElement && document.activeElement.closest('#detail')) return; // yazarken bozma
+  const r = p.row, a = p.auth, s = p.save || {};
+  $('detail').innerHTML = `
+    <h2>${esc(r.name)}</h2>
+    <div>${status(r)} ${a?.anonymous ? '<span class="pill guest">misafir hesap</span>' : ''}</div>
+    <div class="kv">
+      <div>E-posta</div><div>${esc(a?.email ?? r.email ?? '—')}</div>
+      <div>Kimlik</div><div class="mono">${esc(r.uid)}</div>
+      <div>Kasa</div><div><b>${money(s.cash ?? r.cash)}</b> <span class="mono">(${nf.format(Math.round(s.cash ?? r.cash ?? 0))} ₺)</span></div>
+      <div>Elmas</div><div><b>${s.diamonds ?? r.diamonds ?? '—'}</b> 💎</div>
+      <div>Stüdyo seviyesi</div><div>${(s.studioLevel ?? r.level) + 1}</div>
+      <div>Oyun günü</div><div>${nf.format(s.day ?? r.day)}</div>
+      <div>Servet (sunucu)</div><div>${money(r.worth)}</div>
+      <div>Prestij</div><div>${r.stats?.prestige ?? '—'}</div>
+      <div>Günlük net</div><div>${money(r.stats?.netPerDay)}</div>
+      <div>Kadro / program / film</div><div>${s.staff ?? '—'} / ${s.shows ?? '—'} / ${s.films ?? '—'}</div>
+      <div>VIP / Reklamsız</div><div>${s.vip ? '✅' : '—'} / ${s.noAds ? '✅' : '—'}</div>
+      <div>Son kayıt</div><div>${ago(r.updatedAt)}</div>
+      <div>Hesap açılışı</div><div>${esc(a?.created ?? '—')}</div>
+      <div>Son giriş</div><div>${esc(a?.lastSignIn ?? '—')}</div>
+      <div>Reddedilen kayıt</div><div>${r.rejected} ${r.lastReject ? '· ' + esc(r.lastReject) : ''}</div>
+      ${r.unverifiedReason ? `<div>Sıralama dışı nedeni</div><div>${esc(r.unverifiedReason)}</div>` : ''}
+      <div>Bekleyen işlem</div><div>${(p.grants || []).length}</div>
+    </div>
+
+    <div class="sec"><h3>Para / elmas ekle (eksi yazarak düşebilirsin)</h3>
+      <div class="row">
+        <input id="gCash" placeholder="Para (örn. 5m, 250b, 2mr)">
+        <input id="gDia" placeholder="Elmas (örn. 100)" style="width:120px">
+        <button class="primary" id="bGive">Gönder</button>
+      </div>
+      <div class="row">${['1m','10m','100m','1mr'].map(v => `<button data-q="${v}">+${v.toUpperCase()}</button>`).join('')}
+        ${[50,200,1000].map(v => `<button data-d="${v}">+${v} 💎</button>`).join('')}</div>
+    </div>
+
+    <div class="sec"><h3>Tam değere ayarla</h3>
+      <div class="row">
+        <input id="sCash" placeholder="Kasa">
+        <input id="sDia" placeholder="Elmas" style="width:110px">
+        <input id="sLv" placeholder="Seviye 1-12" style="width:110px">
+        <button class="primary" id="bSet">Ayarla</button>
+      </div>
+    </div>
+
+    <div class="sec"><h3>Paketler ve mesaj</h3>
+      <div class="row">
+        <button id="bVip">VIP ver</button><button id="bNoAds">Reklamsız ver</button><button id="bNone">Paketleri kaldır</button>
+      </div>
+      <div class="row"><input id="msg" placeholder="Oyuncuya mesaj" style="width:300px"><button id="bMsg">Gönder</button></div>
+    </div>
+
+    <div class="sec"><h3>Sıralama</h3>
+      <div class="row"><button class="ok" id="bVerify">Sıralamaya geri al</button><button class="danger" id="bBan">Sıralamadan çıkar</button></div>
+    </div>
+
+    <div class="sec"><h3>Hesap taşı (başka hesabın kaydını buraya getir)</h3>
+      <div class="row"><input id="from" placeholder="Eski hesabın kimliği" style="width:260px"><button id="bMove">Taşı</button></div>
+      <div class="mono">Eski hesap sıralamadan çıkar; bu hesabın mevcut kaydının yerini alır.</div>
+    </div>
+
+    <div class="sec"><h3 style="color:var(--red)">Tehlikeli</h3>
+      <div class="row"><button class="danger" id="bReset">Hesabı sıfırla</button></div>
+    </div>`;
+  const act = async (data, okMsg) => {
+    try { await call('adminAction', { uid, ...data }); toast(okMsg); setTimeout(() => { load(); openPlayer(uid, true); }, 1500); }
+    catch (e) { toast('Olmadı: ' + e.message, true); }
+  };
+  const d = $('detail');
+  d.querySelector('#bGive').onclick = () => {
+    const cash = $('gCash').value ? parseMoney($('gCash').value) : 0;
+    const dia = $('gDia').value ? parseInt($('gDia').value) : 0;
+    if (isNaN(cash) || isNaN(dia)) return toast('Sayıları kontrol et.', true);
+    if (!cash && !dia) return toast('Bir miktar yaz.', true);
+    act({ action: 'give', cash, diamonds: dia }, `Gönderildi: ${money(cash)} · ${dia} 💎`);
+  };
+  for (const b of d.querySelectorAll('button[data-q]')) b.onclick = () => act({ action: 'give', cash: parseMoney(b.dataset.q), diamonds: 0 }, 'Gönderildi: +' + b.dataset.q.toUpperCase());
+  for (const b of d.querySelectorAll('button[data-d]')) b.onclick = () => act({ action: 'give', cash: 0, diamonds: +b.dataset.d }, 'Gönderildi: +' + b.dataset.d + ' 💎');
+  d.querySelector('#bSet').onclick = () => {
+    const data = { action: 'set' };
+    if ($('sCash').value) data.cash = parseMoney($('sCash').value);
+    if ($('sDia').value) data.diamonds = parseInt($('sDia').value);
+    if ($('sLv').value) data.studioLevel = parseInt($('sLv').value) - 1;
+    if (Object.values(data).some(v => typeof v === 'number' && isNaN(v))) return toast('Sayıları kontrol et.', true);
+    if (Object.keys(data).length === 1) return toast('En az bir alan doldur.', true);
+    act(data, 'Ayarlandı.');
+  };
+  d.querySelector('#bVip').onclick = () => act({ action: 'vip', vip: true, noAds: true }, 'VIP verildi.');
+  d.querySelector('#bNoAds').onclick = () => act({ action: 'vip', vip: false, noAds: true }, 'Reklamsız verildi.');
+  d.querySelector('#bNone').onclick = () => act({ action: 'vip', vip: false, noAds: false }, 'Paketler kaldırıldı.');
+  d.querySelector('#bMsg').onclick = () => { const t = $('msg').value.trim(); if (t) act({ action: 'message', text: t }, 'Mesaj gönderildi.'); };
+  d.querySelector('#bVerify').onclick = () => act({ action: 'verify' }, 'Sıralamaya geri alındı.');
+  d.querySelector('#bBan').onclick = () => { if (confirm('Bu oyuncu sıralamadan çıkarılsın mı?')) act({ action: 'ban' }, 'Sıralamadan çıkarıldı.'); };
+  d.querySelector('#bMove').onclick = () => { const f = $('from').value.trim(); if (f && confirm('Kayıt taşınsın mı?')) act({ action: 'transfer', from: f }, 'Kayıt taşındı.'); };
+  d.querySelector('#bReset').onclick = () => {
+    if (prompt('Hesap tamamen sıfırlanacak. Onay için SIFIRLA yaz:') === 'SIFIRLA') act({ action: 'reset' }, 'Hesap sıfırlandı.');
+  };
+}
+</script>
+</body>
+</html>

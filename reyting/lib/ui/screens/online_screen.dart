@@ -4,6 +4,8 @@ import '../../core/theme.dart';
 import '../../core/cloud.dart';
 import '../../core/format.dart';
 import '../widgets/common.dart';
+import '../widgets/company_logo.dart';
+import '../widgets/profile_frame.dart';
 
 /// Online özelliklerin tanıtım ekranı (Aşama 3-4'te gerçek olacak)
 class OnlineScreen extends StatelessWidget {
@@ -227,7 +229,15 @@ class _OnlinePanel extends StatelessWidget {
           ],
           Panel(
             child: Row(children: [
-              const Icon(Icons.verified_user_rounded, color: AppColors.green, size: 32),
+              InkWell(
+                customBorder: const CircleBorder(),
+                onTap: () => showFramePicker(context, game, CompanyLogoView(logo: game.logo, size: 60)),
+                child: ProfileFrame(
+                  frame: game.profileFrame,
+                  size: 54,
+                  child: CompanyLogoView(logo: game.logo, size: 54),
+                ),
+              ),
               const SizedBox(width: 10),
               Expanded(
                 child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -242,6 +252,9 @@ class _OnlinePanel extends StatelessWidget {
                   onTap: () => c.sync(force: true)),
               const SizedBox(width: 6),
               GhostButton('Yenile', compact: true, icon: Icons.refresh_rounded, onTap: c.refreshTop),
+              const SizedBox(width: 6),
+              GhostButton('Telefon değiştir', compact: true, icon: Icons.phonelink_setup_rounded,
+                  onTap: () => showTransferDialog(context)),
               if (!c.isGuest) ...[
                 const SizedBox(width: 6),
                 GhostButton('Çıkış', compact: true, color: AppColors.textDim, onTap: c.signOut),
@@ -271,6 +284,18 @@ class _OnlinePanel extends StatelessWidget {
                                 fontWeight: FontWeight.w900,
                                 color: r.rank <= 3 ? AppColors.yellow : AppColors.textDim)),
                       ),
+                      ProfileFrame(
+                        frame: r.frame,
+                        size: 30,
+                        child: ColoredBox(
+                          color: AppColors.panelHi,
+                          child: Center(
+                            child: Text(r.name.isEmpty ? '?' : r.name.characters.first.toUpperCase(),
+                                style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 11)),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
                       Expanded(child: Text(r.name, style: const TextStyle(fontWeight: FontWeight.w700))),
                       Text('Sv ${r.level + 1}  ', style: const TextStyle(color: AppColors.textDim, fontSize: 12)),
                       Text(fmtShort(r.worth), style: const TextStyle(fontWeight: FontWeight.w900, color: AppColors.green)),
@@ -282,4 +307,107 @@ class _OnlinePanel extends StatelessWidget {
       },
     );
   }
+}
+
+
+/// Telefon değiştirme: eski cihazda kod al, yeni cihazda kodu gir.
+/// Google girişi olmadan da (misafir hesapta) çalışır.
+Future<void> showTransferDialog(BuildContext context) => showDialog(
+      context: context,
+      builder: (_) => const Dialog(child: _TransferBody()),
+    );
+
+class _TransferBody extends StatefulWidget {
+  const _TransferBody();
+  @override
+  State<_TransferBody> createState() => _TransferBodyState();
+}
+
+class _TransferBodyState extends State<_TransferBody> {
+  String? _code, _msg;
+  bool _busy = false;
+  final _input = TextEditingController();
+
+  @override
+  void dispose() {
+    _input.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 620),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: SingleChildScrollView(
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
+              Row(children: [
+                const Text('Hesabı başka cihaza taşı',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900)),
+                const Spacer(),
+                IconButton(onPressed: () => Navigator.pop(context), icon: const Icon(Icons.close_rounded)),
+              ]),
+              const SizedBox(height: 6),
+              const SectionLabel('1 · Eski cihazda'),
+              const SizedBox(height: 4),
+              const Text('Kod al; kod 24 saat geçerli. Kodu kimseyle paylaşma.',
+                  style: TextStyle(color: AppColors.textDim, fontSize: 12)),
+              const SizedBox(height: 6),
+              Row(children: [
+                AccentButton(_busy ? 'Bekle…' : 'Taşıma kodu al',
+                    compact: true,
+                    icon: Icons.key_rounded,
+                    onTap: _busy
+                        ? null
+                        : () async {
+                            setState(() => _busy = true);
+                            final (code, err) = await Cloud.instance.createTransferCode();
+                            if (mounted) setState(() { _busy = false; _code = code; _msg = err; });
+                          }),
+                const SizedBox(width: 12),
+                if (_code != null)
+                  SelectableText(_code!,
+                      style: const TextStyle(fontSize: 26, fontWeight: FontWeight.w900, letterSpacing: 3,
+                          color: AppColors.yellow)),
+              ]),
+              const SizedBox(height: 14),
+              const SectionLabel('2 · Yeni cihazda'),
+              const SizedBox(height: 4),
+              const Text('Eski cihazdaki kodu yaz. Bu cihazdaki ilerleme, taşınan hesapla değişir.',
+                  style: TextStyle(color: AppColors.textDim, fontSize: 12)),
+              const SizedBox(height: 6),
+              Row(children: [
+                SizedBox(
+                  width: 200,
+                  child: TextField(
+                    controller: _input,
+                    textCapitalization: TextCapitalization.characters,
+                    decoration: const InputDecoration(hintText: 'ABCD-1234', isDense: true),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                AccentButton(_busy ? 'Bekle…' : 'Hesabımı getir',
+                    compact: true,
+                    icon: Icons.download_rounded,
+                    onTap: _busy
+                        ? null
+                        : () async {
+                            setState(() => _busy = true);
+                            final err = await Cloud.instance.redeemTransferCode(_input.text);
+                            if (!mounted) return;
+                            setState(() { _busy = false; _msg = err ?? '✅ Hesabın bu cihaza geldi!'; });
+                          }),
+              ]),
+              if (_msg != null)
+                Padding(
+                  padding: const EdgeInsets.only(top: 10),
+                  child: Text(_msg!,
+                      style: TextStyle(
+                          color: _msg!.startsWith('✅') ? AppColors.green : AppColors.red,
+                          fontWeight: FontWeight.w700)),
+                ),
+            ]),
+          ),
+        ),
+      );
 }

@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math';
 import 'dart:convert';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -9,6 +10,7 @@ import 'package:flutter/foundation.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 
 import '../engine/game.dart';
+import 'ads.dart';
 
 /// İlk 100 listesindeki bir satır (gerçek oyuncular)
 class OnlineRow {
@@ -17,7 +19,8 @@ class OnlineRow {
   final String name;
   final double worth;
   final int level;
-  OnlineRow(this.rank, this.uid, this.name, this.worth, this.level);
+  final int frame;
+  OnlineRow(this.rank, this.uid, this.name, this.worth, this.level, [this.frame = 0]);
 }
 
 /// Online bağlantı: Google ile giriş, bulut kaydı, zenginler listesi.
@@ -90,6 +93,7 @@ class Cloud extends ChangeNotifier {
     _timer?.cancel();
     _timer = Timer.periodic(const Duration(minutes: 5), (_) => sync());
     if (signedIn) {
+      _listenGrants();
       sync();
       refreshTop();
     } else {
@@ -119,6 +123,7 @@ class Cloud extends ChangeNotifier {
       }
     }
     if (signedIn) {
+      _listenGrants();
       await _offerCloudSave();
       await sync(force: true);
       await refreshTop();
@@ -152,6 +157,7 @@ class Cloud extends ChangeNotifier {
     try {
       final acc = await GoogleSignIn.instance.authenticate();
       await _firebaseWithGoogle(acc);
+      _listenGrants();
       await _offerCloudSave();
       await sync(force: true);
       await refreshTop();
@@ -170,7 +176,116 @@ class Cloud extends ChangeNotifier {
     }
   }
 
+  // ------------------------------------------------------------------
+  // Yöneticiden gelen hediye ve düzeltmeler (anında uygulanır)
+  // ------------------------------------------------------------------
+  StreamSubscription<DocumentSnapshot<Map<String, dynamic>>>? _grantSub;
+  String? _grantUid;
+
+  void _listenGrants() {
+    final u = user;
+    if (u == null || _grantUid == u.uid) return;
+    _grantSub?.cancel();
+    _grantUid = u.uid;
+    _grantSub = FirebaseFirestore.instance
+        .collection('grants')
+        .doc(u.uid)
+        .snapshots()
+        .listen(_onGrants, onError: (e) => debugPrint('Hediye dinlenemedi: $e'));
+  }
+
+  Future<void> _onGrants(DocumentSnapshot<Map<String, dynamic>> snap) async {
+    final g = _game;
+    final ops = snap.data()?['ops'];
+    if (g == null || ops is! List || ops.isEmpty) return;
+    var maxSeq = g.lastGrantSeq;
+    var applied = false;
+    for (final o in ops) {
+      if (o is! Map) continue;
+      final op = Map<String, dynamic>.from(o);
+      final seq = (op['seq'] as num? ?? 0).toInt();
+      if (seq <= g.lastGrantSeq) continue;
+      if (op['type'] == 'load') {
+        await _loadCloudSaveNow();
+      } else {
+        await g.applyAdminOp(op);
+      }
+      maxSeq = max(maxSeq, seq);
+      applied = true;
+    }
+    if (!applied) return;
+    g.lastGrantSeq = maxSeq;
+    Ads.instance.noInterstitials = g.noAds;
+    await g.save();
+    try {
+      await _fn.httpsCallable('ackGrants').call({'seq': maxSeq});
+    } catch (_) {}
+    await sync(force: true);
+    notifyListeners();
+  }
+
+  Future<void> _loadCloudSaveNow() async {
+    final u = user, g = _game;
+    if (u == null || g == null) return;
+    final doc = await FirebaseFirestore.instance.collection('players').doc(u.uid).get();
+    final raw = doc.data()?['save'];
+    if (raw is String) {
+      final seq = g.lastGrantSeq;
+      await g.importSave(raw);
+      g.lastGrantSeq = max(seq, g.lastGrantSeq);
+      g.showToast('☁️ Hesabın bu cihaza taşındı.');
+    }
+  }
+
+  // ------------------------------------------------------------------
+  // Telefon değiştirme: taşıma kodu
+  // ------------------------------------------------------------------
+  /// Eski cihazda: 24 saat geçerli kod
+  Future<(String?, String?)> createTransferCode() async {
+    if (!signedIn) await autoSignIn();
+    if (!signedIn) return (null, 'Önce internete bağlan.');
+    try {
+      await sync(force: true);
+      final res = await _fn.httpsCallable('createTransferCode').call();
+      return ((res.data as Map)['code'] as String?, null);
+    } on FirebaseFunctionsException catch (e) {
+      return (null, e.message ?? 'Kod alınamadı.');
+    } catch (e) {
+      return (null, 'Kod alınamadı, internet bağlantını kontrol et.');
+    }
+  }
+
+  /// Yeni cihazda: kodu gir, eski hesabın kaydı gelsin
+  Future<String?> redeemTransferCode(String code) async {
+    if (!signedIn) await autoSignIn();
+    if (!signedIn) return 'Önce internete bağlan.';
+    final g = _game;
+    if (g == null) return 'Oyun hazır değil.';
+    try {
+      busy = true;
+      notifyListeners();
+      final res = await _fn.httpsCallable('redeemTransferCode').call({'code': code});
+      final raw = (res.data as Map)['save'];
+      if (raw is! String) return 'Kayıt gelmedi.';
+      await g.importSave(raw);
+      cloudSaveRaw = null;
+      await sync(force: true);
+      await refreshTop();
+      return null;
+    } on FirebaseFunctionsException catch (e) {
+      return e.message ?? 'Kod kullanılamadı.';
+    } catch (e) {
+      return 'Kod kullanılamadı, internet bağlantını kontrol et.';
+    } finally {
+      busy = false;
+      notifyListeners();
+    }
+  }
+
   Future<void> signOut() async {
+    await _grantSub?.cancel();
+    _grantSub = null;
+    _grantUid = null;
     await FirebaseAuth.instance.signOut();
     await GoogleSignIn.instance.signOut();
     user = null;
@@ -217,10 +332,19 @@ class Cloud extends ChangeNotifier {
     final g = _game;
     if (!signedIn || g == null || busy && !force) return;
     if (cloudSaveRaw != null) return; // önce bulut/telefon seçimi yapılmalı
+    _listenGrants();
     try {
       final res = await _fn.httpsCallable('submitSave').call({
         'save': g.exportSave(),
         'company': g.companyFullName,
+        'frame': g.profileFrame,
+        'stats': {
+          'prestige': g.prestige,
+          'shows': g.shows.length,
+          'staff': g.staff.length,
+          'films': g.films.length,
+          'netPerDay': g.netPerDay,
+        },
       });
       final data = Map<String, dynamic>.from(res.data as Map);
       lastSync = DateTime.now();
@@ -252,6 +376,7 @@ class Cloud extends ChangeNotifier {
               r['name'] as String,
               (r['worth'] as num).toDouble(),
               (r['level'] as num).toInt(),
+              (r['frame'] as num? ?? 0).toInt(),
             ),
         ];
         totalPlayers = (d['total'] as num? ?? 0).toInt();

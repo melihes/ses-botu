@@ -4,6 +4,7 @@ import '../../core/theme.dart';
 import '../../core/ads.dart';
 import '../../core/cloud.dart';
 import '../../engine/game.dart';
+import '../screens/online_screen.dart' show showTransferDialog;
 import '../widgets/common.dart';
 import '../widgets/company_logo.dart';
 import 'identity_dialog.dart';
@@ -153,6 +154,12 @@ class _SettingsState extends State<_Settings> {
                   compact: true,
                   onTap: () => Ads.instance.showPrivacyOptions(),
                 ),
+                GhostButton(
+                  'Hesabı başka cihaza taşı',
+                  compact: true,
+                  icon: Icons.phonelink_setup_rounded,
+                  onTap: () => showTransferDialog(context),
+                ),
                 if (Cloud.instance.signedIn)
                   GhostButton(
                     'Hesabımı sil',
@@ -199,7 +206,7 @@ class _SettingsState extends State<_Settings> {
             ),
             const SizedBox(height: 12),
             const Text(
-              'Reyting · v1.0.2',
+              'Reyting · v1.0.3',
               style: TextStyle(color: AppColors.textFaint, fontSize: 11),
             ),
           ],

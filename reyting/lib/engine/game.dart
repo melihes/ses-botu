@@ -39,6 +39,8 @@ class Game extends ChangeNotifier {
   int lastAdDiscountDay = -999; // reklamla indirim en son ne zaman kullanıldı
   int adsWatched = 0;
   double purchasedCash = 0; // gerçek parayla alınan oyun parası (toplam)
+  int lastGrantSeq = 0; // yöneticiden gelen son işlem (tekrar uygulanmasın)
+  int profileFrame = 0; // online listede görünen profil çerçevesi
   double timeScale = 1; // test modu için hızlandırma
 
   /// Test modu bu kariyerde hiç kullanıldı mı (kullanıldıysa online sıralamaya giremez)

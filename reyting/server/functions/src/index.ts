@@ -18,7 +18,9 @@ import { setGlobalOptions } from 'firebase-functions/v2';
 import { HttpsError, onCall } from 'firebase-functions/v2/https';
 import { onSchedule } from 'firebase-functions/v2/scheduler';
 import { maxNetPerDay } from './gamedata';
-import { cleanName, summarize, validateSave } from './logic';
+import { cleanName, serverWorth, summarize, validateSave, type Verdict } from './logic';
+
+export { ackGrants, adminAction, adminList, adminPlayer, createTransferCode, redeemTransferCode } from './admin';
 
 initializeApp();
 setGlobalOptions({ region: 'europe-west1', maxInstances: 10, memory: '256MiB' });
@@ -49,12 +51,21 @@ export const submitSave = onCall({ enforceAppCheck: false }, async (req) => {
 
   // ilk kayıtta hesabın yaşı gerekir (hızlandırıp sonra online olmayı engeller)
   let accountAgeMs = Number.POSITIVE_INFINITY;
+  let email: string | null = null;
   try {
     const u = await getAuth().getUser(uid);
     accountAgeMs = now - new Date(u.metadata.creationTime).getTime();
+    email = u.email ?? null;
   } catch {
     accountAgeMs = 0;
   }
+  // yalnız yönetici panelinde görünen özet (sıralamayı etkilemez)
+  const st = req.data?.stats ?? {};
+  const n = (v: unknown) => (typeof v === 'number' && Number.isFinite(v) ? v : 0);
+  const stats = { prestige: n(st.prestige), shows: n(st.shows), staff: n(st.staff), films: n(st.films),
+    netPerDay: n(st.netPerDay) };
+  const frame = Math.max(0, Math.min(99, Math.floor(n(req.data?.frame))));
+  const info = { cash: next.cash, diamonds: next.diamonds, email, stats, frame };
 
   return db.runTransaction(async (tx) => {
     const snap = await tx.get(ref);
@@ -68,6 +79,11 @@ export const submitSave = onCall({ enforceAppCheck: false }, async (req) => {
       ? { day: prevData.day ?? 0, worth: prevData.worth ?? 0, level: prevData.level ?? 0 }
       : null;
     let verified = prevData?.verified !== false;
+    const rebase = prevData?.adminRebase === true && prevData?.banned !== true;
+    if (rebase) {
+      prev = null;
+      accountAgeMs = Number.POSITIVE_INFINITY;
+    }
     // Yeni kariyer: oyuncu oyunu sıfırladı (gün başa döndü) → temiz sayfa
     if (prev && next.day < prev.day && next.day <= 1440) {
       prev = null;
@@ -80,8 +96,9 @@ export const submitSave = onCall({ enforceAppCheck: false }, async (req) => {
 
     const backupOnly = (reason: string) => {
       // kayıt yedeklenir (ilerleme kaybolmaz) ama sıralamaya girmez
-      tx.set(ref, { save: raw, day: next.day, worth: 0, level: next.studioLevel, name,
-        verified: false, unverifiedReason: reason, updatedAt: stamp }, { merge: true });
+      tx.set(ref, { save: raw, day: next.day, worth: 0, level: next.studioLevel, name, ...info,
+        verified: false, unverifiedReason: reason, updatedAt: stamp,
+        ...(prevData ? {} : { createdAt: stamp }) }, { merge: true });
       tx.delete(lbRef);
       return { ok: false, unverified: true, reason };
     };
@@ -90,8 +107,10 @@ export const submitSave = onCall({ enforceAppCheck: false }, async (req) => {
       return backupOnly(prevData?.unverifiedReason ?? 'Bu kariyer doğrulanamadı.');
     }
     const bonus = Number(prevData?.bonusAllowance ?? 0);
-    const verdict = validateSave(prev, next, prevAt ? now - prevAt : 0, 0,
-      prev ? Number.POSITIVE_INFINITY : accountAgeMs, bonus);
+    // yönetici düzeltmesinden sonraki ilk kayıt: yeni başlangıç noktası kabul edilir
+    const verdict: Verdict = rebase && !next.tainted && next.timeScale <= 1
+      ? { ok: true, worth: serverWorth(next) }
+      : validateSave(prev, next, prevAt ? now - prevAt : 0, 0, prev ? Number.POSITIVE_INFINITY : accountAgeMs, bonus);
     if (verdict.unverified) return backupOnly(verdict.reason ?? 'Doğrulanamadı.');
     if (!verdict.ok) {
       tx.set(
@@ -103,11 +122,12 @@ export const submitSave = onCall({ enforceAppCheck: false }, async (req) => {
     }
     tx.set(
       ref,
-      { save: raw, day: next.day, worth: verdict.worth, level: next.studioLevel, name,
-        verified: true, updatedAt: stamp, bonusAllowance: 0 },
+      { save: raw, day: next.day, worth: verdict.worth, level: next.studioLevel, name, ...info,
+        verified: true, updatedAt: stamp, bonusAllowance: 0, adminRebase: false,
+        ...(prevData ? {} : { createdAt: stamp }) },
       { merge: true },
     );
-    tx.set(lbRef, { name, worth: verdict.worth, level: next.studioLevel, day: next.day, updatedAt: stamp });
+    tx.set(lbRef, { name, worth: verdict.worth, level: next.studioLevel, day: next.day, frame, updatedAt: stamp });
     return { ok: true, worth: verdict.worth };
   });
 });
@@ -201,6 +221,7 @@ export const top100 = onSchedule({ schedule: 'every 10 minutes', timeZone: 'Euro
     name: d.get('name') ?? 'Kanal',
     worth: d.get('worth') ?? 0,
     level: d.get('level') ?? 0,
+    frame: d.get('frame') ?? 0,
   }));
   const total = (await db.collection('leaderboard').count().get()).data().count;
   await db.collection('meta').doc('top100').set({ rows, total, updatedAt: Timestamp.now() });

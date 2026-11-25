@@ -20,6 +20,8 @@ export interface SaveSummary {
   timeScale: number;
   /** Test modu (hızlı zaman) bu kayıtta hiç kullanıldı mı */
   tainted: boolean;
+  diamonds: number;
+  prestige: number;
 }
 
 export function summarize(save: any): SaveSummary {
@@ -40,6 +42,8 @@ export function summarize(save: any): SaveSummary {
     stockPrices: typeof save.stockPrices === 'object' && save.stockPrices ? save.stockPrices : {},
     timeScale: num(save.timeScale, 1),
     tainted: save.tainted === true || num(save.timeScale, 1) > 1,
+    diamonds: Math.floor(num(save.diamonds)),
+    prestige: Math.floor(num(save.prestige)),
   };
 }
 

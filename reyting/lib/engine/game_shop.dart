@@ -17,6 +17,8 @@ extension GameShop on Game {
     'lastAdDiscountDay': lastAdDiscountDay,
     'adsWatched': adsWatched,
     'purchasedCash': purchasedCash,
+    'lastGrantSeq': lastGrantSeq,
+    'profileFrame': profileFrame,
   };
 
   void _shopLoad(Map<String, dynamic> j) {
@@ -27,6 +29,43 @@ extension GameShop on Game {
     lastAdDiscountDay = j['lastAdDiscountDay'] ?? -999;
     adsWatched = j['adsWatched'] ?? 0;
     purchasedCash = (j['purchasedCash'] as num? ?? 0).toDouble();
+    lastGrantSeq = j['lastGrantSeq'] as int? ?? lastGrantSeq;
+    profileFrame = j['profileFrame'] as int? ?? 0;
+  }
+
+  /// Yönetici panelinden gelen işlem (hediye, düzeltme, sıfırlama, mesaj)
+  Future<void> applyAdminOp(Map<String, dynamic> op) async {
+    double n(String k) => (op[k] as num? ?? 0).toDouble();
+    switch (op['type']) {
+      case 'give':
+        final c = n('cash'), d = n('diamonds').round();
+        cash += c;
+        diamonds = max(0, diamonds + d);
+        final parts = [
+          if (c != 0) '${c > 0 ? '+' : ''}${fmtShort(c)}',
+          if (d != 0) '${d > 0 ? '+' : ''}$d 💎',
+        ];
+        _notify('🎁 Yönetici hediyesi: ${parts.join(', ')}');
+      case 'set':
+        if (op['cash'] != null) cash = n('cash');
+        if (op['diamonds'] != null) diamonds = max(0, n('diamonds').round());
+        if (op['studioLevel'] != null) {
+          studioLevel = n('studioLevel').round().clamp(0, studioLevels.length - 1);
+        }
+        _notify('🛠️ Hesabın yönetici tarafından güncellendi.');
+      case 'vip':
+        vip = op['vip'] == true;
+        noAds = op['noAds'] == true || vip;
+        _notify(vip ? '👑 VIP hesabına tanımlandı!' : '🛠️ Paket ayarların güncellendi.');
+      case 'reset':
+        final seq = lastGrantSeq;
+        _newGame();
+        lastGrantSeq = seq;
+        _notify('🔄 Hesabın yönetici tarafından sıfırlandı. Yeni kariyer başladı.');
+      case 'message':
+        _notify('📩 ${op['text'] ?? ''}');
+    }
+    _changed();
   }
 
   /// Gelir ölçüsü: negatif ya da çok küçük olmasın

@@ -189,6 +189,26 @@ const _nav = [
   ),
 ];
 
+/// Sol menüde yalnızca 5 ana başlık; alt sayfalar üstte sekme olarak açılır
+class _Group {
+  final String label;
+  final IconData icon;
+  final List<PageId> pages;
+  const _Group(this.label, this.icon, this.pages);
+}
+
+const _groups = [
+  _Group('Kanal', Icons.live_tv_rounded,
+      [PageId.home, PageId.staff, PageId.production, PageId.broadcast, PageId.cinema, PageId.digital]),
+  _Group('Şirket', Icons.business_rounded,
+      [PageId.studio, PageId.map, PageId.agency, PageId.board, PageId.brands, PageId.holding, PageId.channels]),
+  _Group('Para', Icons.account_balance_wallet_rounded, [PageId.tenders, PageId.market, PageId.bank]),
+  _Group('Yaşam', Icons.diamond_rounded, [PageId.luxury, PageId.trophies]),
+  _Group('Online', Icons.public_rounded, [PageId.online]),
+];
+
+_Group _groupOf(PageId p) => _groups.firstWhere((g) => g.pages.contains(p));
+
 /// Ekranlar arası geçiş için
 class ShellNav extends InheritedWidget {
   final void Function(PageId) goTo;
@@ -213,9 +233,15 @@ class _ShellState extends State<Shell> {
   /// Sayfa değiştir; süresi geldiyse araya reklam girer (reklamsız pakette yok)
   void _go(PageId p) {
     if (p != _page && !GameScope.read(context).noAds) Ads.instance.maybeInterstitial();
-    setState(() => _page = p);
+    setState(() {
+      _page = p;
+      _lastInGroup[_groupOf(p).label] = p;
+    });
   }
   bool _offlineShowing = false;
+  final Map<String, PageId> _lastInGroup = {};
+
+  void _goGroup(_Group g) => _go(_lastInGroup[g.label] ?? g.pages.first);
 
   Widget _body() => switch (_page) {
     PageId.home => const HomeScreen(),
@@ -320,7 +346,7 @@ class _ShellState extends State<Shell> {
                 children: [
                   _Sidebar(
                     selected: _page,
-                    onTap: _go,
+                    onGroup: _goGroup,
                   ),
                   Expanded(
                     child: Column(
@@ -331,6 +357,8 @@ class _ShellState extends State<Shell> {
                               ? game.channelName
                               : item.title,
                         ),
+                        if (_groupOf(_page).pages.length > 1)
+                          _SubTabs(group: _groupOf(_page), selected: _page, onTap: _go),
                         Expanded(
                           child: AnimatedSwitcher(
                             duration: const Duration(milliseconds: 180),
@@ -389,8 +417,8 @@ class _ShellState extends State<Shell> {
 
 class _Sidebar extends StatelessWidget {
   final PageId selected;
-  final ValueChanged<PageId> onTap;
-  const _Sidebar({required this.selected, required this.onTap});
+  final ValueChanged<_Group> onGroup;
+  const _Sidebar({required this.selected, required this.onGroup});
 
   @override
   Widget build(BuildContext context) {
@@ -433,11 +461,12 @@ class _Sidebar extends StatelessWidget {
             child: ListView(
               padding: const EdgeInsets.only(bottom: 8),
               children: [
-                for (final n in _nav)
+                for (final g in _groups)
                   _SideButton(
-                    item: n,
-                    active: n.id == selected,
-                    onTap: () => onTap(n.id),
+                    label: g.label,
+                    icon: g.icon,
+                    active: g.pages.contains(selected),
+                    onTap: () => onGroup(g),
                   ),
               ],
             ),
@@ -449,11 +478,13 @@ class _Sidebar extends StatelessWidget {
 }
 
 class _SideButton extends StatelessWidget {
-  final _NavItem item;
+  final String label;
+  final IconData icon;
   final bool active;
   final VoidCallback onTap;
   const _SideButton({
-    required this.item,
+    required this.label,
+    required this.icon,
     required this.active,
     required this.onTap,
   });
@@ -464,8 +495,8 @@ class _SideButton extends StatelessWidget {
     return InkWell(
       onTap: onTap,
       child: Container(
-        margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-        padding: const EdgeInsets.symmetric(vertical: 7),
+        margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+        padding: const EdgeInsets.symmetric(vertical: 10),
         decoration: BoxDecoration(
           color: active ? AppColors.accent.withValues(alpha: 0.13) : null,
           borderRadius: BorderRadius.circular(12),
@@ -475,10 +506,10 @@ class _SideButton extends StatelessWidget {
         ),
         child: Column(
           children: [
-            Icon(item.icon, color: color, size: 24),
-            const SizedBox(height: 2),
+            Icon(icon, color: color, size: 28),
+            const SizedBox(height: 3),
             Text(
-              item.label,
+              label,
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: 11,
@@ -491,6 +522,55 @@ class _SideButton extends StatelessWidget {
       ),
     );
   }
+}
+
+/// Seçili ana başlığın alt sayfaları (üstte sekme şeridi)
+class _SubTabs extends StatelessWidget {
+  final _Group group;
+  final PageId selected;
+  final ValueChanged<PageId> onTap;
+  const _SubTabs({required this.group, required this.selected, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) => Container(
+        height: 44,
+        decoration: const BoxDecoration(border: Border(bottom: BorderSide(color: AppColors.border))),
+        child: ListView(
+          scrollDirection: Axis.horizontal,
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+          children: [
+            for (final id in group.pages)
+              Builder(builder: (_) {
+                final n = _nav.firstWhere((x) => x.id == id);
+                final on = id == selected;
+                return Padding(
+                  padding: const EdgeInsets.only(right: 6),
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(10),
+                    onTap: () => onTap(id),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12),
+                      decoration: BoxDecoration(
+                        color: on ? AppColors.accent.withValues(alpha: 0.16) : AppColors.panel,
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(color: on ? AppColors.accent.withValues(alpha: 0.6) : AppColors.border),
+                      ),
+                      child: Row(mainAxisSize: MainAxisSize.min, children: [
+                        Icon(n.icon, size: 17, color: on ? AppColors.accent : AppColors.textDim),
+                        const SizedBox(width: 6),
+                        Text(n.label,
+                            style: TextStyle(
+                                fontSize: 13,
+                                fontWeight: on ? FontWeight.w800 : FontWeight.w600,
+                                color: on ? AppColors.text : AppColors.textDim)),
+                      ]),
+                    ),
+                  ),
+                );
+              }),
+          ],
+        ),
+      );
 }
 
 class _TopBar extends StatelessWidget {
