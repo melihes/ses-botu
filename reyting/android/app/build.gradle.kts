@@ -54,6 +54,10 @@ android {
             // Anahtar yoksa (ör. test ortamı) hata ayıklama anahtarıyla imzalanır
             signingConfig = if (keyProps.getProperty("storeFile") != null)
                 signingConfigs.getByName("release") else signingConfigs.getByName("debug")
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro",
+            )
         }
     }
 }
@@ -66,4 +70,10 @@ kotlin {
 
 flutter {
     source = "../.."
+}
+
+dependencies {
+    // Reklam SDK'sı eski WorkManager 2.7 getiriyor; küçültülmüş sürümde
+    // açılışta çöküyordu. Güncel sürüm doğru koruma kurallarıyla gelir.
+    implementation("androidx.work:work-runtime:2.10.5")
 }
