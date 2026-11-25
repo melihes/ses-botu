@@ -5,6 +5,8 @@ import 'package:flutter/material.dart';
 
 import '../../core/theme.dart';
 import '../../data/content.dart';
+import '../screens/live_stage.dart' show SetPainter, FrontPainter;
+import 'face.dart';
 
 export '../../data/content.dart' show Prop;
 
@@ -451,31 +453,72 @@ class _StageSceneState extends State<StageScene>
     super.dispose();
   }
 
+  /// Sahnedeki iki kişi (aynı program hep aynı kişileri gösterir)
+  late final List<FaceSpec> _cast = () {
+    final seed = widget.prop.index * 7919 + widget.color.toARGB32() % 10007 + widget.tier * 31;
+    return [
+      FaceSpec.of(seed, female: seed.isEven, age: 24 + seed % 30),
+      FaceSpec.of(seed + 1, female: seed.isOdd, age: 22 + (seed ~/ 7) % 35),
+    ];
+  }();
+
+  bool get _noPeople {
+    final p = widget.prop;
+    return const {Prop.football, Prop.derby, Prop.tournament, Prop.basketball,
+          Prop.nature, Prop.ocean, Prop.history, Prop.space, Prop.field}.contains(p);
+  }
+
+  Genre get _genre {
+    for (final g in Genre.values) {
+      for (int t = 0; t < 6; t++) {
+        if (formatOf(g, t).prop == widget.prop) return g;
+      }
+    }
+    return Genre.talkShow;
+  }
+
   @override
   Widget build(BuildContext context) {
+    final genre = _genre;
     return RepaintBoundary(
       child: ClipRRect(
         borderRadius: widget.radius,
         child: SizedBox(
           width: widget.width,
           height: widget.height,
-          child: Stack(
-            fit: StackFit.expand,
-            children: [
-              CustomPaint(
-                painter: ScenePainter(
-                  _c,
-                  widget.prop,
-                  widget.color,
-                  widget.tier,
-                  widget.live,
-                  reaction: max(widget.reaction, _reaction),
+          child: LayoutBuilder(builder: (context, c) {
+            final w = c.maxWidth.isFinite ? c.maxWidth : 300.0;
+            final h = c.maxHeight.isFinite ? c.maxHeight : widget.height;
+            const dw = 640.0;
+            final dh = (dw * h / max(1, w)).clamp(220.0, 560.0);
+            return Stack(fit: StackFit.expand, children: [
+              ClipRect(
+                child: FittedBox(
+                  fit: BoxFit.cover,
+                  child: SizedBox(
+                    width: dw,
+                    height: dh,
+                    child: AnimatedBuilder(
+                      animation: _c,
+                      builder: (_, _) => _stage(dw, dh, _c.value * 8, genre),
+                    ),
+                  ),
                 ),
               ),
               if (_bubble != null)
                 Align(
                   alignment: Alignment(_bubbleX * 2 - 1, -0.55),
                   child: _SpeechBubble(text: _bubble!),
+                ),
+              if (widget.live)
+                Positioned(
+                  right: 6,
+                  top: 6,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    decoration: BoxDecoration(color: const Color(0xFFE11D48), borderRadius: BorderRadius.circular(5)),
+                    child: const Text('● CANLI', style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900)),
+                  ),
                 ),
               if (widget.badge != null)
                 Positioned(
@@ -499,11 +542,47 @@ class _StageSceneState extends State<StageScene>
                     ),
                   ),
                 ),
-            ],
-          ),
+            ]);
+          }),
         ),
       ),
     );
+  }
+
+  /// Yeni sahne: canlı yayındaki dekor + konuşan, göz kırpan karakterler
+  Widget _stage(double w, double h, double t, Genre genre) {
+    final pan = sin(t * 0.8) * 14;
+    final furn = FrontPainter.hasFurniture(widget.prop);
+    final k = h / 360;
+    final size = (furn ? 190.0 : 250.0) * k;
+    final bottom = furn ? h * 0.2 : -h * 0.02;
+    final speaking = _bubble != null ? (_bubbleX < 0.4 ? 0 : 1) : -1;
+    final react = max(widget.reaction, _reaction);
+    FaceMood mood(int i) {
+      if (speaking == i) return FaceMood.talk;
+      return switch (react) { 1 => FaceMood.laugh, 3 => FaceMood.surprised, _ => FaceMood.smile };
+    }
+
+    Widget person(int i) => FaceView(
+          spec: _cast[i],
+          cacheKey: 70000 + widget.prop.index * 10 + i + widget.color.toARGB32() % 997 * 100,
+          mood: mood(i),
+          alt: (t * 7).floor().isEven,
+          blink: ((t + i * 1.3) % 2.9) < 0.12,
+          crop: false,
+          gesture: speaking == i ? (i == 0 ? 'hand' : 'waveLongArm') : null,
+          size: size,
+        );
+    return Stack(children: [
+      Positioned.fill(
+        child: CustomPaint(painter: SetPainter(widget.prop, genre, t, widget.color, '', pan, widget.prop.index)),
+      ),
+      if (!_noPeople) ...[
+        Positioned(left: w * 0.08 - pan * 0.6, bottom: bottom, child: person(0)),
+        Positioned(right: w * 0.07 + pan * 0.6, bottom: bottom, child: person(1)),
+      ],
+      Positioned.fill(child: CustomPaint(painter: FrontPainter(widget.prop, genre, t, pan, ''))),
+    ]);
   }
 }
 

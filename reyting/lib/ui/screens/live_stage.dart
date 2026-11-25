@@ -234,7 +234,7 @@ class _LiveStageState extends State<LiveStage> with SingleTickerProviderStateMix
 
   Widget _set({double pan = 0, double blur = 0, double zoom = 1}) {
     Widget s = CustomPaint(
-      painter: _SetPainter(widget.prop, widget.genre, _t, widget.color, widget.title, pan, widget.seed),
+      painter: SetPainter(widget.prop, widget.genre, _t, widget.color, widget.title, pan, widget.seed),
       size: Size.infinite,
     );
     if (zoom != 1) s = Transform.scale(scale: zoom, child: s);
@@ -255,7 +255,7 @@ class _LiveStageState extends State<LiveStage> with SingleTickerProviderStateMix
         final pan = _u * 14;
         final noPeople = widget.genre == Genre.belgesel ||
             const {Prop.football, Prop.derby, Prop.tournament, Prop.basketball}.contains(widget.prop);
-        final furn = _FrontPainter.hasFurniture(widget.prop);
+        final furn = FrontPainter.hasFurniture(widget.prop);
         final size = furn ? 190.0 : 260.0;
         final bottom = furn ? h * 0.2 : -h * 0.02;
         return Stack(children: [
@@ -276,7 +276,7 @@ class _LiveStageState extends State<LiveStage> with SingleTickerProviderStateMix
                     const Color(0xFF4DABF7)),
               ),
           ],
-          Positioned.fill(child: CustomPaint(painter: _FrontPainter(widget.prop, widget.genre, _t, pan, widget.title))),
+          Positioned.fill(child: CustomPaint(painter: FrontPainter(widget.prop, widget.genre, _t, pan, widget.title))),
         ]);
       case _Shot.two:
         return Stack(children: [
@@ -365,7 +365,7 @@ class _LiveStageState extends State<LiveStage> with SingleTickerProviderStateMix
                 Positioned.fill(
                   child: ImageFiltered(
                     imageFilter: ui.ImageFilter.blur(sigmaX: 2.5, sigmaY: 2.5),
-                    child: CustomPaint(painter: _SetPainter(Prop.field, Genre.haber, _t, widget.color, '', 0, widget.seed)),
+                    child: CustomPaint(painter: SetPainter(Prop.field, Genre.haber, _t, widget.color, '', 0, widget.seed)),
                   ),
                 ),
                 Positioned(left: -40, top: 10, child: _face(guest, 380)),
@@ -889,7 +889,7 @@ void _grad(Canvas c, Rect r, List<Color> cols, {bool vertical = true, double rad
 }
 
 /// Dekor: her format (prop) için ayrı sahne
-class _SetPainter extends CustomPainter {
+class SetPainter extends CustomPainter {
   final Prop prop;
   final Genre genre;
   final double t;
@@ -897,7 +897,7 @@ class _SetPainter extends CustomPainter {
   final String title;
   final double pan;
   final int seed;
-  _SetPainter(this.prop, this.genre, this.t, this.color, this.title, this.pan, this.seed);
+  SetPainter(this.prop, this.genre, this.t, this.color, this.title, this.pan, this.seed);
 
   @override
   void paint(Canvas c, Size s) {
@@ -1730,17 +1730,17 @@ class _SetPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(covariant _SetPainter o) => o.t != t || o.pan != pan || o.prop != prop;
+  bool shouldRepaint(covariant SetPainter o) => o.t != t || o.pan != pan || o.prop != prop;
 }
 
 /// Önde: seyirci kafaları (geniş planda derinlik verir)
-class _FrontPainter extends CustomPainter {
+class FrontPainter extends CustomPainter {
   final Prop prop;
   final Genre genre;
   final double t;
   final double pan;
   final String title;
-  _FrontPainter(this.prop, this.genre, this.t, this.pan, this.title);
+  FrontPainter(this.prop, this.genre, this.t, this.pan, this.title);
 
   static const talkSets = {Prop.nightShow, Prop.morning, Prop.sketch, Prop.studio, Prop.newYear};
   static const podiumSets = {Prop.quiz, Prop.couples, Prop.talent, Prop.voice, Prop.wheel};
@@ -1797,5 +1797,5 @@ class _FrontPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(covariant _FrontPainter o) => o.t != t || o.pan != pan;
+  bool shouldRepaint(covariant FrontPainter o) => o.t != t || o.pan != pan;
 }

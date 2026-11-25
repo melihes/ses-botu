@@ -11,7 +11,21 @@
 import { randomInt } from 'node:crypto';
 import { getAuth } from 'firebase-admin/auth';
 import { FieldValue, getFirestore, Timestamp } from 'firebase-admin/firestore';
-import { HttpsError, onCall, type CallableRequest } from 'firebase-functions/v2/https';
+import { HttpsError, onCall as rawOnCall, type CallableRequest } from 'firebase-functions/v2/https';
+import { logger } from 'firebase-functions/v2';
+
+/** Beklenmeyen hatalar "internal" yerine okunur mesajla dönsün */
+function onCall<T>(handler: (req: CallableRequest) => Promise<T>) {
+  return rawOnCall(async (req) => {
+    try {
+      return await handler(req);
+    } catch (e: any) {
+      if (e instanceof HttpsError) throw e;
+      logger.error('admin hata', e);
+      throw new HttpsError('internal', `Sunucu hatası: ${String(e?.message ?? e).slice(0, 300)}`);
+    }
+  });
+}
 
 // index.ts initializeApp() çağırdıktan sonra kullanılır
 const db = () => getFirestore();
@@ -21,7 +35,10 @@ let adminCache: { emails: string[]; at: number } | null = null;
 async function adminEmails(): Promise<string[]> {
   if (adminCache && Date.now() - adminCache.at < 60_000) return adminCache.emails;
   const snap = await db().collection('config').doc('admins').get();
-  const emails = ((snap.get('emails') as unknown[]) ?? []).map((e) => String(e).trim().toLowerCase());
+  // "emails" dizi (array) ya da virgüllü metin olabilir; "email" alanı da kabul edilir
+  const raw: unknown = snap.get('emails') ?? snap.get('email') ?? [];
+  const list = Array.isArray(raw) ? raw : String(raw).split(/[,;\s]+/);
+  const emails = list.map((e) => String(e).trim().toLowerCase()).filter((e) => e.includes('@'));
   adminCache = { emails, at: Date.now() };
   return emails;
 }
