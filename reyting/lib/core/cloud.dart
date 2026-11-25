@@ -7,6 +7,7 @@ import 'package:cloud_functions/cloud_functions.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 
 import '../engine/game.dart';
@@ -47,6 +48,16 @@ class Cloud extends ChangeNotifier {
   Game? _game;
 
   bool get signedIn => user != null;
+
+  /// Teşhis: bu kopyanın imza parmak izleri (Google girişi hatasında gösterilir)
+  List<String>? certPrints;
+  Future<void> loadCertPrints() async {
+    try {
+      final r = await const MethodChannel('reyting/cert').invokeMethod<List>('fingerprints');
+      certPrints = r?.map((e) => e.toString()).toList();
+      notifyListeners();
+    } catch (_) {}
+  }
 
   /// Hata metnini ekranda okunur uzunlukta göster (teşhis için)
   static String _short(Object e) {
@@ -191,6 +202,7 @@ class Cloud extends ChangeNotifier {
           await _providerSignIn();
         } catch (e) {
           error = 'Giriş yapılamadı ($fail) · ${_short(e)}';
+          await loadCertPrints();
           return error;
         }
       }

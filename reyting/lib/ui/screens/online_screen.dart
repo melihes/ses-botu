@@ -217,6 +217,9 @@ class _OnlinePanel extends StatelessWidget {
                         child: SelectableText('⚠️ ${c.error}',
                             style: const TextStyle(color: AppColors.red, fontSize: 11)),
                       ),
+                    if (c.error != null && c.certPrints != null)
+                      SelectableText('İmza: ${c.certPrints!.join('  ')}',
+                          style: const TextStyle(color: AppColors.textDim, fontSize: 10)),
                   ]),
                 ),
                 AccentButton(c.busy ? 'Bağlanıyor…' : 'Google ile koru',
