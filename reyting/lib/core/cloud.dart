@@ -155,25 +155,36 @@ class Cloud extends ChangeNotifier {
     error = null;
     notifyListeners();
     try {
-      final acc = await GoogleSignIn.instance.authenticate();
-      await _firebaseWithGoogle(acc);
+      String? fail;
+      try {
+        final acc = await GoogleSignIn.instance.authenticate();
+        await _firebaseWithGoogle(acc);
+      } on GoogleSignInException catch (e) {
+        final d = e.description ?? '';
+        // Gerçekten "vazgeç"e basıldıysa dur; değilse (ör. [16] reauth failed)
+        // Google girişini tarayıcı üzerinden dene
+        final userCancel = e.code == GoogleSignInExceptionCode.canceled && !d.contains('[');
+        if (userCancel) return null;
+        fail = '${e.code.name}: $d';
+      }
+      if (fail != null) {
+        try {
+          await _providerSignIn();
+        } catch (e) {
+          error = 'Giriş yapılamadı ($fail) · ${_short(e)}';
+          return error;
+        }
+      }
+      if (isGuest) {
+        error = 'Giriş tamamlanmadı, misafir olarak devam ediyorsun.';
+        return error;
+      }
       _listenGrants();
       await _offerCloudSave();
       await sync(force: true);
       await refreshTop();
+      showToastOk();
       return null;
-    } on GoogleSignInException catch (e) {
-      if (e.code == GoogleSignInExceptionCode.canceled) {
-        // Android, yapılandırma hatalarını da "iptal" diye bildirebiliyor:
-        // ayrıntıyı göster ki sorun anlaşılsın
-        final d = e.description ?? '';
-        error = d.isEmpty
-            ? 'Giriş tamamlanmadı (iptal edildi ya da Google girişi bu sürüm için ayarlı değil).'
-            : 'Giriş tamamlanmadı: ${_short(d)}';
-        return error;
-      }
-      error = 'Giriş yapılamadı (${e.code.name}): ${_short(e.description ?? '')}';
-      return error;
     } catch (e) {
       error = 'Giriş yapılamadı: ${_short(e)}';
       debugPrint('Giriş hatası: $e');
@@ -182,6 +193,31 @@ class Cloud extends ChangeNotifier {
       busy = false;
       notifyListeners();
     }
+  }
+
+  void showToastOk() => _game?.showToast('✅ Google hesabınla bağlandın: ${user?.email ?? ''}');
+
+  /// Yedek yol: Firebase'in kendi Google girişi (tarayıcı penceresi).
+  /// Cihazdaki hesap seçicisi çalışmadığında da çalışır.
+  Future<void> _providerSignIn() async {
+    final provider = GoogleAuthProvider()..addScope('email');
+    final cur = FirebaseAuth.instance.currentUser;
+    UserCredential res;
+    if (cur != null && cur.isAnonymous) {
+      try {
+        res = await cur.linkWithProvider(provider);
+      } on FirebaseAuthException catch (e) {
+        // bu Google hesabının zaten bir kaydı var: ona geç
+        if ((e.code == 'credential-already-in-use' || e.code == 'email-already-in-use') && e.credential != null) {
+          res = await FirebaseAuth.instance.signInWithCredential(e.credential!);
+        } else {
+          rethrow;
+        }
+      }
+    } else {
+      res = await FirebaseAuth.instance.signInWithProvider(provider);
+    }
+    user = res.user;
   }
 
   // ------------------------------------------------------------------
