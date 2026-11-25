@@ -154,7 +154,7 @@ class _PersonCard extends StatelessWidget {
         children: [
           Row(
             children: [
-              PersonAvatar(name: p.name, seed: p.id.hashCode,
+              PersonAvatar(name: p.name, seed: p.id.hashCode, age: p.age, star: p.isStar,
                 color: p.role.color,
                 size: 46,
                 badgeIcon: p.role.icon,
@@ -236,21 +236,21 @@ class _PersonCard extends StatelessWidget {
             style: const TextStyle(color: AppColors.textDim, fontSize: 12),
           ),
           const SizedBox(height: 10),
-          if (hired)
+          if (hired) ...[
+            Text(
+              show == null ? '● Boşta' : '🎬 $show',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                color: show == null ? AppColors.yellow : AppColors.green,
+                fontWeight: FontWeight.w700,
+                fontSize: 12,
+              ),
+            ),
+            const SizedBox(height: 6),
             Row(
               children: [
-                Expanded(
-                  child: Text(
-                    show == null ? '● Boşta' : '● $show',
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      color: show == null ? AppColors.yellow : AppColors.green,
-                      fontWeight: FontWeight.w700,
-                      fontSize: 12,
-                    ),
-                  ),
-                ),
+                const Spacer(),
                 GhostButton(
                   game.canTrain(p)
                       ? 'Eğit · ${fmtShort(game.trainCost(p))}'
@@ -281,7 +281,8 @@ class _PersonCard extends StatelessWidget {
                         },
                 ),
               ],
-            )
+            ),
+          ]
           else
             AccentButton(
               'İşe al · ${fmtShort(game.signingFeeFor(p))}',

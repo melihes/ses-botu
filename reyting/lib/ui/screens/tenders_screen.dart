@@ -497,7 +497,7 @@ class _BidState extends State<_Bid> {
                                   child: Row(
                                     mainAxisSize: MainAxisSize.min,
                                     children: [
-                                      PersonAvatar(name: p.name, seed: p.id.hashCode,
+                                      PersonAvatar(name: p.name, seed: p.id.hashCode, age: p.age, star: p.isStar,
                                         color: e.key.color,
                                         size: 20,
                                       ),

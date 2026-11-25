@@ -2,6 +2,7 @@ import 'dart:math';
 
 import 'package:flutter/material.dart';
 
+import '../../models/models.dart' show kIncome;
 import '../../core/format.dart';
 import '../../core/theme.dart';
 import '../../data/content.dart';
@@ -327,7 +328,7 @@ class _MapScreenState extends State<MapScreen>
               style: const TextStyle(color: AppColors.textDim, fontSize: 12),
             ),
             Text(
-              'Bakım: ${fmtShort(l.upkeep)}/gün',
+              'Bakım: ${fmtShort(l.upkeep * kIncome)}/gün',
               style: const TextStyle(color: AppColors.textFaint, fontSize: 11),
             ),
             const SizedBox(height: 10),

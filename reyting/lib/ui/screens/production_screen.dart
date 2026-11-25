@@ -205,14 +205,19 @@ class _ShowCard extends StatelessWidget {
         return [
           Bar(1 - s.prodLeft / max(total, 0.01), color: AppColors.yellow),
           const SizedBox(height: 6),
-          Row(
+          Wrap(
+            spacing: 6,
+            runSpacing: 6,
+            crossAxisAlignment: WrapCrossAlignment.center,
             children: [
-              Text(
-                '${fmtDec(s.prodLeft, 1)} gün kaldı',
-                style: const TextStyle(fontSize: 12),
+              Padding(
+                padding: const EdgeInsets.only(right: 4),
+                child: Text(
+                  '${fmtDec(s.prodLeft, 1)} gün kaldı',
+                  style: const TextStyle(fontSize: 12),
+                ),
               ),
-              const Spacer(),
-              if (game.adBoostsLeft(s.id) > 0) ...[
+              if (game.adBoostsLeft(s.id) > 0)
                 GhostButton(
                   '📺 1 gün',
                   compact: true,
@@ -221,8 +226,6 @@ class _ShowCard extends StatelessWidget {
                     if (await watchAd(context)) report(context, game.adSpeedUpShow(s));
                   },
                 ),
-                const SizedBox(width: 6),
-              ],
               GhostButton(
                 'Hızlandır · ${game.speedUpCost(s)} 💎',
                 compact: true,
@@ -1088,7 +1091,7 @@ class _NewShowWizardState extends State<NewShowWizard> {
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          PersonAvatar(name: p.name, seed: p.id.hashCode,
+                          PersonAvatar(name: p.name, seed: p.id.hashCode, age: p.age, star: p.isStar,
                             color: role.color,
                             size: 22,
                           ),
@@ -1141,7 +1144,7 @@ Future<Staff?> showQuickHire(BuildContext context, Role role) {
                     padding: const EdgeInsets.symmetric(vertical: 4),
                     child: Row(
                       children: [
-                        PersonAvatar(name: p.name, seed: p.id.hashCode, color: role.color, size: 38),
+                        PersonAvatar(name: p.name, seed: p.id.hashCode, age: p.age, star: p.isStar, color: role.color, size: 38),
                         const SizedBox(width: 8),
                         Expanded(
                           child: Column(

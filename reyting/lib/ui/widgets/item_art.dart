@@ -2,6 +2,8 @@ import 'dart:math';
 
 import 'package:flutter/material.dart';
 
+import 'face.dart';
+
 import '../../core/theme.dart';
 import '../../data/content.dart';
 import 'scene.dart';
@@ -1468,6 +1470,15 @@ class PersonAvatar extends StatelessWidget {
 
   /// Kişinin adı: görünüm (kadın/erkek) isme uyar
   final String? name;
+
+  /// Yaş: yaşlılarda kır saç, gençlerde genç saç modelleri
+  final int? age;
+
+  /// Ünlü/yıldız: bazen güneş gözlüğü
+  final bool star;
+
+  /// İfade (canlı yayın ve diyaloglarda)
+  final FaceMood mood;
   const PersonAvatar({
     super.key,
     required this.seed,
@@ -1475,81 +1486,67 @@ class PersonAvatar extends StatelessWidget {
     this.size = 48,
     this.badgeIcon,
     this.name,
+    this.age,
+    this.star = false,
+    this.mood = FaceMood.neutral,
   });
 
+  static final Map<String, FaceSpec> _specs = {};
+
+  static FaceSpec specFor(int seed, String? name, {int? age, bool star = false}) =>
+      _specs.putIfAbsent('$seed|$name|$age|$star', () {
+        final female = name != null ? genderOfName(name) == 1 : seed.isEven;
+        return FaceSpec.of(seed, female: female, age: age ?? 30, star: star);
+      });
+
   @override
-  Widget build(BuildContext context) => SizedBox(
-    width: size,
-    height: size,
-    child: Stack(
-      children: [
-        ClipOval(
-          child: CustomPaint(
-            size: Size(size, size),
-            painter: _AvatarPainter(seed, color, name == null ? -1 : genderOfName(name!)),
-          ),
-        ),
-        if (badgeIcon != null)
-          Positioned(
-            right: 0,
-            bottom: 0,
-            child: Container(
-              padding: const EdgeInsets.all(2),
-              decoration: BoxDecoration(
-                color: color,
-                shape: BoxShape.circle,
-                border: Border.all(color: AppColors.panel, width: 2),
+  Widget build(BuildContext context) {
+    final spec = specFor(seed, name, age: age, star: star);
+    return SizedBox(
+      width: size,
+      height: size,
+      child: Stack(
+        children: [
+          Container(
+            width: size,
+            height: size,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              gradient: RadialGradient(
+                center: const Alignment(0, -0.3),
+                radius: 0.9,
+                colors: [
+                  Color.lerp(color, Colors.white, 0.35)!,
+                  Color.lerp(color, Colors.black, 0.15)!,
+                ],
               ),
-              child: Icon(badgeIcon, size: size * 0.22, color: Colors.white),
             ),
           ),
-      ],
-    ),
-  );
-}
-
-class _AvatarPainter extends CustomPainter {
-  final int seed;
-  final Color color;
-  final int gender;
-  _AvatarPainter(this.seed, this.color, this.gender);
-  @override
-  void paint(Canvas canvas, Size size) {
-    final d = Draw(canvas, size);
-    final r = Random(seed);
-    d.vgrad(
-      0,
-      1,
-      Color.lerp(color, Colors.white, 0.15)!,
-      Color.lerp(color, Colors.black, 0.4)!,
-    );
-    const shirts = [
-      AppColors.cyan,
-      AppColors.pink,
-      AppColors.yellow,
-      AppColors.purple,
-      AppColors.green,
-      AppColors.orange,
-      AppColors.blue,
-      Color(0xFF2A2440),
-    ];
-    final female = gender == 1 || (gender < 0 && r.nextBool());
-    d.person(
-      0.5,
-      1.85,
-      1.75,
-      shirt: shirts[r.nextInt(shirts.length)],
-      skin: r.nextInt(4),
-      hair: r.nextInt(5),
-      longHair: female && r.nextInt(3) > 0,
-      gender: female ? 1 : 0,
-      look: seed.abs(),
-      sunglasses: r.nextInt(6) == 0,
-      legsHidden: true,
+          ClipOval(
+            child: FaceView(
+              spec: spec,
+              cacheKey: Object.hash(seed, name, age, star),
+              mood: mood,
+              size: size,
+            ),
+          ),
+          if (badgeIcon != null)
+            Positioned(
+              right: 0,
+              bottom: 0,
+              child: Container(
+                padding: const EdgeInsets.all(2),
+                decoration: BoxDecoration(
+                  color: color,
+                  shape: BoxShape.circle,
+                  border: Border.all(color: AppColors.panel, width: 2),
+                ),
+                child: Icon(badgeIcon, size: size * 0.22, color: Colors.white),
+              ),
+            ),
+        ],
+      ),
     );
   }
-
-  @override
-  bool shouldRepaint(covariant _AvatarPainter old) =>
-      old.seed != seed || old.color != color || old.gender != gender;
 }
+

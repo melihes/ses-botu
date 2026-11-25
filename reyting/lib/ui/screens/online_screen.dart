@@ -124,14 +124,20 @@ class _OnlinePanel extends StatelessWidget {
             child: Row(children: [
               const Icon(Icons.public_rounded, color: AppColors.cyan, size: 48),
               const SizedBox(width: 12),
-              const Expanded(
+              Expanded(
                 child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  Text('Gerçek oyuncularla yarış',
+                  const Text('Gerçek oyuncularla yarış',
                       style: TextStyle(fontWeight: FontWeight.w900, fontSize: 18)),
-                  Text(
+                  const Text(
                       'Google ile giriş yap: ilerlemen buluta kaydedilsin (telefon değişse de kaybolmaz) '
                       've zenginler listesinde gerçek oyuncularla yarış.',
                       style: TextStyle(color: AppColors.textDim, fontSize: 12)),
+                  if (c.error != null)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 6),
+                      child: SelectableText('⚠️ ${c.error}',
+                          style: const TextStyle(color: AppColors.red, fontSize: 11)),
+                    ),
                 ]),
               ),
               const SizedBox(width: 10),
@@ -197,11 +203,19 @@ class _OnlinePanel extends StatelessWidget {
               child: Row(children: [
                 const Icon(Icons.shield_rounded, color: AppColors.cyan, size: 36),
                 const SizedBox(width: 10),
-                const Expanded(
-                  child: Text(
-                      'Misafir olarak oynuyorsun. Telefonu değiştirir ya da oyunu silersen ilerlemen kaybolabilir. '
-                      'Google hesabına bağla, ilerlemen hep korunsun.',
-                      style: TextStyle(fontWeight: FontWeight.w700, fontSize: 12)),
+                Expanded(
+                  child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    const Text(
+                        'Misafir olarak oynuyorsun. Telefonu değiştirir ya da oyunu silersen ilerlemen kaybolabilir. '
+                        'Google hesabına bağla, ilerlemen hep korunsun.',
+                        style: TextStyle(fontWeight: FontWeight.w700, fontSize: 12)),
+                    if (c.error != null)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 6),
+                        child: SelectableText('⚠️ ${c.error}',
+                            style: const TextStyle(color: AppColors.red, fontSize: 11)),
+                      ),
+                  ]),
                 ),
                 AccentButton(c.busy ? 'Bağlanıyor…' : 'Google ile koru',
                     compact: true,

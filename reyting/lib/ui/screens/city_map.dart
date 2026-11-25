@@ -4,6 +4,7 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../../models/models.dart' show kIncome;
 import '../../core/format.dart';
 import '../../core/theme.dart';
 import '../../data/cities.dart';
@@ -414,7 +415,7 @@ class _LocCard extends StatelessWidget {
         ]),
         Text(l.desc, style: const TextStyle(color: AppColors.textDim, fontSize: 11)),
         Text(
-            'Uyumlu çekimde kalite +%${(l.bonus * 100).round()} · +${l.prestige} prestij · bakım ${fmtShort(l.upkeep)}/gün',
+            'Uyumlu çekimde kalite +%${(l.bonus * 100).round()} · +${l.prestige} prestij · bakım ${fmtShort(l.upkeep * kIncome)}/gün',
             style: const TextStyle(color: AppColors.green, fontSize: 11, fontWeight: FontWeight.w700)),
         const SizedBox(height: 6),
         if (owned)

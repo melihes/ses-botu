@@ -282,7 +282,7 @@ class BrandsScreen extends StatelessWidget {
                           Text(
                             o.lump > 0
                                 ? 'Tek seferlik +${fmtShort(o.lump)}'
-                                : '+${fmtShort(o.perDay)}/gün × ${o.days} gün = ${fmtShort(o.total)}'
+                                : '+${fmtShort(o.perDay * kIncome)}/gün × ${o.days} gün = ${fmtShort(o.total * kIncome)}'
                                       '${o.ratingCost > 0 ? ' · reyting -%${(o.ratingCost * 100).round()}' : ''}',
                             style: const TextStyle(
                               color: AppColors.green,
@@ -366,7 +366,7 @@ class BrandsScreen extends StatelessWidget {
                 ),
               ),
               Text(
-                '+${fmtShort(perDay)}/gün · $days gün',
+                '+${fmtShort(perDay * kIncome)}/gün · $days gün',
                 style: const TextStyle(
                   color: AppColors.green,
                   fontWeight: FontWeight.w800,

@@ -401,7 +401,7 @@ class _OnAir extends StatelessWidget {
                     ),
                   if (s.sponsorDays > 0)
                     Text(
-                      '🤝 ${s.sponsor} · +${fmtShort(s.sponsorPerDay)}/gün · ${s.sponsorDays}g',
+                      '🤝 ${s.sponsor} · +${fmtShort(s.sponsorPerDay * kIncome)}/gün · ${s.sponsorDays}g',
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(

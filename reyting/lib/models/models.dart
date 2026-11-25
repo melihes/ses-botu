@@ -3,6 +3,14 @@ import 'dart:math';
 import '../data/content.dart';
 import '../data/content2.dart';
 
+/// Ekonomi çarpanı (1.0.2): tüm gelirler ve günlük giderler (maaş, kira,
+/// bakım) bu oranla ölçeklenir; satın alma fiyatları değişmez.
+/// Sonuç: kazanılan para ~%70 azalır, kâr marjları korunur.
+const double kIncome = 0.32;
+
+/// Kayıt formatındaki ekonomi sürümü (eski kayıtlar yüklenirken ölçeklenir)
+const int kEconVersion = 2;
+
 /// Kadrodaki (veya pazardaki) bir kişi
 class Staff {
   final String id;
@@ -458,7 +466,7 @@ class Creator {
   double followers;
   double growth; // günlük büyüme oranı
   final double engagement; // etkileşim oranı
-  final double salary;
+  double salary;
   int campaignReadyDay;
   final int look; // avatar varyasyonu
 
@@ -475,7 +483,7 @@ class Creator {
     this.look = 0,
   });
 
-  double get revenuePerDay => followers * engagement * 2;
+  double get revenuePerDay => followers * engagement * 2 * kIncome;
   double get signingFee => salary * 7;
   double get campaignCost => followers * 0.5;
 
@@ -698,7 +706,7 @@ class Exec {
   final String name;
   final ExecRole role;
   final int skill; // 1..99
-  final double salary;
+  double salary;
   Exec(this.id, this.name, this.role, this.skill, this.salary);
   ExecRoleDef get def => execDefs[role]!;
   double get signingFee => salary * 10;

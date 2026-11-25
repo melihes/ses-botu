@@ -18,7 +18,7 @@ void main() {
     final realDays = int.parse(
       const String.fromEnvironment('REALDAYS', defaultValue: '365'),
     );
-    const report = {1, 2, 3, 7, 14, 30, 60, 90, 120, 180, 240, 300, 365};
+    const report = {1, 2, 3, 4, 5, 7, 10, 14, 30, 60, 90, 120, 180, 240, 300, 365};
     var lastLv = 0;
     for (int rd = 1; rd <= realDays; rd++) {
       for (int session = 0; session < 3; session++) {

@@ -281,7 +281,7 @@ class Game extends ChangeNotifier {
   /// aynı kuşağa koyar. Günlük maaşı stüdyo seviyesiyle artar.
   bool get autoManager => execs.containsKey(ExecRole.genelMudur);
 
-  double get managerSalary => 15000 * pow(1.9, studioLevel).toDouble();
+  double get managerSalary => 15000 * pow(1.9, studioLevel).toDouble() * kIncome;
   double get managerSigningFee => managerSalary * 10;
 
   /// Hızlı yol: orta seviye (55) bir Genel Müdür işe alır.
@@ -1120,7 +1120,8 @@ class Game extends ChangeNotifier {
 
   double get sponsorIncomePerDay => shows
       .where((s) => s.status == ShowStatus.onAir && s.sponsorDays > 0)
-      .fold(0.0, (a, s) => a + s.sponsorPerDay);
+      .fold(0.0, (a, s) => a + s.sponsorPerDay) *
+      kIncome;
 
   // ---- Dijital ----
   double get totalFollowers => creators.fold(0.0, (a, c) => a + c.followers);
@@ -1141,7 +1142,7 @@ class Game extends ChangeNotifier {
   double get musicQualityBonus => bizEffect(BizEffect.quality);
 
   double get bizIncomePerDay =>
-      bizDefs.fold(0.0, (a, b) => a + bizIncome(b, bizLevel(b.id)));
+      bizDefs.fold(0.0, (a, b) => a + bizIncome(b, bizLevel(b.id))) * kIncome;
 
   double get platformIncomePerDay {
     if (ownedPlatforms.isEmpty) return 0;
@@ -1153,7 +1154,7 @@ class Game extends ChangeNotifier {
         v += filmValue(f) * 0.004 * f.def.streaming;
       }
     }
-    return v;
+    return v * kIncome;
   }
 
   double get boxOfficePerDay => films
@@ -1170,16 +1171,18 @@ class Game extends ChangeNotifier {
         (a, s) => a + (s.showId == null ? s.salary * 0.5 : s.salary),
       ) +
       academy.fold(0.0, (a, s) => a + s.salary);
-  double get dailyRent => studio.rentPerDay * (1 - execBonus(ExecRole.finans));
+  double get dailyRent => studio.rentPerDay * kIncome * (1 - execBonus(ExecRole.finans));
   double get dailyUpkeep =>
       (ownedEquip.fold(0.0, (a, id) => a + (equipById(id)?.upkeepPerDay ?? 0)) +
           locationUpkeep) *
+      kIncome *
       (1 - execBonus(ExecRole.finans));
   double get debt => loans.fold(0.0, (a, l) => a + l.remaining);
 
   double get channelIncomePerDay => channelDefs
       .where((c) => ownedChannels.contains(c.id))
-      .fold(0.0, (a, c) => a + c.dailyIncome);
+      .fold(0.0, (a, c) => a + c.dailyIncome) *
+      kIncome;
 
   double get adIncomePerDay => shows
       .where((s) => s.status == ShowStatus.onAir)
@@ -1223,7 +1226,7 @@ class Game extends ChangeNotifier {
   double grossRevenuePerDay(Show s) {
     if (s.slot == null) return 0;
     final m = slots[s.slot]!.adMinutes;
-    return adRevenuePerDay(viewers(s), m, s.slot!, adBonus) * adDemand;
+    return adRevenuePerDay(viewers(s), m, s.slot!, adBonus) * adDemand * kIncome;
   }
 
   double get totalViewers => shows
@@ -2591,7 +2594,7 @@ class Game extends ChangeNotifier {
   /// Kurgusal patronların servetleri (online'da gerçek oyuncular gelecek)
   /// Takvim simülasyonuna göre ayarlı: günde ~1 saat oynayan oyuncu
   /// ~1. ayda ilk 100'e, ~1 yılda ilk 10-15'e ulaşır; 1 numara ekstra emek ister.
-  double tycoonWorth(int i) => 7.6e13 * exp(-i * 0.0408) * (1 + day / 1e6);
+  double tycoonWorth(int i) => 3.2e12 * exp(-i * 0.0266) * (1 + day / 1e6);
 
   String tycoonName(int i) =>
       '${firstNames[(i * 17 + 3) % firstNames.length]} '

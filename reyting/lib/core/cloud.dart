@@ -45,6 +45,12 @@ class Cloud extends ChangeNotifier {
 
   bool get signedIn => user != null;
 
+  /// Hata metnini ekranda okunur uzunlukta göster (teşhis için)
+  static String _short(Object e) {
+    final t = e.toString().replaceAll('\n', ' ');
+    return t.length > 180 ? '${t.substring(0, 180)}…' : t;
+  }
+
   /// Bu kariyer neden sıralamaya giremiyor (null: giriyor)
   String? unverifiedReason;
 
@@ -72,6 +78,7 @@ class Cloud extends ChangeNotifier {
       ready = true;
     } catch (e) {
       debugPrint('Firebase başlatılamadı: $e');
+      error = 'Online sistem başlatılamadı: ${_short(e)}';
       ready = false;
     }
     notifyListeners();
@@ -108,6 +115,7 @@ class Cloud extends ChangeNotifier {
         user = res.user;
       } catch (e) {
         debugPrint('Misafir giriş olmadı: $e');
+        error = 'Misafir giriş olmadı: ${_short(e)}';
       }
     }
     if (signedIn) {
@@ -150,10 +158,10 @@ class Cloud extends ChangeNotifier {
       return null;
     } on GoogleSignInException catch (e) {
       if (e.code == GoogleSignInExceptionCode.canceled) return null;
-      error = 'Giriş yapılamadı (${e.code.name}).';
+      error = 'Giriş yapılamadı (${e.code.name}): ${_short(e.description ?? '')}';
       return error;
     } catch (e) {
-      error = 'Giriş yapılamadı.';
+      error = 'Giriş yapılamadı: ${_short(e)}';
       debugPrint('Giriş hatası: $e');
       return error;
     } finally {

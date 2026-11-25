@@ -307,7 +307,7 @@ Future<Map<int, int>> runOnce(
     g.debugAdvanceDays(1);
     final lv = g.studioLevel + 1;
     if (!m.containsKey(lv)) m[lv] = d;
-    if (log && [10, 30, 60, 120, 200, 300].contains(d)) {
+    if (log && [10, 20, 30, 45, 60, 90, 120, 200, 300].contains(d)) {
       final on = g.shows.where((s) => s.status == ShowStatus.onAir).toList();
       report.writeln(
         '${isNaive ? "ÖZENSİZ" : "AKILLI "} Gün ${d.toString().padLeft(3)}: kasa ${fmtShort(g.cash).padLeft(10)} '

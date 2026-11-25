@@ -422,7 +422,7 @@ void main() {
         );
         g.resolveDecision(0);
         expect(g.pendingDecision, isNull);
-        expect(g.sponsorIncomePerDay, 10000);
+        expect(g.sponsorIncomePerDay, closeTo(10000 * kIncome, 1e-6));
         expect(g.sponsorDeals, 1);
         s.episodesAired = -20; // sezon bitmesin
         g.debugAdvanceDays(10.5);

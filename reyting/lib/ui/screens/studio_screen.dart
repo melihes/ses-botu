@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../models/models.dart' show kIncome;
 import '../../core/format.dart';
 import '../../core/theme.dart';
 import '../../data/content.dart';
@@ -67,7 +68,7 @@ class StudioScreen extends StatelessWidget {
                         ),
                         StatBlock(
                           'Kira/gün',
-                          fmtShort(cur.rentPerDay),
+                          fmtShort(cur.rentPerDay * kIncome),
                           color: AppColors.orange,
                         ),
                         StatBlock('Kadro sınırı', '${cur.maxStaff}'),
@@ -104,7 +105,7 @@ class StudioScreen extends StatelessWidget {
                           ),
                           Text(
                             'Erişim ${fmtPct(next.reach * 100, 0)} · '
-                            'kadro ${next.maxStaff} · kira ${fmtShort(next.rentPerDay)}'
+                            'kadro ${next.maxStaff} · kira ${fmtShort(next.rentPerDay * kIncome)}'
                             '${nextSlots.isEmpty ? '' : ' · ${nextSlots.join(', ')} kuşağı açılır'}',
                             style: const TextStyle(
                               color: AppColors.textDim,
@@ -231,7 +232,7 @@ class _EquipCard extends StatelessWidget {
                     ),
                   ),
                 Text(
-                  'Bakım: ${fmtShort(e.upkeepPerDay)}/gün',
+                  'Bakım: ${fmtShort(e.upkeepPerDay * kIncome)}/gün',
                   style: const TextStyle(
                     color: AppColors.textFaint,
                     fontSize: 11,

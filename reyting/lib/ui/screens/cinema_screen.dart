@@ -153,14 +153,19 @@ class _FilmCard extends StatelessWidget {
         return [
           Bar(1 - f.prodLeft / max(total, 0.01), color: AppColors.yellow),
           const SizedBox(height: 6),
-          Row(
+          Wrap(
+            spacing: 6,
+            runSpacing: 6,
+            crossAxisAlignment: WrapCrossAlignment.center,
             children: [
-              Text(
-                '${fmtDec(f.prodLeft, 1)} gün kaldı',
-                style: const TextStyle(fontSize: 12),
+              Padding(
+                padding: const EdgeInsets.only(right: 4),
+                child: Text(
+                  '${fmtDec(f.prodLeft, 1)} gün kaldı',
+                  style: const TextStyle(fontSize: 12),
+                ),
               ),
-              const Spacer(),
-              if (game.adBoostsLeft(f.id) > 0) ...[
+              if (game.adBoostsLeft(f.id) > 0)
                 GhostButton(
                   '📺 1 gün',
                   compact: true,
@@ -169,8 +174,6 @@ class _FilmCard extends StatelessWidget {
                     if (await watchAd(context)) report(context, game.adSpeedUpFilm(f));
                   },
                 ),
-                const SizedBox(width: 6),
-              ],
               GhostButton(
                 'Hızlandır · ${game.filmSpeedUpCost(f)} 💎',
                 compact: true,

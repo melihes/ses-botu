@@ -21,7 +21,7 @@ const startingCash = 1500000.0;
 const startingDiamonds = 25;
 
 /// Yeteneğe göre günlük maaş.
-double salaryFor(int skill) => 1500 + skill * skill * 3.0;
+double salaryFor(int skill) => (1500 + skill * skill * 3.0) * kIncome;
 
 /// Program kalitesi (0..1.3): kadro yeteneği × bütçe × ekipman.
 double showQuality(
@@ -141,7 +141,8 @@ double boxOfficeForDay(Film f, int dayIndex, double reach, double bonus) {
       1.0 *
       f.def.boxOffice *
       (0.5 + reach) *
-      (1 + bonus);
+      (1 + bonus) *
+      kIncome;
   // 10 güne yayılan azalan dağılım (toplamı ~1)
   final w = pow(0.8, dayIndex) * 0.2 / (1 - pow(0.8, theaterRunDays));
   return total * w;
@@ -149,10 +150,10 @@ double boxOfficeForDay(Film f, int dayIndex, double reach, double bonus) {
 
 /// Bir platformun bu film için önerdiği lisans ücreti (30 gün).
 double licenseOffer(Film f, PlatformDef p, double bonus) =>
-    filmValue(f) * 0.45 * p.payMult * f.def.streaming * (1 + bonus);
+    filmValue(f) * 0.45 * p.payMult * f.def.streaming * (1 + bonus) * kIncome;
 
 /// Hakların tamamen satışı.
-double rightsSaleValue(Film f) => filmValue(f) * 1.6;
+double rightsSaleValue(Film f) => filmValue(f) * 1.6 * kIncome;
 
 // ------------------------------------------------------------------
 // Holding

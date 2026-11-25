@@ -60,6 +60,7 @@ extension GameV12 on Game {
     'transferOffers': transferOffers.map((e) => e.toJson()).toList(),
     'talentsSold': talentsSold,
     'transferProfit': transferProfit,
+    'econ': kEconVersion,
     'execs': execs.values.map((e) => e.toJson()).toList(),
     'execCandidates': execCandidates.map((e) => e.toJson()).toList(),
     'brandOffers': brandOffers.map((e) => e.toJson()).toList(),
@@ -164,7 +165,23 @@ extension GameV12 on Game {
     storyChoices = j['storyChoices'] ?? 0;
     eventsHeld = j['eventsHeld'] ?? 0;
     _shopLoad(j);
+    if ((j['econ'] as int? ?? 1) < kEconVersion) _migrateEcon();
     adDemand = (j['adDemand'] as num? ?? 1).toDouble();
+  }
+
+  /// 1.0.2 ekonomi dengesi: eski kayıttaki maaşlar yeni ölçeğe çekilir
+  void _migrateEcon() {
+    for (final l in [staff, academy, market, youthMarket, transferMarket]) {
+      for (final p in l) {
+        p.salary = (p.salary * kIncome / 100).round() * 100.0;
+      }
+    }
+    for (final c in creators) {
+      c.salary = (c.salary * kIncome / 100).round() * 100.0;
+    }
+    for (final e in [...execs.values, ...execCandidates]) {
+      e.salary = (e.salary * kIncome / 100).round() * 100.0;
+    }
   }
 
   // =================================================================
@@ -532,7 +549,7 @@ extension GameV12 on Game {
           .length;
       m += min(0.6, dizi * 0.12);
     }
-    return eventCost(l) * m * (1 + prestigeAdBonus(prestige));
+    return eventCost(l) * (1 + (m - 1) * kIncome * 2.2) * (1 + prestigeAdBonus(prestige));
   }
 
   String? holdEvent(LocationDef l) {
@@ -897,7 +914,8 @@ extension GameV12 on Game {
       15000 *
       pow(1.9, studioLevel).toDouble() *
       (r == ExecRole.genelMudur ? 1.0 : 0.7) *
-      (0.35 + 1.4 * pow(skill / 100, 2.5));
+      (0.35 + 1.4 * pow(skill / 100, 2.5)) *
+      kIncome;
 
   void _refreshExecCandidates() {
     execCandidates.clear();
@@ -1037,7 +1055,8 @@ extension GameV12 on Game {
 
   double get brandMult => 1 + execBonus(ExecRole.pazarlama);
 
-  double get dealIncomePerDay => deals.fold(0.0, (a, d) => a + d.perDay);
+  double get dealIncomePerDay =>
+      deals.fold(0.0, (a, d) => a + d.perDay) * kIncome;
 
   void _brandDaily() {
     brandOffers.removeWhere((o) => o.expires < day);
