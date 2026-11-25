@@ -11,7 +11,8 @@ import '../../models/models.dart';
 import '../widgets/common.dart';
 import '../widgets/company_logo.dart';
 import '../widgets/item_art.dart';
-import '../widgets/scene.dart';
+import '../widgets/face.dart';
+import 'live_stage.dart';
 
 /// Programı tam ekran canlı izle: konuşmalar, skor, seyirci tepkileri.
 Future<void> openLiveView(BuildContext context, Show s) => showDialog(
@@ -29,25 +30,18 @@ class LiveView extends StatefulWidget {
   State<LiveView> createState() => _LiveViewState();
 }
 
-class _Bubble {
-  final String who;
-  final String text;
-  final int id;
-  _Bubble(this.who, this.text, this.id);
-}
-
 class _LiveViewState extends State<LiveView> {
   LiveScript? _script;
   Timer? _timer;
   final _feed = <LiveBeat>[];
-  final _bubbles = <int, _Bubble?>{0: null, 1: null, 2: null};
-  final _clearAt = <int, DateTime>{};
-  int _reaction = 0;
-  DateTime _reactionUntil = DateTime(2000);
   String _ticker = '';
   int _bid = 0;
   double _jitter = 1;
   final _r = Random();
+  final Map<String, LivePerson> _people = {};
+  late LivePerson _host, _guest;
+  List<FaceSpec> _crowd = const [];
+  LiveBeat? _beat;
 
   @override
   void didChangeDependencies() {
@@ -71,36 +65,47 @@ class _LiveViewState extends State<LiveView> {
       cast: actors.isNotEmpty ? actors : others,
       seed: s.id.hashCode ^ DateTime.now().millisecond,
     );
+    // canlı yayındaki kişiler: kadrodaki yüzlerle aynı
+    for (final p in crew) {
+      _people[first(p)] = LivePerson(
+          first(p), PersonAvatar.specFor(p.id.hashCode, p.name, age: p.age, star: p.isStar), p.id.hashCode);
+    }
+    final g = s.guestName;
+    if (g != null) {
+      _people[g] = LivePerson(g, PersonAvatar.specFor(g.hashCode, g, age: 40, star: true), g.hashCode);
+    }
+    LivePerson person(String who) =>
+        _people[who] ??= LivePerson(who, PersonAvatar.specFor(who.hashCode, who, age: 28), who.hashCode);
+    _host = person(host);
+    _guest = person(guest);
+    final kids = s.genre == Genre.cocuk;
+    _crowd = [
+      for (int i = 0; i < 14; i++)
+        FaceSpec.of(s.id.hashCode + i * 977,
+            female: i.isOdd, age: kids ? 12 : 19 + (i * 7) % 45),
+    ];
     _ticker = '${game.channelName} · ${s.name} · ${s.def.label}';
     _step();
-    _timer = Timer.periodic(const Duration(milliseconds: 2900), (_) => _step());
   }
 
   void _step() {
     if (!mounted) return;
     final b = _script!.next();
-    final now = DateTime.now();
+    if (b.side < 2 && !_people.containsKey(b.who)) {
+      _people[b.who] = LivePerson(b.who, PersonAvatar.specFor(b.who.hashCode, b.who, age: 27), b.who.hashCode);
+    }
     setState(() {
-      _bubbles[b.side] = _Bubble(b.who, b.text, ++_bid);
-      _clearAt[b.side] = now.add(const Duration(milliseconds: 5200));
-      for (final e in _clearAt.entries) {
-        if (now.isAfter(e.value)) _bubbles[e.key] = null;
-      }
-      if (b.reaction > 0) {
-        _reaction = b.reaction;
-        _reactionUntil = now.add(const Duration(milliseconds: 2200));
-      } else if (now.isAfter(_reactionUntil)) {
-        _reaction = 0;
-      }
+      _beat = b;
+      _bid++;
       if (b.ticker != null) _ticker = b.ticker!;
       _feed.insert(0, b);
       if (_feed.length > 30) _feed.removeLast();
       _jitter = 0.97 + _r.nextDouble() * 0.06 + (b.reaction == 2 ? 0.03 : 0);
     });
-    // tepki kısa sürsün
-    Future.delayed(const Duration(milliseconds: 2300), () {
-      if (mounted && DateTime.now().isAfter(_reactionUntil)) setState(() => _reaction = 0);
-    });
+    // konuşma okunabilsin: süre metnin uzunluğuna göre (ilk an jenerik)
+    final ms = _bid == 1 ? 2600 : (1700 + b.text.length * 36).clamp(2800, 6200);
+    _timer?.cancel();
+    _timer = Timer(Duration(milliseconds: ms), _step);
   }
 
   @override
@@ -167,67 +172,23 @@ class _LiveViewState extends State<LiveView> {
         Expanded(
           child: Row(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
             Expanded(
-              child: LayoutBuilder(builder: (ctx, c) {
-                return Stack(children: [
-                  Positioned.fill(
-                    child: StageScene(
-                      prop: fmt.prop,
-                      color: s.def.color,
-                      tier: max(0, s.tier + s.budget - 1),
-                      live: false,
-                      reaction: _reaction,
-                      width: c.maxWidth,
-                      height: c.maxHeight,
-                      radius: BorderRadius.zero,
-                    ),
-                  ),
-                  // konuşma balonları
-                  if (_bubbles[0] != null)
-                    Positioned(
-                      left: c.maxWidth * 0.03,
-                      top: c.maxHeight * 0.03,
-                      width: c.maxWidth * 0.43,
-                      child: _TalkBubble(b: _bubbles[0]!, color: AppColors.accent, tailLeft: true),
-                    ),
-                  if (_bubbles[1] != null)
-                    Positioned(
-                      right: c.maxWidth * 0.03,
-                      top: c.maxHeight * 0.13,
-                      width: c.maxWidth * 0.43,
-                      child: _TalkBubble(b: _bubbles[1]!, color: AppColors.cyan, tailLeft: false),
-                    ),
-                  if (_bubbles[2] != null)
-                    Positioned(
-                      left: c.maxWidth * 0.15,
-                      right: c.maxWidth * 0.15,
-                      top: c.maxHeight * 0.46,
-                      child: Center(child: _Caption(b: _bubbles[2]!)),
-                    ),
-                  // seyirci tepkisi
-                  if (_reaction > 0)
-                    Positioned(
-                      left: 0,
-                      right: 0,
-                      bottom: 58,
-                      child: Center(child: _ReactionBurst(kind: _reaction, key: ValueKey(_bid))),
-                    ),
-                  // skor tabelası
-                  if (board != null)
-                    Positioned(right: 10, bottom: 34, child: _Scoreboard(board: board)),
-                  // alt bant + kayan yazı
-                  Positioned(
-                    left: 0,
-                    right: 0,
-                    bottom: 0,
-                    child: _LowerThird(
-                      title: s.name,
-                      sub: s.guestName != null ? 'Konuk: ${s.guestName}' : s.def.label,
-                      ticker: _ticker,
-                      color: s.def.color,
-                    ),
-                  ),
-                ]);
-              }),
+              child: LiveStage(
+                genre: s.genre,
+                prop: fmt.prop,
+                title: s.name,
+                channel: game.channelName,
+                channelLogo: CompanyLogoView(logo: game.logo, size: 22),
+                color: s.def.color,
+                beat: _beat,
+                beatId: _bid,
+                ticker: _ticker,
+                board: board == null ? null : _Scoreboard(board: board),
+                host: _host,
+                guest: _guest,
+                people: _people,
+                crowd: _crowd,
+                seed: s.id.hashCode,
+              ),
             ),
             // olay akışı
             Container(
@@ -338,137 +299,6 @@ class _Stat extends StatelessWidget {
       );
 }
 
-class _TalkBubble extends StatelessWidget {
-  final _Bubble b;
-  final Color color;
-  final bool tailLeft;
-  const _TalkBubble({required this.b, required this.color, required this.tailLeft});
-
-  @override
-  Widget build(BuildContext context) => TweenAnimationBuilder<double>(
-        key: ValueKey(b.id),
-        tween: Tween(begin: 0.5, end: 1),
-        duration: const Duration(milliseconds: 260),
-        curve: Curves.easeOutBack,
-        builder: (_, v, child) => Transform.scale(
-          scale: v,
-          alignment: tailLeft ? Alignment.bottomLeft : Alignment.bottomRight,
-          child: Opacity(opacity: v.clamp(0.0, 1.0), child: child),
-        ),
-        child: Column(
-          crossAxisAlignment: tailLeft ? CrossAxisAlignment.start : CrossAxisAlignment.end,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              padding: const EdgeInsets.fromLTRB(6, 6, 10, 8),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(14),
-                border: Border.all(color: color, width: 2),
-                boxShadow: const [BoxShadow(color: Colors.black54, blurRadius: 8)],
-              ),
-              child: Row(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
-                // konuşanın portresi
-                Container(
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    border: Border.all(color: color, width: 2),
-                  ),
-                  child: PersonAvatar(name: b.who, seed: b.who.hashCode, color: color, size: 38),
-                ),
-                const SizedBox(width: 8),
-                Flexible(
-                  child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
-                    Text(b.who.toUpperCase(),
-                        style: TextStyle(color: color, fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 1)),
-                    Text(b.text,
-                        style: const TextStyle(
-                            color: Color(0xFF1E182B), fontSize: 13, fontWeight: FontWeight.w800, height: 1.2)),
-                  ]),
-                ),
-              ]),
-            ),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 22),
-              child: CustomPaint(size: const Size(14, 9), painter: _Tail(color)),
-            ),
-          ],
-        ),
-      );
-}
-
-class _Tail extends CustomPainter {
-  final Color c;
-  _Tail(this.c);
-  @override
-  void paint(Canvas canvas, Size s) {
-    final p = Path()
-      ..moveTo(0, 0)
-      ..lineTo(s.width, 0)
-      ..lineTo(s.width / 2, s.height)
-      ..close();
-    canvas.drawPath(p, Paint()..color = c);
-  }
-
-  @override
-  bool shouldRepaint(covariant _Tail o) => o.c != c;
-}
-
-class _Caption extends StatelessWidget {
-  final _Bubble b;
-  const _Caption({required this.b});
-  @override
-  Widget build(BuildContext context) => TweenAnimationBuilder<double>(
-        key: ValueKey(b.id),
-        tween: Tween(begin: 0, end: 1),
-        duration: const Duration(milliseconds: 300),
-        builder: (_, v, child) => Opacity(opacity: v, child: child),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-          decoration: BoxDecoration(
-            color: Colors.black.withValues(alpha: 0.65),
-            borderRadius: BorderRadius.circular(10),
-            border: Border.all(color: AppColors.yellow.withValues(alpha: 0.6)),
-          ),
-          child: Text('${b.who}: ${b.text}',
-              textAlign: TextAlign.center,
-              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800, fontStyle: FontStyle.italic)),
-        ),
-      );
-}
-
-class _ReactionBurst extends StatelessWidget {
-  final int kind;
-  const _ReactionBurst({super.key, required this.kind});
-  @override
-  Widget build(BuildContext context) {
-    final txt = switch (kind) {
-      1 => '😂 HA HA HA 😂',
-      2 => '👏 👏 👏 ALKIŞ 👏 👏 👏',
-      _ => '😱 OOOO! 😱',
-    };
-    return TweenAnimationBuilder<double>(
-      tween: Tween(begin: 0, end: 1),
-      duration: const Duration(milliseconds: 1800),
-      builder: (_, v, _) => Opacity(
-        opacity: (v < 0.15 ? v / 0.15 : (1 - v) / 0.85).clamp(0.0, 1.0),
-        child: Transform.translate(
-          offset: Offset(0, -30 * v),
-          child: Transform.scale(
-            scale: 0.8 + 0.4 * Curves.easeOutBack.transform(min(1, v * 3)),
-            child: Text(txt,
-                style: const TextStyle(
-                    fontSize: 22,
-                    fontWeight: FontWeight.w900,
-                    color: Colors.white,
-                    shadows: [Shadow(color: Colors.black, blurRadius: 8)])),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
 class _Scoreboard extends StatelessWidget {
   final LiveBoard board;
   const _Scoreboard({required this.board});
@@ -509,89 +339,6 @@ class _Scoreboard extends StatelessWidget {
               style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900)),
         ),
       ]);
-}
-
-class _LowerThird extends StatelessWidget {
-  final String title, sub, ticker;
-  final Color color;
-  const _LowerThird({required this.title, required this.sub, required this.ticker, required this.color});
-  @override
-  Widget build(BuildContext context) => Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Padding(
-          padding: const EdgeInsets.only(left: 10, bottom: 4),
-          child: Container(
-            padding: const EdgeInsets.fromLTRB(10, 4, 14, 4),
-            decoration: BoxDecoration(
-              gradient: LinearGradient(colors: [color, color.withValues(alpha: 0.6)]),
-              borderRadius: BorderRadius.circular(6),
-            ),
-            child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
-              Text(title.toUpperCase(),
-                  style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 13, letterSpacing: 1)),
-              Text(sub, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w700)),
-            ]),
-          ),
-        ),
-        Container(
-          height: 26,
-          color: const Color(0xF0120E1C),
-          child: Row(children: [
-            Container(
-              color: AppColors.red,
-              padding: const EdgeInsets.symmetric(horizontal: 8),
-              alignment: Alignment.center,
-              child: const Text('GÜNDEM', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 11)),
-            ),
-            Expanded(child: _Marquee(text: ticker)),
-          ]),
-        ),
-      ]);
-}
-
-/// Sağdan sola kayan yazı
-class _Marquee extends StatefulWidget {
-  final String text;
-  const _Marquee({required this.text});
-  @override
-  State<_Marquee> createState() => _MarqueeState();
-}
-
-class _MarqueeState extends State<_Marquee> with SingleTickerProviderStateMixin {
-  late final AnimationController _c =
-      AnimationController(vsync: this, duration: const Duration(seconds: 12))..repeat();
-  @override
-  void dispose() {
-    _c.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) => ClipRect(
-        child: LayoutBuilder(builder: (ctx, c) {
-          final tp = TextPainter(
-            text: TextSpan(text: widget.text, style: TextStyle(fontFamily: 'Roboto', fontFamilyFallback: const ['NotoColorEmoji'], fontSize: 12, fontWeight: FontWeight.w700)),
-            textDirection: TextDirection.ltr,
-            maxLines: 1,
-          )..layout();
-          return AnimatedBuilder(
-            animation: _c,
-            builder: (_, _) {
-              final total = c.maxWidth + tp.width;
-              final x = c.maxWidth - _c.value * total;
-              return Stack(children: [
-                Positioned(
-                  left: x,
-                  top: 5,
-                  child: Text(widget.text,
-                      maxLines: 1,
-                      softWrap: false,
-                      style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700)),
-                ),
-              ]);
-            },
-          );
-        }),
-      );
 }
 
 /// Sahneye dokununca canlı izleme açılır; köşede "▶ İzle" rozeti görünür.

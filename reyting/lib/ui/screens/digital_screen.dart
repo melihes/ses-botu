@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../engine/game.dart';
 import '../../core/format.dart';
 import '../../core/theme.dart';
 import '../../data/content.dart';
@@ -139,6 +140,8 @@ class _CreatorCard extends StatelessWidget {
               PersonAvatar(
                 name: c.name,
                 seed: c.look,
+                female: Game.isStarCreator(c) ? Game.isFemaleCreator(c) : null,
+                star: Game.isStarCreator(c),
                 color: c.niche.color,
                 size: 52,
                 badgeIcon: c.niche.icon,
@@ -154,6 +157,11 @@ class _CreatorCard extends StatelessWidget {
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(fontWeight: FontWeight.w900),
                     ),
+                    if (Game.isStarCreator(c))
+                      const Text(
+                        '⭐ EFSANE İÇERİK ÜRETİCİSİ',
+                        style: TextStyle(color: AppColors.yellow, fontSize: 10, fontWeight: FontWeight.w900),
+                      ),
                     Text(
                       '${c.name} · ${c.niche.label}',
                       maxLines: 1,

@@ -646,10 +646,34 @@ extension GameV12 on Game {
 
   double youthSignFee(Staff p) => talentValue(p) * 0.3;
 
+  /// Özel genç yetenek: Yağız Ada (ortalama değerlerde, her kariyerde bir kez)
+  static const yagizId = 'y_yagiz_ada';
+
+  Staff _yagizAda() {
+    final skill = 24 + agencyLevel * 2;
+    return Staff(
+      id: yagizId,
+      name: 'Yağız Ada',
+      role: Role.oyuncu,
+      skill: skill,
+      salary: (salaryFor(skill) * 0.5 / 100).round() * 100.0,
+      age: 18,
+      potential: min(99, 68 + agencyLevel * 3),
+      trait: 0,
+      spec: 0,
+    );
+  }
+
+  bool get _yagizOwned =>
+      [...staff, ...academy, ...transferMarket].any((p) => p.id == yagizId);
+
   void _refreshYouth() {
     youthMarket.clear();
     if (!agencyOpen) return;
-    for (int i = 0; i < agency.scouts; i++) {
+    if (!_yagizOwned) youthMarket.add(_yagizAda());
+    // daha çok seçenek: gözlemci sayısının iki katı aday (en az 6)
+    final n = max(6, agency.scouts * 2);
+    for (int i = 0; i < n; i++) {
       youthMarket.add(_youngPerson());
     }
   }

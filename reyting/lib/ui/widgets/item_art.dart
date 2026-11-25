@@ -1479,6 +1479,9 @@ class PersonAvatar extends StatelessWidget {
 
   /// İfade (canlı yayın ve diyaloglarda)
   final FaceMood mood;
+
+  /// Cinsiyeti isimden bağımsız belirt (ör. takma adlı içerik üreticileri)
+  final bool? female;
   const PersonAvatar({
     super.key,
     required this.seed,
@@ -1489,19 +1492,20 @@ class PersonAvatar extends StatelessWidget {
     this.age,
     this.star = false,
     this.mood = FaceMood.neutral,
+    this.female,
   });
 
   static final Map<String, FaceSpec> _specs = {};
 
-  static FaceSpec specFor(int seed, String? name, {int? age, bool star = false}) =>
-      _specs.putIfAbsent('$seed|$name|$age|$star', () {
-        final female = name != null ? genderOfName(name) == 1 : seed.isEven;
-        return FaceSpec.of(seed, female: female, age: age ?? 30, star: star);
+  static FaceSpec specFor(int seed, String? name, {int? age, bool star = false, bool? female}) =>
+      _specs.putIfAbsent('$seed|$name|$age|$star|$female', () {
+        final f = female ?? (name != null ? genderOfName(name) == 1 : seed.isEven);
+        return FaceSpec.of(seed, female: f, age: age ?? 30, star: star);
       });
 
   @override
   Widget build(BuildContext context) {
-    final spec = specFor(seed, name, age: age, star: star);
+    final spec = specFor(seed, name, age: age, star: star, female: female);
     return SizedBox(
       width: size,
       height: size,
@@ -1525,7 +1529,7 @@ class PersonAvatar extends StatelessWidget {
           ClipOval(
             child: FaceView(
               spec: spec,
-              cacheKey: Object.hash(seed, name, age, star),
+              cacheKey: Object.hash(seed, name, age, star, female),
               mood: mood,
               size: size,
             ),

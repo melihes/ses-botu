@@ -1956,15 +1956,47 @@ class Game extends ChangeNotifier {
       followers: followers,
       growth: 0.005 + _rng.nextDouble() * 0.025,
       engagement: engagement,
-      salary: (rev * (0.35 + _rng.nextDouble() * 0.2) / 100).round() * 100.0,
+      salary: (rev * kIncome * (0.35 + _rng.nextDouble() * 0.2) / 100).round() * 100.0,
       look: _rng.nextInt(1000),
     );
   }
 
+  /// Dijitalin yıldızları: her zaman pazarın en iyileri ve en pahalıları.
+  /// (id, ad, kullanıcı adı, alan, kadın mı, görünüm tohumu)
+  static const starCreatorDefs = [
+    ('star_a1rr', 'A1rr', '@a1rr', Niche.oyun, false, 9101),
+    ('star_angel', 'Angel', '@angel', Niche.guzellik, true, 9202),
+    ('star_krystal', 'Krystal', '@krystal', Niche.muzik, false, 9303),
+  ];
+
+  static bool isFemaleCreator(Creator c) => c.id == 'star_angel';
+  static bool isStarCreator(Creator c) => c.id.startsWith('star_');
+
+  Creator _starCreator(int i) {
+    final d = starCreatorDefs[i];
+    final followers = (20000 * pow(2.6, studioLevel) * (4.6 + i * 0.35)).roundToDouble();
+    const engagement = 0.092;
+    final rev = followers * engagement * 2;
+    return Creator(
+      id: d.$1,
+      name: d.$2,
+      handle: d.$3,
+      niche: d.$4,
+      followers: followers,
+      growth: 0.03,
+      engagement: engagement,
+      salary: (rev * kIncome * 0.62 / 100).round() * 100.0,
+      look: d.$6,
+    );
+  }
+
   void _refreshCreators() {
-    creatorMarket
-      ..clear()
-      ..addAll(List.generate(6, (_) => _randomCreator()));
+    creatorMarket.clear();
+    for (int i = 0; i < starCreatorDefs.length; i++) {
+      final id = starCreatorDefs[i].$1;
+      if (!creators.any((c) => c.id == id)) creatorMarket.add(_starCreator(i));
+    }
+    creatorMarket.addAll(List.generate(6, (_) => _randomCreator()));
   }
 
   String? refreshCreatorsPaid() {
