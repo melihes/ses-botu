@@ -1,0 +1,59 @@
+# Teşhis: Firebase/Google Cloud ayarlarını okur, yazdırır; yeni çağrılabilir
+# fonksiyonların herkese açık çağrılabilir olduğundan emin olur.
+# Gizli anahtar yazdırılmaz.
+name: Firebase teşhis
+
+on:
+  workflow_dispatch:
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+
+      - name: Anahtar dosyası
+        env:
+          SA: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+        run: |
+          printf '%s' "$SA" > "$RUNNER_TEMP/sa.json"
+          gcloud auth activate-service-account --key-file="$RUNNER_TEMP/sa.json" --quiet
+          gcloud config set project reyting-e7d32 --quiet
+
+      - name: Android uygulamasının kayıtlı parmak izleri
+        env:
+          GOOGLE_APPLICATION_CREDENTIALS: ${{ runner.temp }}/sa.json
+        run: |
+          npx --yes firebase-tools@14 apps:android:sha:list 1:198787500188:android:6787b7e420844cdd178559 --project reyting-e7d32 || true
+          echo "---- Android yapılandırması (OAuth istemcileri) ----"
+          npx --yes firebase-tools@14 apps:sdkconfig android 1:198787500188:android:6787b7e420844cdd178559 --project reyting-e7d32 | grep -E 'client_id|certificate_hash|client_type|package_name' || true
+
+      - name: Fonksiyonlar ve çağırma izinleri
+        run: |
+          for f in submitsave adminlist adminplayer adminaction createtransfercode redeemtransfercode ackgrants; do
+            echo "==== $f"
+            gcloud run services get-iam-policy $f --region europe-west1 --format='value(bindings)' 2>&1 | head -5 || true
+          done
+
+      - name: Yeni fonksiyonları herkese çağrılabilir yap (yetki kontrolü kodun içinde)
+        run: |
+          for f in adminlist adminplayer adminaction createtransfercode redeemtransfercode ackgrants; do
+            gcloud run services add-iam-policy-binding $f --region europe-west1 \
+              --member=allUsers --role=roles/run.invoker --quiet >/dev/null 2>&1 && echo "$f: tamam" || echo "$f: izin verilemedi"
+          done
+
+      - name: Deneme çağrısı (girişsiz)
+        run: |
+          curl -s -X POST -H 'Content-Type: application/json' -d '{"data":{}}' \
+            https://europe-west1-reyting-e7d32.cloudfunctions.net/adminList -w '\nHTTP %{http_code}\n' | head -c 600
+
+      - name: Son hatalar (yönetici fonksiyonları)
+        run: |
+          gcloud logging read 'resource.type="cloud_run_revision" AND resource.labels.service_name=("adminlist" OR "adminplayer" OR "adminaction") AND severity>=WARNING' \
+            --limit 15 --freshness 1d --format='value(timestamp,severity,textPayload,jsonPayload.message)' 2>&1 | head -60 || true
+
+      - name: Anahtarı sil
+        if: always()
+        run: rm -f "$RUNNER_TEMP/sa.json"
