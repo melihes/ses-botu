@@ -20,7 +20,7 @@ import { onSchedule } from 'firebase-functions/v2/scheduler';
 import { maxNetPerDay } from './gamedata';
 import { cleanName, serverWorth, summarize, validateSave, type Verdict } from './logic';
 
-export { ackGrants, adminAction, adminList, adminResetAll, adminPlayer, createTransferCode, redeemTransferCode } from './admin';
+export { ackGrants, adminAction, adminList, adminResetAll, adminDeleteAll, adminPlayer, createTransferCode, redeemTransferCode } from './admin';
 
 initializeApp();
 setGlobalOptions({ region: 'europe-west1', maxInstances: 10, memory: '256MiB' });

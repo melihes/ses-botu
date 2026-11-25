@@ -19,6 +19,8 @@ extension GameShop on Game {
     'purchasedCash': purchasedCash,
     'lastGrantSeq': lastGrantSeq,
     'profileFrame': profileFrame,
+    'careerStart': careerStart,
+    'cloudUid': cloudUid,
   };
 
   void _shopLoad(Map<String, dynamic> j) {
@@ -31,6 +33,24 @@ extension GameShop on Game {
     purchasedCash = (j['purchasedCash'] as num? ?? 0).toDouble();
     lastGrantSeq = j['lastGrantSeq'] as int? ?? lastGrantSeq;
     profileFrame = j['profileFrame'] as int? ?? 0;
+    careerStart = (j['careerStart'] as num? ?? 0).toInt();
+    cloudUid = j['cloudUid'] as String?;
+  }
+
+  /// Yönetici hesabı tamamen sildi: telefondaki kariyer de sıfırdan başlar
+  Future<void> wipeAll() async {
+    _newGame();
+    noAds = false;
+    vip = false;
+    adBoosts.clear();
+    adsWatched = 0;
+    purchasedCash = 0;
+    profileFrame = 0;
+    lastGrantSeq = 0;
+    cloudUid = null;
+    await save();
+    _notify('🗑️ Hesabın yönetici tarafından silindi. Yeni kariyer başladı.');
+    _changed();
   }
 
   /// Yönetici panelinden gelen işlem (hediye, düzeltme, sıfırlama, mesaj)

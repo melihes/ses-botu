@@ -402,10 +402,52 @@ class Cloud extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Yönetici hesapları sildiyse telefondaki eski kariyeri de sil
+  /// (meta/wipe: at = toplu silme anı, keep = korunanlar, deleted = tek tek silinenler)
+  String? _wipeCheckedUid;
+
+  Future<bool> _checkWipe() async {
+    final g = _game;
+    final u = user;
+    if (g == null || u == null) return false;
+    if (_wipeCheckedUid == u.uid) return true;
+    try {
+      final d = (await FirebaseFirestore.instance.collection('meta').doc('wipe').get()).data() ?? {};
+      final at = (d['at'] as num? ?? 0).toInt();
+      final keep = List<String>.from((d['keep'] as List?) ?? const []);
+      final deleted = List<String>.from((d['deleted'] as List?) ?? const []);
+      final old = g.cloudUid;
+      final kept = keep.contains(u.uid) || (old != null && keep.contains(old));
+      final wiped = (at > g.careerStart && !kept) || (old != null && deleted.contains(old));
+      if (wiped) {
+        await g.wipeAll();
+        cloudSaveRaw = null;
+      }
+      final next = deleted.contains(u.uid) ? null : u.uid;
+      if (g.cloudUid != next) {
+        g.cloudUid = next;
+        await g.save();
+      }
+      _wipeCheckedUid = u.uid;
+      return true;
+    } catch (e) {
+      debugPrint('Silme kontrolü olmadı: $e');
+      if (FirebaseAuth.instance.currentUser == null) {
+        // giriş hesabı silinmiş: yeni misafir hesapla devam
+        user = null;
+        _grantUid = null;
+        await _grantSub?.cancel();
+        await autoSignIn();
+      }
+      return false;
+    }
+  }
+
   /// Kaydı sunucuya gönder (sunucu hile kontrolü yapar, sıralamayı günceller)
   Future<void> sync({bool force = false}) async {
     final g = _game;
     if (!signedIn || g == null || busy && !force) return;
+    if (!await _checkWipe()) return;
     if (cloudSaveRaw != null) return; // önce bulut/telefon seçimi yapılmalı
     _listenGrants();
     try {

@@ -85,6 +85,7 @@
     </select>
     <button id="btnRefresh">Yenile</button>
     <button class="danger" id="btnResetAll">Herkesi sıfırla</button>
+    <button class="danger" id="btnDeleteAll">Herkesi TAMAMEN sil</button>
     <label style="display:flex;gap:6px;align-items:center;color:var(--dim)"><input type="checkbox" id="live" checked> Anlık (15 sn)</label>
     <span id="lastUp" class="mono"></span>
   </div>
@@ -208,6 +209,16 @@ $('btnResetAll').onclick = async () => {
   try {
     const r = await call('adminResetAll', { confirm: 'HERKESI SIFIRLA', keep: keepMe ? [auth.currentUser.uid] : [] });
     toast(r.count + ' oyuncu sıfırlandı. Oyunu açan herkes yeni kariyerle başlar.'); load();
+  } catch (e) { toast('Olmadı: ' + e.message, true); }
+};
+
+$('btnDeleteAll').onclick = async () => {
+  if (prompt('DİKKAT: Tüm oyuncu hesapları ve kayıtları TAMAMEN silinecek (sunucu + telefonlardaki kariyer). Geri alınamaz. Onay için HERKESI SIL yaz:') !== 'HERKESI SIL') return;
+  const keepMe = confirm('Kendi oyun hesabın silinmesin mi? (Tamam = benimkine dokunma, İptal = benimki de silinsin)');
+  toast('Siliniyor, biraz sürebilir…');
+  try {
+    const r = await call('adminDeleteAll', { confirm: 'HERKESI SIL', keep: keepMe ? [auth.currentUser.uid] : [] });
+    toast(r.count + ' oyuncu kaydı ve ' + r.users + ' giriş hesabı silindi. Oyunu açan herkes sıfırdan başlar.'); load();
   } catch (e) { toast('Olmadı: ' + e.message, true); }
 };
 

@@ -17,7 +17,7 @@ import { logger } from 'firebase-functions/v2';
 /** Beklenmeyen hatalar "internal" yerine okunur mesajla dönsün */
 function onCall<T>(handler: (req: CallableRequest) => Promise<T>) {
   // bölge burada açıkça verilir: bu dosya index.ts'teki genel ayardan önce yüklenir
-  return rawOnCall({ region: 'europe-west1', memory: '256MiB', maxInstances: 10 }, async (req) => {
+  return rawOnCall({ region: 'europe-west1', memory: '256MiB', maxInstances: 10, invoker: 'public', timeoutSeconds: 300 }, async (req) => {
     try {
       return await handler(req);
     } catch (e: any) {
@@ -237,7 +237,10 @@ export const adminAction = onCall(async (req) => {
       batch.delete(pRef);
       batch.delete(lbRef);
       batch.delete(db().collection('grants').doc(uid));
+      // telefondaki kayıt da silinsin: oyun açılınca eski hesabın silindiğini görür
+      batch.set(db().collection('meta').doc('wipe'), { deleted: FieldValue.arrayUnion(uid) }, { merge: true });
       await batch.commit();
+      await db().recursiveDelete(pRef);
       try {
         await getAuth().deleteUser(uid);
       } catch {
@@ -270,6 +273,46 @@ export const adminResetAll = onCall(async (req) => {
   }
   await db().collection('meta').doc('top100').set({ rows: [], total: 0, updatedAt: Timestamp.now() });
   return { ok: true, count: n };
+});
+
+/**
+ * Herkesi TAMAMEN sil (yayın öncesi): oyuncu kayıtları, sıralama, hediyeler,
+ * taşıma kodları ve giriş hesapları silinir. Oyunlar açıldığında telefondaki
+ * kariyer de silinir (meta/wipe). Satın alma kayıtları (purchases) korunur.
+ */
+export const adminDeleteAll = onCall(async (req) => {
+  const by = await requireAdmin(req);
+  if (req.data?.confirm !== 'HERKESI SIL') throw new HttpsError('invalid-argument', 'Onay metni yanlış.');
+  const keep = new Set<string>((req.data?.keep as string[] | undefined) ?? []);
+  let n = 0;
+  for (const col of ['players', 'leaderboard', 'grants']) {
+    const snap = await db().collection(col).select().get();
+    for (const d of snap.docs) {
+      if (keep.has(d.id)) continue;
+      if (col === 'players') {
+        await db().recursiveDelete(d.ref);
+        n++;
+      } else {
+        await d.ref.delete();
+      }
+    }
+  }
+  const tr = await db().collection('transfers').get();
+  for (const d of tr.docs) if (!keep.has(String(d.get('uid')))) await d.ref.delete();
+  // giriş hesapları
+  let users = 0;
+  let page: string | undefined;
+  do {
+    const res = await getAuth().listUsers(1000, page);
+    // yöneticinin kendi giriş hesabı panelden atılmasın diye hep korunur
+    const ids = res.users.map((u) => u.uid).filter((u) => !keep.has(u) && u !== req.auth?.uid);
+    if (ids.length) users += (await getAuth().deleteUsers(ids)).successCount;
+    page = res.pageToken;
+  } while (page);
+  await db().collection('meta').doc('wipe').set({ at: Date.now(), keep: [...keep], deleted: [] });
+  await db().collection('meta').doc('top100').set({ rows: [], total: 0, updatedAt: Timestamp.now() });
+  logger.info('Herkes silindi', { by, players: n, users });
+  return { ok: true, count: n, users };
 });
 
 /** Bir hesabın kaydını başka hesaba kopyalar (eski hesap sıralamadan çıkar) */

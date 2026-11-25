@@ -41,6 +41,8 @@ class Game extends ChangeNotifier {
   double purchasedCash = 0; // gerçek parayla alınan oyun parası (toplam)
   int lastGrantSeq = 0; // yöneticiden gelen son işlem (tekrar uygulanmasın)
   int profileFrame = 0; // online listede görünen profil çerçevesi
+  int careerStart = 0; // bu kariyerin başladığı an (yönetici toplu silmesi için)
+  String? cloudUid; // bu kaydın en son bağlı olduğu online hesap
   double timeScale = 1; // test modu için hızlandırma
 
   /// Test modu bu kariyerde hiç kullanıldı mı (kullanıldıysa online sıralamaya giremez)
@@ -163,6 +165,7 @@ class Game extends ChangeNotifier {
   }
 
   void _newGame() {
+    careerStart = DateTime.now().millisecondsSinceEpoch;
     tainted = false;
     timeScale = 1;
     channelName = 'Kanal 9';
