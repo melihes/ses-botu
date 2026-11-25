@@ -16,7 +16,8 @@ import { logger } from 'firebase-functions/v2';
 
 /** Beklenmeyen hatalar "internal" yerine okunur mesajla dönsün */
 function onCall<T>(handler: (req: CallableRequest) => Promise<T>) {
-  return rawOnCall(async (req) => {
+  // bölge burada açıkça verilir: bu dosya index.ts'teki genel ayardan önce yüklenir
+  return rawOnCall({ region: 'europe-west1', memory: '256MiB', maxInstances: 10 }, async (req) => {
     try {
       return await handler(req);
     } catch (e: any) {
