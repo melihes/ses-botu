@@ -1,3 +1,4 @@
 *.apk
 reyting/android/build/
 *.aab
+reyting/store/mapping-*.txt
