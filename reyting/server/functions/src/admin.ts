@@ -13,13 +13,14 @@ import { getAuth } from 'firebase-admin/auth';
 import { FieldValue, getFirestore, Timestamp } from 'firebase-admin/firestore';
 import { HttpsError, onCall, type CallableRequest } from 'firebase-functions/v2/https';
 
-const db = getFirestore();
+// index.ts initializeApp() çağırdıktan sonra kullanılır
+const db = () => getFirestore();
 
 let adminCache: { emails: string[]; at: number } | null = null;
 
 async function adminEmails(): Promise<string[]> {
   if (adminCache && Date.now() - adminCache.at < 60_000) return adminCache.emails;
-  const snap = await db.collection('config').doc('admins').get();
+  const snap = await db().collection('config').doc('admins').get();
   const emails = ((snap.get('emails') as unknown[]) ?? []).map((e) => String(e).trim().toLowerCase());
   adminCache = { emails, at: Date.now() };
   return emails;
@@ -51,15 +52,15 @@ function num(v: unknown, min: number, max: number): number {
 
 /** Oyuncuya bir işlem gönder (oyun anında uygular) */
 async function pushGrant(uid: string, op: Record<string, unknown>, by: string): Promise<number> {
-  const ref = db.collection('grants').doc(uid);
-  return db.runTransaction(async (tx) => {
+  const ref = db().collection('grants').doc(uid);
+  return db().runTransaction(async (tx) => {
     const snap = await tx.get(ref);
     const seq = Number(snap.get('seq') ?? 0) + 1;
     const ops = ((snap.get('ops') as any[]) ?? []).slice(-20);
     ops.push({ ...op, seq, by, at: Date.now() });
     tx.set(ref, { seq, ops, updatedAt: Timestamp.now() });
     // bir sonraki kayıtta hile denetimi bu değişiklik için atlanır
-    tx.set(db.collection('players').doc(uid), { adminRebase: true }, { merge: true });
+    tx.set(db().collection('players').doc(uid), { adminRebase: true }, { merge: true });
     return seq;
   });
 }
@@ -96,8 +97,8 @@ export const adminList = onCall(async (req) => {
     ? String(req.data.order)
     : 'updatedAt';
   const limit = num(req.data?.limit ?? 200, 1, 500);
-  const q = await db.collection('players').orderBy(order, 'desc').limit(limit).select(...SUMMARY_FIELDS).get();
-  const total = (await db.collection('players').count().get()).data().count;
+  const q = await db().collection('players').orderBy(order, 'desc').limit(limit).select(...SUMMARY_FIELDS).get();
+  const total = (await db().collection('players').count().get()).data().count;
   return { total, rows: q.docs.map((d) => rowOf(d.id, d.data())) };
 });
 
@@ -105,7 +106,7 @@ export const adminList = onCall(async (req) => {
 export const adminPlayer = onCall(async (req) => {
   await requireAdmin(req);
   const uid = cleanUid(req.data?.uid);
-  const snap = await db.collection('players').doc(uid).get();
+  const snap = await db().collection('players').doc(uid).get();
   if (!snap.exists) throw new HttpsError('not-found', 'Oyuncu bulunamadı.');
   const d = snap.data()!;
   let auth: any = null;
@@ -143,7 +144,7 @@ export const adminPlayer = onCall(async (req) => {
   } catch {
     save = null;
   }
-  const g = await db.collection('grants').doc(uid).get();
+  const g = await db().collection('grants').doc(uid).get();
   return { row: rowOf(uid, d), auth, save, grants: g.exists ? g.get('ops') ?? [] : [], saveBytes: String(d.save ?? '').length };
 });
 
@@ -162,8 +163,8 @@ export const adminAction = onCall(async (req) => {
   const by = await requireAdmin(req);
   const uid = cleanUid(req.data?.uid);
   const action = String(req.data?.action ?? '');
-  const pRef = db.collection('players').doc(uid);
-  const lbRef = db.collection('leaderboard').doc(uid);
+  const pRef = db().collection('players').doc(uid);
+  const lbRef = db().collection('leaderboard').doc(uid);
   switch (action) {
     case 'give': {
       const cash = num(req.data?.cash ?? 0, -1e16, 1e16);
@@ -220,11 +221,11 @@ export const adminAction = onCall(async (req) => {
 /** Bir hesabın kaydını başka hesaba kopyalar (eski hesap sıralamadan çıkar) */
 async function copySave(from: string, to: string): Promise<string> {
   if (from === to) throw new HttpsError('invalid-argument', 'Aynı hesap.');
-  const src = await db.collection('players').doc(from).get();
+  const src = await db().collection('players').doc(from).get();
   const save = src.get('save');
   if (typeof save !== 'string' || save.length < 10) throw new HttpsError('not-found', 'Taşınacak kayıt yok.');
-  const batch = db.batch();
-  batch.set(db.collection('players').doc(to), {
+  const batch = db().batch();
+  batch.set(db().collection('players').doc(to), {
     save,
     day: src.get('day') ?? 0,
     worth: src.get('worth') ?? 0,
@@ -236,9 +237,9 @@ async function copySave(from: string, to: string): Promise<string> {
     movedFrom: from,
     updatedAt: Timestamp.fromMillis(0), // bir sonraki kayıt bekletilmesin
   }, { merge: true });
-  batch.set(db.collection('players').doc(from), { movedTo: to, verified: false, unverifiedReason: 'Hesap taşındı.' },
+  batch.set(db().collection('players').doc(from), { movedTo: to, verified: false, unverifiedReason: 'Hesap taşındı.' },
     { merge: true });
-  batch.delete(db.collection('leaderboard').doc(from));
+  batch.delete(db().collection('leaderboard').doc(from));
   await batch.commit();
   return save;
 }
@@ -252,13 +253,13 @@ const CODE_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 export const createTransferCode = onCall(async (req) => {
   const uid = req.auth?.uid;
   if (!uid) throw new HttpsError('unauthenticated', 'Önce giriş yapmalısın.');
-  const p = await db.collection('players').doc(uid).get();
+  const p = await db().collection('players').doc(uid).get();
   if (!p.exists || typeof p.get('save') !== 'string') {
     throw new HttpsError('failed-precondition', 'Önce oyunun buluta kaydedilmesi gerekiyor (birkaç dakika oyna).');
   }
   let code = '';
   for (let i = 0; i < 8; i++) code += CODE_CHARS[randomInt(CODE_CHARS.length)];
-  await db.collection('transfers').doc(code).set({ uid, expires: Timestamp.fromMillis(Date.now() + 24 * 3600e3) });
+  await db().collection('transfers').doc(code).set({ uid, expires: Timestamp.fromMillis(Date.now() + 24 * 3600e3) });
   return { code: `${code.slice(0, 4)}-${code.slice(4)}` };
 });
 
@@ -268,7 +269,7 @@ export const redeemTransferCode = onCall(async (req) => {
   if (!uid) throw new HttpsError('unauthenticated', 'Önce giriş yapmalısın.');
   const code = String(req.data?.code ?? '').toUpperCase().replace(/[^A-Z0-9]/g, '');
   if (code.length !== 8) throw new HttpsError('invalid-argument', 'Kod 8 karakter olmalı.');
-  const ref = db.collection('transfers').doc(code);
+  const ref = db().collection('transfers').doc(code);
   const snap = await ref.get();
   if (!snap.exists) throw new HttpsError('not-found', 'Kod bulunamadı.');
   const exp = snap.get('expires');
@@ -288,8 +289,8 @@ export const ackGrants = onCall(async (req) => {
   const uid = req.auth?.uid;
   if (!uid) throw new HttpsError('unauthenticated', 'Önce giriş yapmalısın.');
   const upTo = Math.floor(num(req.data?.seq ?? 0, 0, 1e9));
-  const ref = db.collection('grants').doc(uid);
-  await db.runTransaction(async (tx) => {
+  const ref = db().collection('grants').doc(uid);
+  await db().runTransaction(async (tx) => {
     const snap = await tx.get(ref);
     if (!snap.exists) return;
     const ops = ((snap.get('ops') as any[]) ?? []).filter((o) => Number(o.seq) > upTo);
