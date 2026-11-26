@@ -130,7 +130,7 @@ Future<void> main() async {
     PageId page, {
     bool poor = false,
   }) async {
-    tester.view.physicalSize = const Size(915, 412);
+    tester.view.physicalSize = _screen;
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.reset);
     final errors = <String>[];
@@ -228,7 +228,7 @@ Future<void> main() async {
       } catch (_) {}
       if (f.hitTestable().evaluate().isEmpty) {
         final r = tester.getRect(f.first);
-        final screen = Offset.zero & const Size(915, 412);
+        final screen = Offset.zero & _screen;
         if (screen.contains(r.center)) {
           final anc = <String>[];
           list[i].visitAncestorElements((a) {
@@ -329,3 +329,8 @@ String _labelOf(Element e) {
       ? e.widget.runtimeType.toString()
       : texts.join(' ').replaceAll('\n', ' ');
 }
+
+/// MONKEY_SMALL=1: küçük telefon (780x360) ile dene
+final Size _screen = Platform.environment['MONKEY_SMALL'] == '1'
+    ? const Size(780, 360)
+    : const Size(915, 412);
