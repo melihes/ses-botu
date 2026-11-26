@@ -218,7 +218,7 @@ class _SettingsState extends State<_Settings> {
             ),
             const SizedBox(height: 12),
             const Text(
-              'Reyting · v1.1.0',
+              'Reyting · v1.1.1',
               style: TextStyle(color: AppColors.textFaint, fontSize: 11),
             ),
           ],

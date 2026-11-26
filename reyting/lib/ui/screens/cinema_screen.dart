@@ -95,6 +95,8 @@ class _FilmCard extends StatelessWidget {
             talk: true,
             // çekimdeyken set, sonra sinema salonu
             prop: f.status == FilmStatus.producing ? Prop.filmSet : Prop.film,
+            filmGenre: f.status == FilmStatus.producing ? f.genre : null,
+            seed: f.id.hashCode,
             live: f.status == FilmStatus.producing,
             color: f.def.color,
             tier: f.tier,
@@ -597,7 +599,10 @@ class _NewFilmWizardState extends State<NewFilmWizard> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         StageScene(
+          key: ValueKey(_genre),
           prop: Prop.filmSet,
+          filmGenre: _genre,
+          seed: _genre.index * 17 + 3,
           talk: true,
           color: def.color,
           tier: _tier,

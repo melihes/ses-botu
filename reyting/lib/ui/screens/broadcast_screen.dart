@@ -358,6 +358,7 @@ class _OnAir extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             WatchTap(show: s, child: StageScene(
+              seed: s.id.hashCode,
               talk: true,
               prop: propFor(s.genre, s.tier),
               color: s.def.color,

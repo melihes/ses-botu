@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import '../../core/theme.dart';
 import '../../data/content.dart';
 import '../screens/live_stage.dart' show SetPainter, FrontPainter;
+import 'film_set.dart';
 import 'face.dart';
 
 export '../../data/content.dart' show Prop;
@@ -47,8 +48,16 @@ class StageScene extends StatefulWidget {
 
   /// Seyirci tepkisi (canlı izleme ekranında): 0 yok, 1 kahkaha, 2 coşku, 3 şaşkınlık
   final int reaction;
+
+  /// Programa özel oyuncular (aynı program hep aynı kişiler, farklı programlar farklı)
+  final int? seed;
+
+  /// Film seti ise türü: türe özel dekor, ekip ve konuşmalar
+  final FilmGenre? filmGenre;
   const StageScene({
     super.key,
+    this.seed,
+    this.filmGenre,
     this.talk = false,
     this.reaction = 0,
     required this.prop,
@@ -427,7 +436,7 @@ class _StageSceneState extends State<StageScene>
     final visible = TickerMode.valuesOf(context).enabled;
     if (visible) {
       final p = widget.prop;
-      final dlg = _dialogs[p];
+      final dlg = widget.filmGenre != null ? filmDialogs[widget.filmGenre] : _dialogs[p];
       if (dlg != null && _rnd.nextDouble() < 0.6) {
         // iki karakter karşılıklı konuşur, sonunda seyirci tepki verir
         final d = dlg[_rnd.nextInt(dlg.length)];
@@ -453,19 +462,36 @@ class _StageSceneState extends State<StageScene>
     super.dispose();
   }
 
-  /// Sahnedeki iki kişi (aynı program hep aynı kişileri gösterir)
-  late final List<FaceSpec> _cast = () {
-    final seed = widget.prop.index * 7919 + widget.color.toARGB32() % 10007 + widget.tier * 31;
+  /// Sahnedeki kişiler (aynı program hep aynı kişileri gösterir)
+  int get _castSeed =>
+      (widget.seed ?? 0) * 31 + widget.prop.index * 7919 + widget.color.toARGB32() % 10007 + widget.tier * 31;
+  late List<FaceSpec> _cast = _makeCast();
+  late int _castFor = _castSeed;
+  List<FaceSpec> _makeCast() {
+    final seed = _castSeed.abs();
     return [
       FaceSpec.of(seed, female: seed.isEven, age: 24 + seed % 30),
       FaceSpec.of(seed + 1, female: seed.isOdd, age: 22 + (seed ~/ 7) % 35),
+      FaceSpec.of(seed + 2, female: (seed ~/ 3).isEven, age: 20 + (seed ~/ 11) % 40, star: true),
     ];
-  }();
+  }
+
+  /// Sahneler sırayla değişir (oturma, kalkıp yürüme, konuk gelişi, yakın plan)
+  final _clock = Stopwatch()..start();
 
   bool get _noPeople {
     final p = widget.prop;
     return const {Prop.football, Prop.derby, Prop.tournament, Prop.basketball,
           Prop.nature, Prop.ocean, Prop.history, Prop.space, Prop.field}.contains(p);
+  }
+
+  @override
+  void didUpdateWidget(covariant StageScene old) {
+    super.didUpdateWidget(old);
+    if (_castFor != _castSeed) {
+      _castFor = _castSeed;
+      _cast = _makeCast();
+    }
   }
 
   Genre get _genre {
@@ -549,41 +575,202 @@ class _StageSceneState extends State<StageScene>
     );
   }
 
-  /// Yeni sahne: canlı yayındaki dekor + konuşan, göz kırpan karakterler
+  /// Sahne: dekor + karakterler. Birkaç "an" sırayla oynar:
+  /// 0 karşılıklı sohbet, 1 biri kalkıp yürür, 2 konuk içeri girer, 3 yakın plan.
   Widget _stage(double w, double h, double t, Genre genre) {
     final pan = sin(t * 0.8) * 14;
-    final furn = FrontPainter.hasFurniture(widget.prop);
+    final fg = widget.filmGenre;
+    final furn = fg == null && FrontPainter.hasFurniture(widget.prop);
     final k = h / 360;
-    final size = (furn ? 190.0 : 250.0) * k;
-    final bottom = furn ? h * 0.2 : -h * 0.02;
     final speaking = _bubble != null ? (_bubbleX < 0.4 ? 0 : 1) : -1;
     final react = max(widget.reaction, _reaction);
+    final secs = _clock.elapsedMilliseconds / 1000 + (_castSeed % 7) * 1.3;
+    const actLen = 9.0;
+    final act = (secs ~/ actLen + _castSeed) % 4;
+    final a = (secs % actLen) / actLen; // anın içindeki ilerleme 0..1
     FaceMood mood(int i) {
       if (speaking == i) return FaceMood.talk;
-      return switch (react) { 1 => FaceMood.laugh, 3 => FaceMood.surprised, _ => FaceMood.smile };
+      if (react == 1) return FaceMood.laugh;
+      if (react == 3) return FaceMood.surprised;
+      if (fg != null) {
+        // filmin türüne göre oyuncuların hâli
+        return switch (filmMood(fg)) {
+          1 => i == 0 ? FaceMood.angry : FaceMood.surprised,
+          2 => FaceMood.surprised,
+          3 => i == 1 ? FaceMood.laugh : FaceMood.smile,
+          _ => (secs ~/ 4).isEven ? FaceMood.sad : FaceMood.neutral,
+        };
+      }
+      return FaceMood.smile;
     }
 
-    Widget person(int i) => FaceView(
+    int key(int i) => 70000 + (_castSeed.abs() % 99991) * 10 + i;
+    const gestures = ['hand', 'point', 'ok', 'handPhone', 'waveLongArm', 'pointLongArm'];
+    String? gest(int i) {
+      if (speaking == i) return gestures[(i + (secs ~/ 3)) % gestures.length];
+      if (react == 2) return 'waveOkLongArms';
+      return null;
+    }
+
+    // oturan (masanın arkasında) kişi
+    Widget seated(int i, double size) => FaceView(
           spec: _cast[i],
-          cacheKey: 70000 + widget.prop.index * 10 + i + widget.color.toARGB32() % 997 * 100,
+          cacheKey: key(i),
           mood: mood(i),
           alt: (t * 7).floor().isEven,
           blink: ((t + i * 1.3) % 2.9) < 0.12,
           crop: false,
-          gesture: speaking == i ? (i == 0 ? 'hand' : 'waveLongArm') : null,
+          gesture: gest(i),
           size: size,
         );
-    return Stack(children: [
+    // ayakta duran / yürüyen kişi; flip: sola baksın
+    Widget standing(int i, double size, {double walk = -1, bool flip = false}) {
+      final bob = walk >= 0 ? sin(walk * pi * 2).abs() * size * 0.025 : 0.0;
+      final body = Column(mainAxisSize: MainAxisSize.min, children: [
+        FaceView(
+          spec: _cast[i],
+          cacheKey: key(i),
+          mood: mood(i),
+          alt: (t * 7).floor().isEven,
+          blink: ((t + i * 1.3) % 2.9) < 0.12,
+          crop: false,
+          gesture: walk >= 0 ? null : gest(i),
+          size: size,
+        ),
+        CustomPaint(
+          size: Size(size, size * 0.52),
+          painter: _LegsPainter(seed: _castSeed + i * 13, walk: walk, female: _cast[i].female),
+        ),
+      ]);
+      return Transform.translate(
+        offset: Offset(0, -bob),
+        child: flip ? Transform.flip(flipX: true, child: body) : body,
+      );
+    }
+
+    final kids = <Widget>[
       Positioned.fill(
-        child: CustomPaint(painter: SetPainter(widget.prop, genre, t, widget.color, '', pan, widget.prop.index)),
+        child: CustomPaint(
+          painter: fg != null
+              ? FilmSetPainter(fg, _clock.elapsedMilliseconds / 1000, pan)
+              : SetPainter(widget.prop, genre, t, widget.color, '', pan, widget.prop.index),
+        ),
       ),
-      if (!_noPeople) ...[
-        Positioned(left: w * 0.08 - pan * 0.6, bottom: bottom, child: person(0)),
-        Positioned(right: w * 0.07 + pan * 0.6, bottom: bottom, child: person(1)),
-      ],
-      Positioned.fill(child: CustomPaint(painter: FrontPainter(widget.prop, genre, t, pan, ''))),
-    ]);
+    ];
+    if (!_noPeople) {
+      final sSit = (furn ? 190.0 : 250.0) * k;
+      final sStand = h * 0.50;
+      final floor = h * 0.015;
+      double ease(double x) => Curves.easeInOut.transform(x.clamp(0.0, 1.0));
+      switch (act) {
+        case 1: // biri kalkar, sahnenin ortasına yürür, konuşur
+          final walkT = ((a - 0.08) / 0.4).clamp(0.0, 1.0);
+          final x = w * 0.06 + (w * 0.36 - w * 0.06) * ease(walkT);
+          if (furn) {
+            kids.add(Positioned(right: w * 0.07 + pan * 0.6, bottom: h * 0.2, child: seated(1, sSit)));
+          } else {
+            kids.add(Positioned(right: w * 0.06 + pan * 0.4, bottom: floor, child: standing(1, sStand, flip: true)));
+          }
+          kids.add(Positioned(
+            left: x - pan * 0.4,
+            bottom: floor,
+            child: standing(0, sStand, walk: walkT > 0 && walkT < 1 ? secs * 1.6 : -1),
+          ));
+        case 2: // konuk içeri girer, ev sahibi karşılar
+          final inT = (a / 0.45).clamp(0.0, 1.0);
+          final gx = w + sStand * 0.2 - (w + sStand * 0.2 - w * 0.56) * ease(inT);
+          kids.add(Positioned(left: w * 0.12 - pan * 0.4, bottom: floor, child: standing(0, sStand)));
+          kids.add(Positioned(
+            left: gx + pan * 0.4,
+            bottom: floor,
+            child: standing(2, sStand, walk: inT < 1 ? secs * 1.6 : -1, flip: true),
+          ));
+        case 3: // yakın plan: konuşan kişi büyük
+          final who = (secs ~/ actLen).isEven ? 0 : 1;
+          final big = h * 0.95;
+          kids.add(Positioned(
+            left: w / 2 - big / 2 + sin(t * 0.6) * 10,
+            bottom: -h * 0.18,
+            child: seated(who, big),
+          ));
+        default: // sohbet: masada oturan ya da karşılıklı ayakta iki kişi
+          if (furn) {
+            kids.add(Positioned(left: w * 0.08 - pan * 0.6, bottom: h * 0.2, child: seated(0, sSit)));
+            kids.add(Positioned(right: w * 0.07 + pan * 0.6, bottom: h * 0.2, child: seated(1, sSit)));
+          } else {
+            kids.add(Positioned(left: w * 0.14 - pan * 0.5, bottom: floor, child: standing(0, sStand)));
+            kids.add(Positioned(right: w * 0.14 + pan * 0.5, bottom: floor, child: standing(1, sStand, flip: true)));
+          }
+      }
+    }
+    // masa/kanepe sadece oturulan anlarda önde
+    if (fg != null) {
+      if (act != 3) kids.add(Positioned.fill(child: CustomPaint(painter: FilmCrewPainter(_clock.elapsedMilliseconds / 1000))));
+    } else if (_noPeople || act == 0 || act == 1 || (!furn && act == 2)) {
+      kids.add(Positioned.fill(child: CustomPaint(painter: FrontPainter(widget.prop, genre, t, pan, ''))));
+    }
+    return Stack(children: kids);
   }
+}
+
+/// Ayakta duran kişinin bacakları: pantolon ya da etek, ayakkabı; yürürken adım atar
+class _LegsPainter extends CustomPainter {
+  final int seed;
+  final double walk; // <0 duruyor, değilse adım fazı
+  final bool female;
+  _LegsPainter({required this.seed, required this.walk, required this.female});
+
+  static const pants = [
+    Color(0xFF2B3A55), Color(0xFF1F1F24), Color(0xFF3B5B8C), Color(0xFF5B4636),
+    Color(0xFF55595F), Color(0xFF8A7A5A), Color(0xFF2E4A3A), Color(0xFF6B2E3A),
+  ];
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final r = Random(seed);
+    final col = pants[r.nextInt(pants.length)];
+    final skirt = female && r.nextDouble() < 0.45;
+    final w = size.width, h = size.height;
+    final line = Paint()
+      ..color = const Color(0xFF141014)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = w * 0.012;
+    final fill = Paint()..color = col;
+    final shoe = Paint()..color = const Color(0xFF1A1414);
+    final swing = walk < 0 ? 0.0 : sin(walk * pi * 2) * 0.32;
+    // gövdenin altı tam ortada: bacaklar kalça hizasından iner
+    void leg(double hipX, double ang, double width) {
+      canvas.save();
+      canvas.translate(hipX, 0);
+      canvas.rotate(ang);
+      final rect = RRect.fromRectAndRadius(Rect.fromLTWH(-width / 2, -h * 0.02, width, h * 0.86), Radius.circular(width * 0.3));
+      canvas.drawRRect(rect, skirt ? (Paint()..color = const Color(0xFFE8B48F)) : fill);
+      canvas.drawRRect(rect, line);
+      final s = Rect.fromLTWH(-width * 0.55, h * 0.8, width * 1.35, h * 0.14);
+      canvas.drawRRect(RRect.fromRectAndRadius(s, Radius.circular(width * 0.3)), shoe);
+      canvas.restore();
+    }
+
+    final lw = w * 0.13;
+    leg(w * 0.43, swing, skirt ? lw * 0.6 : lw);
+    leg(w * 0.57, -swing, skirt ? lw * 0.6 : lw);
+    if (skirt) {
+      final p = Path()
+        ..moveTo(w * 0.32, -h * 0.02)
+        ..lineTo(w * 0.68, -h * 0.02)
+        ..lineTo(w * 0.73, h * 0.42)
+        ..lineTo(w * 0.27, h * 0.42)
+        ..close();
+      canvas.drawPath(p, fill);
+      canvas.drawPath(p, line);
+    } else {
+      // kemer / kalça
+      canvas.drawRect(Rect.fromLTWH(w * 0.34, -h * 0.03, w * 0.32, h * 0.1), fill);
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _LegsPainter old) => old.walk != walk || old.seed != seed;
 }
 
 const skinTones = [

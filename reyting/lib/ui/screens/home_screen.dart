@@ -206,14 +206,19 @@ class _TileGrid extends StatelessWidget {
         .length;
     final bizCount = bizDefs.where((b) => g.bizLevel(b.id) > 0).length;
 
+    // yayındaki programlar 15 saniyede bir sırayla gösterilir
+    final featured = onAir.isEmpty
+        ? null
+        : onAir[(DateTime.now().millisecondsSinceEpoch ~/ 15000) % onAir.length];
     final tiles = <Widget>[
       _Tile(
-        art: onAir.isNotEmpty
+        art: featured != null
             ? StageScene(
                 talk: true,
-                prop: propFor(onAir.first.genre, onAir.first.tier),
-                color: onAir.first.def.color,
-                tier: onAir.first.tier,
+                seed: featured.id.hashCode,
+                prop: propFor(featured.genre, featured.tier),
+                color: featured.def.color,
+                tier: featured.tier,
                 live: true,
                 height: 200,
               )
@@ -232,7 +237,7 @@ class _TileGrid extends StatelessWidget {
             : (onAir.isNotEmpty ? '▶ İzle' : null),
         onAction: ready.isNotEmpty
             ? () => pickSlotFor(context, ready.first)
-            : (onAir.isNotEmpty ? () => openLiveView(context, onAir.first) : null),
+            : (featured != null ? () => openLiveView(context, featured) : null),
         onTap: () => ShellNav.go(context, PageId.broadcast),
       ),
       _Tile(

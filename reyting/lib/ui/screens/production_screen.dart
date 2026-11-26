@@ -98,6 +98,7 @@ class _ShowCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           WatchTap(show: s, child: StageScene(
+            seed: s.id.hashCode,
             talk:
                 s.status == ShowStatus.onAir ||
                 s.status == ShowStatus.producing,
