@@ -43,6 +43,7 @@ class Game extends ChangeNotifier {
   int profileFrame = 0; // online listede görünen profil çerçevesi
   int careerStart = 0; // bu kariyerin başladığı an (yönetici toplu silmesi için)
   String? cloudUid; // bu kaydın en son bağlı olduğu online hesap
+  bool yagizUsed = false; // Yağız Ada her kariyerde bir kez imzalanabilir
   final List<String> grantedPurchases = []; // verilmiş satın almalar (tekrar verilmesin)
   double timeScale = 1; // test modu için hızlandırma
 
@@ -147,15 +148,26 @@ class Game extends ChangeNotifier {
     final prefs = await SharedPreferences.getInstance();
     final raw = prefs.getString(_saveKey);
     if (raw != null) {
+      var loaded = false;
       try {
         _load(jsonDecode(raw));
-        final lastSeen = DateTime.fromMillisecondsSinceEpoch(
-          jsonDecode(raw)['savedAt'] as int,
-        );
-        _catchUp(DateTime.now().difference(lastSeen));
+        loaded = true;
       } catch (e) {
+        // kayıt okunamadı: eskisi yedeklenir (silinmez), yeni oyun başlar
         debugPrint('Kayıt okunamadı, yeni oyun: $e');
+        await prefs.setString('${_saveKey}_yedek', raw);
         _newGame();
+      }
+      if (loaded) {
+        try {
+          final lastSeen = DateTime.fromMillisecondsSinceEpoch(
+            jsonDecode(raw)['savedAt'] as int,
+          );
+          _catchUp(DateTime.now().difference(lastSeen));
+        } catch (e) {
+          // çevrimdışı hesaplamada hata: kariyer korunur, sadece o süre atlanır
+          debugPrint('Çevrimdışı süre hesaplanamadı: $e');
+        }
       }
     } else {
       _newGame();
@@ -367,7 +379,14 @@ class Game extends ChangeNotifier {
   Future<void> importSave(String raw) async {
     // bu cihaza ait bilgiler korunur (başka hesaptan gelen kayıt bunları bozmasın)
     final start = careerStart, uid = cloudUid, bought = [...grantedPurchases];
-    _load(jsonDecode(raw) as Map<String, dynamic>);
+    final before = jsonEncode(_toJson());
+    try {
+      _load(jsonDecode(raw) as Map<String, dynamic>);
+    } catch (e) {
+      // gelen kayıt bozuksa telefondaki oyun olduğu gibi kalır
+      _load(jsonDecode(before) as Map<String, dynamic>);
+      rethrow;
+    }
     careerStart = max(careerStart, start);
     cloudUid = uid;
     grantedPurchases
@@ -837,7 +856,8 @@ class Game extends ChangeNotifier {
     cashHistory.add(cash);
     if (cashHistory.length > 60) cashHistory.removeAt(0);
     final net = cash - cashAtDayStart;
-    history.add(DayStat(day - 1, cash, todayIncome, todayIncome - net));
+    history.add(DayStat(day - 1, cash, todayIncome, max(0.0, todayIncome + todayOther - net)));
+    todayOther = 0;
     if (history.length > 5000) history.removeAt(0);
     cashAtDayStart = cash;
     todaySamples
@@ -950,7 +970,7 @@ class Game extends ChangeNotifier {
         );
       case 5:
         final amount = (yesterdayIncome * 1.5).clamp(80000.0, 50e6);
-        _gain(amount);
+        _cashIn(amount); // günlük gelir sayılmaz
         _acc?.eventCash += amount;
         _event(
           '🤝 Sponsor anlaşması',
@@ -1390,6 +1410,7 @@ class Game extends ChangeNotifier {
     if (cash < fee) return 'İmza ücreti için kasada para yok.';
     cash -= fee;
     market.remove(p);
+    p.joinedDay = day;
     staff.add(p);
     _count('hire');
     _notify('✍️ ${p.name} kadroya katıldı!');
@@ -1503,6 +1524,7 @@ class Game extends ChangeNotifier {
   int speedUpCost(Show s) => max(1, (s.prodLeft * 3).ceil());
 
   String? speedUp(Show s) {
+    if (s.status != ShowStatus.producing) return 'Bu yapım zaten hazır.';
     final c = speedUpCost(s);
     if (diamonds < c) return 'Yeterli elmas yok ($c 💎).';
     diamonds -= c;
@@ -1609,7 +1631,7 @@ class Game extends ChangeNotifier {
 
   String? takeLoan(LoanOffer o) {
     if (loans.length >= 3) return 'En fazla 3 açık kredin olabilir.';
-    _gain(o.amount);
+    _cashIn(o.amount); // günlük gelir sayılmaz
     loans.add(
       Loan(
         id: _newId('l'),
@@ -1659,7 +1681,7 @@ class Game extends ChangeNotifier {
   void sellLuxury(LuxuryDef d) {
     if (!ownedLuxury.remove(d.id)) return;
     _dropLux(d.id);
-    _gain(sellValueLuxury(d));
+    _cashIn(sellValueLuxury(d)); // günlük gelir sayılmaz
     _notify('${d.name} satıldı: +${fmtShort(sellValueLuxury(d))}');
     _changed();
   }
@@ -1670,7 +1692,7 @@ class Game extends ChangeNotifier {
 
   void sellChannel(ChannelDef c) {
     if (!ownedChannels.remove(c.id)) return;
-    _gain(sellValueChannel(c));
+    _cashIn(sellValueChannel(c)); // günlük gelir sayılmaz
     _notify('${c.name} satıldı: +${fmtShort(sellValueChannel(c))}');
     _changed();
   }
@@ -1758,7 +1780,7 @@ class Game extends ChangeNotifier {
       );
       _notify(
         '📲 ${plat.name} artık senin! ${fmtDec(plat.subscribersM, 1)} M abone, '
-        'günlük +${fmtShort(plat.dailyIncome)}',
+        'günlük +${fmtShort(plat.dailyIncome * kIncome)}',
       );
     } else if (lux.isNotEmpty) {
       ownedLuxury.add(id);
@@ -1774,7 +1796,7 @@ class Game extends ChangeNotifier {
         '${ch.name} artık $channelName ailesinde!',
         true,
       );
-      _notify('📺 ${ch.name} artık senin! Günlük +${fmtShort(ch.dailyIncome)}');
+      _notify('📺 ${ch.name} artık senin! Günlük +${fmtShort(ch.dailyIncome * kIncome)}');
     }
     _changed();
   }
@@ -1847,6 +1869,7 @@ class Game extends ChangeNotifier {
   int filmSpeedUpCost(Film f) => max(1, (f.prodLeft * 2).ceil());
 
   String? speedUpFilm(Film f) {
+    if (f.status != FilmStatus.producing) return 'Bu film zaten hazır.';
     final c = filmSpeedUpCost(f);
     if (diamonds < c) return 'Yeterli elmas yok ($c 💎).';
     diamonds -= c;
@@ -2138,6 +2161,13 @@ class Game extends ChangeNotifier {
   void _gain(double amount) {
     cash += amount;
     todayIncome += amount;
+  }
+
+  /// Kasaya giren ama işletme geliri sayılmayan para (kredi, satış, ödül)
+  double todayOther = 0;
+  void _cashIn(double amount) {
+    cash += amount;
+    todayOther += amount;
   }
 
   void _setDecision(Decision d) {
@@ -2619,7 +2649,7 @@ class Game extends ChangeNotifier {
     final basis = (costBasis[t] ?? 0) * qty / have;
     tradingProfit += proceeds - basis;
     _count('trade');
-    _gain(proceeds);
+    _cashIn(proceeds); // günlük gelir sayılmaz
     holdings[t] = have - qty;
     costBasis[t] = (costBasis[t] ?? 0) - basis;
     if (holdings[t]! < 1) {
@@ -2812,7 +2842,7 @@ class Game extends ChangeNotifier {
       t.winningBid = bestBid;
       return;
     }
-    _gain(t.deposit); // teminat iadesi
+    _cashIn(t.deposit); // günlük gelir sayılmaz // teminat iadesi
     final myScore = t.myBid! / t.qualityFactor;
     if (myScore < bestScore) {
       t.status = TenderStatus.producing;
@@ -2910,7 +2940,7 @@ class Game extends ChangeNotifier {
       final gems = min(loginStreak, 7);
       final money = max(50000.0, yesterdayIncome * 0.5) * min(loginStreak, 7);
       diamonds += gems;
-      _gain(money);
+      _cashIn(money); // günlük gelir sayılmaz
       pendingLogin = (loginStreak, gems, money);
     }
     if (missionDate != today) {
@@ -2979,7 +3009,7 @@ class Game extends ChangeNotifier {
     if (m.progress < m.target) return 'Görev henüz tamamlanmadı.';
     m.claimed = true;
     diamonds += m.gems;
-    _gain(missionCash(m));
+    _cashIn(missionCash(m)); // günlük gelir sayılmaz
     _notify('✅ Görev ödülü: +${m.gems} 💎, +${fmtShort(missionCash(m))}');
     _changed();
     return null;

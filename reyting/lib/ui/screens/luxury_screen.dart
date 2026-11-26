@@ -67,7 +67,7 @@ List<Widget> _marketBody(BuildContext context, Game game) {
     if (game.luxOffers.isNotEmpty) ...[
       const SectionLabel('Parçalarına gelen teklifler', color: AppColors.green),
       const SizedBox(height: 4),
-      for (final o in game.luxOffers)
+      for (final o in game.luxOffers.where((o) => luxuryDefs.any((x) => x.id == o.defId)))
         Builder(builder: (_) {
           final d = luxuryDefs.firstWhere((x) => x.id == o.defId);
           return Padding(
@@ -96,7 +96,7 @@ List<Widget> _marketBody(BuildContext context, Game game) {
       const Text('Şu an ilan yok. Fabrikada tükenen parçalar burada satışa çıkar (5 günde bir yenilenir).',
           style: TextStyle(color: AppColors.textDim, fontSize: 12)),
     AutoGrid(minItemWidth: 300, spacing: 10, children: [
-      for (final l in game.luxListings)
+      for (final l in game.luxListings.where((l) => luxuryDefs.any((x) => x.id == l.defId)))
         Builder(builder: (_) {
           final d = luxuryDefs.firstWhere((x) => x.id == l.defId);
           return Panel(

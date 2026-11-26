@@ -27,6 +27,7 @@ class Staff {
   double fame; // şöhret 0..100
   double xp; // gelişim birikimi (1 dolunca +1 yetenek)
   bool forSale; // transfer listesinde
+  int joinedDay; // kadroya/akademiye katıldığı gün (hemen satıp kâr etmeyi engeller)
 
   Staff({
     required this.id,
@@ -43,6 +44,7 @@ class Staff {
     this.fame = 0,
     this.xp = 0,
     this.forSale = false,
+    this.joinedDay = -9999,
   }) {
     if (spec < 0) spec = id.hashCode.abs() % specsByRole[role]!.length;
     if (potential < skill) potential = skill;
@@ -75,6 +77,7 @@ class Staff {
     'fame': fame,
     'xp': xp,
     'sale': forSale,
+    'joined': joinedDay,
   };
 
   factory Staff.fromJson(Map<String, dynamic> j) => Staff(
@@ -92,6 +95,7 @@ class Staff {
     fame: (j['fame'] as num? ?? 0).toDouble(),
     xp: (j['xp'] as num? ?? 0).toDouble(),
     forSale: j['sale'] ?? false,
+    joinedDay: j['joined'] ?? -9999,
   );
 }
 

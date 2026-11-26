@@ -108,7 +108,7 @@ extension GameShop on Game {
 
   /// Reklam sonuna kadar izlendi: parayı ver
   void grantAdCash(double amount) {
-    _gain(amount);
+    _cashIn(amount); // günlük gelir sayılmaz
     adsWatched++;
     _notify('🎁 Reklam ödülü: +${fmtShort(amount)}');
     _changed();
@@ -171,7 +171,7 @@ extension GameShop on Game {
       _notify('💎 +$d elmas hesabına eklendi. Teşekkürler!');
     } else if (productMoney.containsKey(productId)) {
       final a = cashAmount ?? moneyPackAmount(productMoney[productId]!);
-      _gain(a);
+      _cashIn(a); // günlük gelir sayılmaz
       purchasedCash += a;
       _notify('💰 +${fmtShort(a)} kasana eklendi. Teşekkürler!');
     } else if (productId == productNoAds) {

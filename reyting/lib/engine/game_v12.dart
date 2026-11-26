@@ -23,6 +23,7 @@ extension GameV12 on Game {
     _luxInit();
     eventReadyDay.clear();
     agencyLevel = 0;
+    yagizUsed = false;
     academy.clear();
     youthMarket.clear();
     transferMarket.clear();
@@ -54,6 +55,7 @@ extension GameV12 on Game {
     'luxOffers': luxOffers.map((e) => e.toJson()).toList(),
     'eventReady': eventReadyDay,
     'agencyLevel': agencyLevel,
+    'yagizUsed': yagizUsed,
     'academy': academy.map((e) => e.toJson()).toList(),
     'youthMarket': youthMarket.map((e) => e.toJson()).toList(),
     'transferMarket': transferMarket.map((e) => e.toJson()).toList(),
@@ -113,6 +115,7 @@ extension GameV12 on Game {
       if (pl != null) openedCities.add(pl);
     }
     agencyLevel = j['agencyLevel'] ?? 0;
+    yagizUsed = j['yagizUsed'] ?? false;
     List<Staff> ppl(String k) =>
         (j[k] as List? ?? []).map((e) => Staff.fromJson(e)).toList();
     academy
@@ -176,7 +179,7 @@ extension GameV12 on Game {
         p.salary = (p.salary * kIncome / 100).round() * 100.0;
       }
     }
-    for (final c in creators) {
+    for (final c in [...creators, ...creatorMarket]) {
       c.salary = (c.salary * kIncome / 100).round() * 100.0;
     }
     for (final e in [...execs.values, ...execCandidates]) {
@@ -665,7 +668,7 @@ extension GameV12 on Game {
   }
 
   bool get _yagizOwned =>
-      [...staff, ...academy, ...transferMarket].any((p) => p.id == yagizId);
+      yagizUsed || [...staff, ...academy, ...transferMarket].any((p) => p.id == yagizId);
 
   void _refreshYouth() {
     youthMarket.clear();
@@ -702,6 +705,8 @@ extension GameV12 on Game {
     if (cash < fee) return 'İmza için ${fmtShort(fee)} gerekli.';
     cash -= fee;
     youthMarket.remove(p);
+    p.joinedDay = day;
+    if (p.id == yagizId) yagizUsed = true;
     academy.add(p);
     _count('youth');
     _notify('🌱 ${p.name} (${p.age}) akademine katıldı!');
@@ -777,7 +782,7 @@ extension GameV12 on Game {
       _changed();
       return 'Teklif artık geçerli değil.';
     }
-    _gain(o.amount);
+    _cashIn(o.amount); // günlük gelir sayılmaz
     transferProfit += o.amount;
     talentsSold++;
     _removePerson(p);
@@ -791,14 +796,17 @@ extension GameV12 on Game {
     return null;
   }
 
-  double quickSaleValue(Staff p) => talentValue(p) * 0.6;
+  /// Yeni alınan kişi hemen satılırsa değeri düşük; 60 günde tam değere çıkar
+  double holdFactor(Staff p) => ((day - p.joinedDay) / 60).clamp(0.15, 1.0).toDouble();
+
+  double quickSaleValue(Staff p) => talentValue(p) * 0.6 * holdFactor(p);
 
   String? quickSell(Staff p) {
     if (p.showId != null && showById(p.showId) == null) {
       return 'Bu kişi bir film/ihale çekiminde.';
     }
     final v = quickSaleValue(p);
-    _gain(v);
+    _cashIn(v); // günlük gelir sayılmaz
     transferProfit += v;
     talentsSold++;
     _removePerson(p);
@@ -842,6 +850,7 @@ extension GameV12 on Game {
     if (cash < price) return 'Bonservis için ${fmtShort(price)} gerekli.';
     cash -= price;
     transferMarket.remove(p);
+    p.joinedDay = day;
     staff.add(p);
     _notify(
       '✍️ Yıldız transfer: ${p.name} kadroda! (şöhret ${p.fame.round()})',
@@ -900,7 +909,7 @@ extension GameV12 on Game {
           TransferOffer(
             p.id,
             rivals[_rng.nextInt(rivals.length)],
-            (talentValue(p) * (0.75 + _rng.nextDouble() * 0.45) / 1000)
+            (talentValue(p) * holdFactor(p) * (0.75 + _rng.nextDouble() * 0.45) / 1000)
                     .round() *
                 1000.0,
             day + 3,
@@ -1404,7 +1413,7 @@ extension GameV12 on Game {
     final d = luxuryDefs.firstWhere((x) => x.id == o.defId);
     ownedLuxury.remove(d.id);
     _dropLux(d.id);
-    _gain(o.amount);
+    _cashIn(o.amount); // günlük gelir sayılmaz
     _notify('💰 ${d.name}, ${o.from} tarafından ${fmtShort(o.amount)} karşılığında alındı.');
     _changed();
     return null;

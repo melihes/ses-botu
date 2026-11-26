@@ -217,15 +217,15 @@ class BrandsScreen extends StatelessWidget {
     return ListView(
       padding: const EdgeInsets.all(12),
       children: [
-        Row(
+        Wrap(
+          spacing: 6,
+          runSpacing: 6,
           children: [
             Tag('Marka seviyesi: $tierName', color: AppColors.yellow),
-            const SizedBox(width: 6),
             Tag(
               'Anlaşma geliri ${fmtShort(game.dealIncomePerDay + game.sponsorIncomePerDay)}/gün',
               color: AppColors.green,
             ),
-            const Spacer(),
             if (game.execs.containsKey(ExecRole.pazarlama))
               const Tag(
                 '🤖 Pazarlama Müdürü teklifleri otomatik kabul ediyor',
@@ -324,7 +324,7 @@ class BrandsScreen extends StatelessWidget {
         const SizedBox(height: 14),
         const SectionLabel('Süren anlaşmalar'),
         const SizedBox(height: 4),
-        for (final s in game.shows.where((s) => s.sponsorDays > 0))
+        for (final s in game.shows.where((s) => s.sponsorDays > 0 && s.status == ShowStatus.onAir))
           _dealRow(
             '${s.sponsor}',
             'Ürün yerleştirme · ${s.name}',

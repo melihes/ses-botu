@@ -146,8 +146,11 @@ class _CashChartState extends State<CashChart> {
               ),
             const Spacer(),
             if (_range > 0)
-              Text(
+              Flexible(
+                child: Text(
                 'Net ${fmtSigned(periodIncome - periodExpense)}',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
                 style: TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.w800,
@@ -155,6 +158,7 @@ class _CashChartState extends State<CashChart> {
                       ? AppColors.green
                       : AppColors.red,
                 ),
+              ),
               ),
           ],
         ),

@@ -156,7 +156,7 @@ class _TrophiesScreenState extends State<TrophiesScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         ItemArt(
-                          id: d.id,
+                          id: d.artId,
                           color: d.cat.color,
                           width: double.infinity,
                           height: 80,

@@ -15,6 +15,7 @@ class StudioScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final narrow = MediaQuery.sizeOf(context).width < 760;
     final game = GameScope.of(context);
     final cur = game.studio;
     final hasNext = game.studioLevel < studioLevels.length - 1;
@@ -34,14 +35,17 @@ class StudioScreen extends StatelessWidget {
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              StageScene(
-                prop: Prop.studio,
-                color: AppColors.purple,
-                tier: (game.studioLevel / 2).floor().clamp(0, 2),
-                width: 150,
-                height: 110,
-              ),
-              const SizedBox(width: 14),
+              // dar ekranda resim gizlenir, yazılar sıkışmasın
+              if (!narrow) ...[
+                StageScene(
+                  prop: Prop.studio,
+                  color: AppColors.purple,
+                  tier: (game.studioLevel / 2).floor().clamp(0, 2),
+                  width: 150,
+                  height: 110,
+                ),
+                const SizedBox(width: 14),
+              ],
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -83,7 +87,7 @@ class StudioScreen extends StatelessWidget {
               ),
               const SizedBox(width: 14),
               SizedBox(
-                width: 260,
+                width: narrow ? 200 : 260,
                 child: next == null
                     ? const Text(
                         '🏆 Medya imparatorluğunun zirvesindesin!',

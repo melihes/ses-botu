@@ -259,7 +259,7 @@ class _AgencyScreenState extends State<AgencyScreen> {
                         Expanded(
                           child: Text(
                             '${o.from} → ${p.name}: ${fmtShort(o.amount)} '
-                            '(değeri ${fmtShort(v)}, ${o.amount >= v ? '+' : ''}${fmtPct((o.amount / v - 1) * 100, 0)}) · ${o.expires - game.day + 1} gün',
+                            '(değeri ${fmtShort(v)}, ${v > 0 ? (o.amount >= v ? "+" : "") + fmtPct((o.amount / v - 1) * 100, 0) : "—"}) · ${o.expires - game.day + 1} gün',
                             style: const TextStyle(
                               fontWeight: FontWeight.w700,
                               fontSize: 12,

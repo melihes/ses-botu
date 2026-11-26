@@ -82,6 +82,9 @@ class _CityMapViewState extends State<CityMapView> {
                 child: FutureBuilder<List<_Prov>>(
                   future: _future,
                   builder: (ctx, snap) {
+                    if (snap.hasError) {
+                      return const Center(child: Text('Harita yüklenemedi.'));
+                    }
                     if (!snap.hasData) {
                       return const Center(child: CircularProgressIndicator());
                     }
