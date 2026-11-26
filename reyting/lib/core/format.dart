@@ -62,3 +62,52 @@ const weekdays = [
 ];
 
 String weekdayOf(int day) => weekdays[(day - 1) % 7];
+
+/// Türkçe ek: özel isme ünlü uyumuna göre ek getirir ("Gece Yarısı" → "Gece Yarısı'nın").
+/// kind: gen (-ın), acc (-ı), dat (-a), loc (-da), abl (-dan), cop (-dı), lockI (-daki)
+String trEk(String w, String kind) {
+  const vowels = 'aeıioöuüAEIİOÖUÜ';
+  const back = 'aıouAIOU';
+  const hard = 'fstkçşhpFSTKÇŞHP';
+  final t = w.trim();
+  // sayıyla bitiyorsa okunuşuna göre (9 → dokuz → 9'un)
+  const digitWords = ['sıfır', 'bir', 'iki', 'üç', 'dört', 'beş', 'altı', 'yedi', 'sekiz', 'dokuz'];
+  final lastCh = t.isEmpty ? '' : t[t.length - 1];
+  final dg = int.tryParse(lastCh);
+  final probe = dg != null ? digitWords[dg] : t;
+  String? lastV;
+  for (int i = probe.length - 1; i >= 0; i--) {
+    if (vowels.contains(probe[i])) {
+      lastV = probe[i];
+      break;
+    }
+  }
+  final lv = switch (lastV ?? 'e') {
+    'I' => 'ı',
+    'İ' => 'i',
+    final v => v.toLowerCase(),
+  };
+  final isBack = back.contains(lv);
+  final four = switch (lv) {
+    'a' || 'ı' => 'ı',
+    'e' || 'i' => 'i',
+    'o' || 'u' => 'u',
+    _ => 'ü',
+  };
+  final two = isBack ? 'a' : 'e';
+  final last = probe.isEmpty ? 'e' : probe[probe.length - 1];
+  final endsV = vowels.contains(last);
+  final endsHard = hard.contains(last);
+  final d = endsHard ? 't' : 'd';
+  final ek = switch (kind) {
+    'gen' => endsV ? 'n${four}n' : '$four' 'n',
+    'acc' => endsV ? 'y$four' : four,
+    'dat' => endsV ? 'y$two' : two,
+    'loc' => '$d$two',
+    'abl' => '$d${two}n',
+    'cop' => endsV ? 'yd$four' : '$d$four',
+    'lockI' => '$d${two}ki',
+    _ => '',
+  };
+  return "$t'$ek";
+}

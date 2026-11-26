@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../../core/format.dart';
 import '../../core/theme.dart';
+import '../../data/calendar.dart';
 import '../../data/content.dart';
 import '../../data/content2.dart';
 import '../../engine/game.dart';
@@ -417,7 +418,9 @@ class _TileGrid extends StatelessWidget {
             },
           ),
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: 6),
+        _HomeTicker(game: g),
+        const SizedBox(height: 6),
         SizedBox(
           height: 62,
           child: Row(
@@ -678,4 +681,58 @@ class _ShellGoal {
     PageId.cinema,
     PageId.studio,
   ];
+}
+
+
+/// Ana ekranda tek satır: yaklaşan özel gün ve sosyal medya gündemi
+class _HomeTicker extends StatelessWidget {
+  final Game game;
+  const _HomeTicker({required this.game});
+  @override
+  Widget build(BuildContext context) {
+    final g = game;
+    final up = g.upcomingSpecialDays(within: 30);
+    final next = up.isEmpty ? null : up.first;
+    final trend = g.trendList.isEmpty ? null : g.trendList.first.key;
+    final mine = trend != null && g.shows.any((s) => g.tagOf(s.name) == trend);
+    Widget chip(String text, Color color, PageId page) => Expanded(
+          child: GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: () => ShellNav.go(context, page),
+            child: Container(
+              height: 28,
+              padding: const EdgeInsets.symmetric(horizontal: 8),
+              alignment: Alignment.centerLeft,
+              decoration: BoxDecoration(
+                color: color.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: color.withValues(alpha: 0.4)),
+              ),
+              child: Text(text,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w800)),
+            ),
+          ),
+        );
+    final (d, start) = next ?? (null, 0);
+    final left = start - g.day;
+    return Row(children: [
+      chip(
+        d == null
+            ? '📅 ${dateLabel(g.day)} · yakında özel gün yok'
+            : (left <= 0
+                ? '${d.emoji} ${d.name} sürüyor!'
+                : '${d.emoji} ${d.name} · $left gün${left <= 10 ? ' · özel bölüm hazırla' : ''}'),
+        d != null && left <= 10 ? AppColors.yellow : AppColors.textDim,
+        PageId.calendar,
+      ),
+      const SizedBox(width: 6),
+      chip(
+        trend == null ? '💬 Sosyal medya sakin' : '🔥 Gündem: $trend',
+        mine ? AppColors.cyan : AppColors.textDim,
+        PageId.social,
+      ),
+    ]);
+  }
 }

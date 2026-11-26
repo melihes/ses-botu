@@ -857,3 +857,46 @@ class LuxOffer {
   factory LuxOffer.fromJson(List j) =>
       LuxOffer(j[0], j[1], (j[2] as num).toDouble(), j[3]);
 }
+
+/// Kurmaca sosyal medya paylaşımı
+class SocialPost {
+  final int day;
+  final int hour;
+  final String name; // görünen ad
+  final String handle; // @kullanici
+  final String text;
+  final int likes;
+  final int shares;
+  final int mood; // 1 olumlu, 0 nötr, -1 olumsuz
+  final int seed; // profil resmi
+  final bool female;
+  const SocialPost({
+    required this.day,
+    required this.hour,
+    required this.name,
+    required this.handle,
+    required this.text,
+    required this.likes,
+    required this.shares,
+    required this.mood,
+    required this.seed,
+    required this.female,
+  });
+
+  Map<String, dynamic> toJson() => {
+    'd': day, 'h': hour, 'n': name, 'u': handle, 't': text,
+    'l': likes, 's': shares, 'm': mood, 'r': seed, 'f': female,
+  };
+  factory SocialPost.fromJson(Map<String, dynamic> j) => SocialPost(
+    day: j['d'] ?? 0,
+    hour: j['h'] ?? 0,
+    name: j['n'] ?? '',
+    handle: j['u'] ?? '',
+    text: j['t'] ?? '',
+    likes: j['l'] ?? 0,
+    shares: j['s'] ?? 0,
+    mood: j['m'] ?? 0,
+    seed: j['r'] ?? 0,
+    female: j['f'] ?? false,
+  );
+}

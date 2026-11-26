@@ -12,6 +12,7 @@ import '../widgets/common.dart';
 import '../widgets/company_logo.dart';
 import '../widgets/item_art.dart';
 import '../widgets/face.dart';
+import 'live_crisis.dart';
 import 'live_stage.dart';
 
 /// Programı tam ekran canlı izle: konuşmalar, skor, seyirci tepkileri.
@@ -42,6 +43,7 @@ class _LiveViewState extends State<LiveView> {
   late LivePerson _host, _guest;
   List<FaceSpec> _crowd = const [];
   LiveBeat? _beat;
+  bool _paused = false;
 
   @override
   void didChangeDependencies() {
@@ -89,7 +91,7 @@ class _LiveViewState extends State<LiveView> {
   }
 
   void _step() {
-    if (!mounted) return;
+    if (!mounted || _paused) return;
     final b = _script!.next();
     if (b.side < 2 && !_people.containsKey(b.who)) {
       _people[b.who] = LivePerson(b.who, PersonAvatar.specFor(b.who.hashCode, b.who, age: 27), b.who.hashCode);
@@ -172,7 +174,18 @@ class _LiveViewState extends State<LiveView> {
         Expanded(
           child: Row(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
             Expanded(
-              child: LiveStage(
+              child: CrisisLayer(
+                show: s,
+                // kriz sırasında konuşma akışı durur
+                onActive: (on) {
+                  _paused = on;
+                  if (on) {
+                    _timer?.cancel();
+                  } else {
+                    _step();
+                  }
+                },
+                child: LiveStage(
                 genre: s.genre,
                 prop: fmt.prop,
                 title: s.name,
@@ -188,6 +201,7 @@ class _LiveViewState extends State<LiveView> {
                 people: _people,
                 crowd: _crowd,
                 seed: s.id.hashCode,
+              ),
               ),
             ),
             // olay akışı

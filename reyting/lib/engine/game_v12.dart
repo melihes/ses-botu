@@ -328,7 +328,9 @@ extension GameV12 on Game {
     return (1 + s.loyalty) *
         (1 + guestTiers[s.guest.clamp(0, guestTiers.length - 1)].boost) *
         (1 + fameBonus) *
-        (1 + execBonus(ExecRole.yayin));
+        (1 + execBonus(ExecRole.yayin)) *
+        calendarMult(s) *
+        dramaMult(s);
   }
 
   /// Yayındaki ya da çekimdeki programın bütçesini yükseltme maliyeti

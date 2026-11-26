@@ -184,7 +184,8 @@ class _PersonCard extends StatelessWidget {
                     ),
                     Text(
                       '${p.age} yaş${p.trait != 0 ? ' · ${p.traitDef.emoji} ${p.traitDef.label}' : ''}'
-                      '${p.fame >= 1 ? ' · şöhret ${p.fame.round()}' : ''}',
+                      '${p.fame >= 1 ? ' · şöhret ${p.fame.round()}' : ''}'
+                      '${game.bondsOf(p).map((b) => ' · ${bondInfo[b.$1]!.$1} ${b.$2.name.split(' ').first}').join()}',
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(

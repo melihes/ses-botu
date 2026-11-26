@@ -9,6 +9,9 @@ import 'dialogs/offline_dialog.dart';
 import 'dialogs/settings_dialog.dart';
 import 'dialogs/shop_dialog.dart';
 import '../core/ads.dart';
+import 'screens/calendar_screen.dart';
+import '../data/calendar.dart';
+import 'screens/social_screen.dart';
 import 'screens/agency_screen.dart';
 import 'screens/bank_screen.dart';
 import 'screens/board_screen.dart';
@@ -45,6 +48,8 @@ enum PageId {
   broadcast,
   cinema,
   digital,
+  social,
+  calendar,
   studio,
   holding,
   channels,
@@ -101,6 +106,20 @@ const _nav = [
     'VİDEOM',
     'Dijital · YouTuber\'lar',
     Icons.smart_display_rounded,
+  ),
+  _NavItem(
+    PageId.social,
+    'Sosyal',
+    'GÜNDEM',
+    'Sosyal medya',
+    Icons.tag_rounded,
+  ),
+  _NavItem(
+    PageId.calendar,
+    'Takvim',
+    'ÖZEL GÜNLER',
+    'Takvim & özel günler',
+    Icons.event_rounded,
   ),
   _NavItem(
     PageId.map,
@@ -199,7 +218,8 @@ class _Group {
 
 const _groups = [
   _Group('Kanal', Icons.live_tv_rounded,
-      [PageId.home, PageId.staff, PageId.production, PageId.broadcast, PageId.cinema, PageId.digital]),
+      [PageId.home, PageId.staff, PageId.production, PageId.broadcast, PageId.cinema, PageId.digital,
+        PageId.social, PageId.calendar]),
   _Group('Şirket', Icons.business_rounded,
       [PageId.studio, PageId.map, PageId.agency, PageId.board, PageId.brands, PageId.holding, PageId.channels]),
   _Group('Para', Icons.account_balance_wallet_rounded, [PageId.tenders, PageId.market, PageId.bank]),
@@ -263,6 +283,8 @@ class _ShellState extends State<Shell> {
     PageId.tenders => const TendersScreen(),
     PageId.trophies => const TrophiesScreen(),
     PageId.online => const OnlineScreen(),
+    PageId.social => const SocialScreen(),
+    PageId.calendar => const CalendarScreen(),
   };
 
   bool _introShowing = false;
@@ -728,12 +750,19 @@ class _DayChip extends StatelessWidget {
   final double progress;
   const _DayChip({required this.day, required this.progress});
   @override
-  Widget build(BuildContext context) => Container(
+  Widget build(BuildContext context) {
+    final game = GameScope.of(context);
+    final act = game.activeSpecialDays;
+    final narrow = MediaQuery.sizeOf(context).width < 700;
+    return GestureDetector(
+    behavior: HitTestBehavior.opaque,
+    onTap: () => ShellNav.go(context, PageId.calendar),
+    child: Container(
     padding: const EdgeInsets.fromLTRB(10, 6, 10, 5),
     decoration: BoxDecoration(
       color: AppColors.panel,
       borderRadius: BorderRadius.circular(14),
-      border: Border.all(color: AppColors.border),
+      border: Border.all(color: act.isNotEmpty ? AppColors.green : AppColors.border),
     ),
     child: Column(
       mainAxisSize: MainAxisSize.min,
@@ -748,19 +777,22 @@ class _DayChip extends StatelessWidget {
             ),
             const SizedBox(width: 5),
             Text(
-              MediaQuery.sizeOf(context).width < 700 ? 'Gün $day' : 'Gün $day · ${weekdayOf(day)}',
+              '${act.isNotEmpty ? '${act.first.$1.emoji} ' : ''}'
+              '${narrow ? 'Gün $day' : 'Gün $day · ${dateLabel(day)}'}',
               style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13),
             ),
           ],
         ),
         const SizedBox(height: 4),
         SizedBox(
-          width: MediaQuery.sizeOf(context).width < 700 ? 70 : 110,
+          width: narrow ? 70 : 110,
           child: Bar(progress, color: AppColors.accent, height: 3),
         ),
       ],
     ),
-  );
+    ),
+    );
+  }
 }
 
 /// Alt ortada beliren bildirimler

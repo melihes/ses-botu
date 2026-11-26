@@ -7,7 +7,10 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../core/format.dart';
 import '../data/content.dart';
+import '../data/calendar.dart';
 import '../data/cities.dart';
+import '../data/social_text.dart';
+import '../data/crisis_text.dart';
 import '../core/monetization_config.dart';
 import '../data/content2.dart';
 import '../models/models.dart';
@@ -16,6 +19,10 @@ import 'economy.dart';
 
 part 'game_v12.dart';
 part 'game_shop.dart';
+part 'game_calendar.dart';
+part 'game_social.dart';
+part 'game_drama.dart';
+part 'game_crisis.dart';
 
 /// Oyunun tüm durumunu tutan ve zamanı ilerleten motor.
 /// Ekranlar bunu dinler; her değişiklikte notifyListeners() çağrılır.
@@ -44,6 +51,18 @@ class Game extends ChangeNotifier {
   int careerStart = 0; // bu kariyerin başladığı an (yönetici toplu silmesi için)
   String? cloudUid; // bu kaydın en son bağlı olduğu online hesap
   bool yagizUsed = false; // Yağız Ada her kariyerde bir kez imzalanabilir
+
+  // ---- 1.1: takvim, sosyal medya, canlı kriz, kulis ----
+  /// Özel bölüm hazırlanan programlar: program id → "özelGün@başlangıçGünü"
+  final Map<String, String> specials = {};
+  final List<SocialPost> socialFeed = []; // sosyal medya akışı (en yeni başta)
+  final Map<String, double> trends = {}; // gündem: etiket → puan
+  final List<int> _socialRecent = []; // son kullanılan metinler (tekrar etmesin)
+  int crisisDay = 0, crisisCount = 0; // canlı yayın krizleri (günde sınırlı)
+  final Map<String, int> crisisShowDay = {};
+  int dramaLevel = 1; // kulis dramaları: 0 kapalı, 1 az, 2 normal, 3 çok
+  int dramaLastDay = 0;
+  final Map<String, String> bonds = {}; // "id1|id2" → "ilişki:gün"
   final List<String> grantedPurchases = []; // verilmiş satın almalar (tekrar verilmesin)
   double timeScale = 1; // test modu için hızlandırma
 
@@ -235,6 +254,7 @@ class Game extends ChangeNotifier {
     todayIncome = 0;
     yesterdayIncome = 0;
     _resetV12();
+    _resetV13();
     _refreshMarket();
     _tendersDaily();
     _log(
@@ -465,6 +485,7 @@ class Game extends ChangeNotifier {
     'todayIncome': todayIncome,
     'yesterdayIncome': yesterdayIncome,
     ..._v12ToJson(),
+    ..._v13ToJson(),
   };
 
   void _load(Map<String, dynamic> j) {
@@ -628,6 +649,7 @@ class Game extends ChangeNotifier {
     todayIncome = (j['todayIncome'] as num? ?? 0).toDouble();
     yesterdayIncome = (j['yesterdayIncome'] as num? ?? 0).toDouble();
     _v12Load(j);
+    _v13Load(j);
   }
 
   // =================================================================
@@ -658,6 +680,7 @@ class Game extends ChangeNotifier {
       final hour = (dayProgress * 24).floor();
       while (todaySamples.length <= hour && todaySamples.length < 24) {
         todaySamples.add(cash);
+        _socialTick();
       }
       if (dayProgress >= 1 - 1e-9) {
         dayProgress = 0;
@@ -707,7 +730,7 @@ class Game extends ChangeNotifier {
         if (f.prodLeft <= 0) _finishFilm(f);
       } else if (f.status == FilmStatus.inTheaters) {
         final inc =
-            boxOfficeForDay(f, f.theaterDay, reach, boxOfficeBonus) * step;
+            boxOfficeForDay(f, f.theaterDay, reach, boxOfficeBonus + filmCalendarBonus(f.genre)) * step;
         cash += inc;
         todayIncome += inc;
         f.boxOffice += inc;
@@ -819,6 +842,7 @@ class Game extends ChangeNotifier {
     }
     _tendersDaily();
     _v12Daily();
+    _v13Daily();
     _buildReport();
     _stockNews();
     _maybeDecision();
@@ -871,6 +895,7 @@ class Game extends ChangeNotifier {
 
   void _endSeason(Show s, {bool manual = false}) {
     final prevSlot = s.slot;
+    if (s.status == ShowStatus.onAir) _post(SocialTopic.ended, show: s);
     slots[s.slot]?.showId = null;
     s.slot = null;
     s.status = ShowStatus.ended;
@@ -917,6 +942,7 @@ class Game extends ChangeNotifier {
         if (s == null) return;
         s.buff = 1.2;
         s.buffDays = 2;
+        _post(SocialTopic.viral, show: s);
         _event(
           '📈 Viral oldu!',
           '"${s.name}" sosyal medyada gündem oldu. 2 gün reyting +%20.',
@@ -963,6 +989,7 @@ class Game extends ChangeNotifier {
         s.buff = 1.15;
         s.buffDays = 4;
         bonusPrestige += 15;
+        _post(SocialTopic.award, show: s);
         _event(
           '🏆 Ödül töreni',
           '"${s.name}" yılın programı seçildi! +15 prestij, 4 gün reyting +%15.',
@@ -1194,7 +1221,7 @@ class Game extends ChangeNotifier {
       .where((f) => f.status == FilmStatus.inTheaters)
       .fold(
         0.0,
-        (a, f) => a + boxOfficeForDay(f, f.theaterDay, reach, boxOfficeBonus),
+        (a, f) => a + boxOfficeForDay(f, f.theaterDay, reach, boxOfficeBonus + filmCalendarBonus(f.genre)),
       );
 
   /// Boşta bekleyen (programda olmayan) kadro yarım maaş alır.
@@ -1552,6 +1579,7 @@ class Game extends ChangeNotifier {
     s.slot = slot;
     s.status = ShowStatus.onAir;
     _count('air');
+    _post(SocialTopic.newShow, show: s);
     _notify('📡 "${s.name}" ${slotDefs[slot]!.label} kuşağında yayında!');
     _changed();
     return null;
@@ -1883,6 +1911,7 @@ class Game extends ChangeNotifier {
     f.status = FilmStatus.inTheaters;
     f.theaterDay = 0;
     _notify('🍿 "${f.name}" bugün vizyonda! $theaterRunDays gün salonlarda.');
+    _post(SocialTopic.film, extra: f.name, mood: 1);
     _changed();
     return null;
   }
@@ -2402,7 +2431,7 @@ class Game extends ChangeNotifier {
           msg = 'Teklif reddedildi.';
         }
       default:
-        msg = '';
+        msg = d.kind.startsWith('drama') ? _resolveDrama(d, option) : '';
     }
     _log(d.title, msg, !msg.contains('-'));
     if (!auto) _notify(msg);

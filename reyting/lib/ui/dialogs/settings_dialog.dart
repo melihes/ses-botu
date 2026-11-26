@@ -108,6 +108,18 @@ class _SettingsState extends State<_Settings> {
                 style: TextStyle(fontSize: 12, color: AppColors.textDim),
               ),
             ),
+            const SizedBox(height: 4),
+            const Text('🎭 Kulis dramaları', style: TextStyle(fontWeight: FontWeight.w800)),
+            const Text(
+              'Kadrodaki aşklar, kavgalar, yıldız talepleri ne sıklıkla çıksın?',
+              style: TextStyle(fontSize: 12, color: AppColors.textDim),
+            ),
+            const SizedBox(height: 6),
+            PillTabs(
+              labels: dramaLevelNames,
+              selected: game.dramaLevel,
+              onChanged: game.setDramaLevel,
+            ),
             const SizedBox(height: 8),
             const SectionLabel(
               'Test modu · zaman hızı',
@@ -206,7 +218,7 @@ class _SettingsState extends State<_Settings> {
             ),
             const SizedBox(height: 12),
             const Text(
-              'Reyting · v1.0.11',
+              'Reyting · v1.1.0',
               style: TextStyle(color: AppColors.textFaint, fontSize: 11),
             ),
           ],
