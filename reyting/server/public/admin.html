@@ -86,7 +86,7 @@
     <button id="btnRefresh">Yenile</button>
     <button class="danger" id="btnResetAll">Herkesi sıfırla</button>
     <button class="danger" id="btnDeleteAll">Herkesi TAMAMEN sil</button>
-    <label style="display:flex;gap:6px;align-items:center;color:var(--dim)"><input type="checkbox" id="live" checked> Anlık (15 sn)</label>
+    <label style="display:flex;gap:6px;align-items:center;color:var(--dim)"><input type="checkbox" id="live" checked> Anlık (5 sn)</label>
     <span id="lastUp" class="mono"></span>
   </div>
   <div class="stats" id="stats"></div>
@@ -159,22 +159,48 @@ onAuthStateChanged(auth, async (u) => {
     $('login').style.display = 'none'; $('app').style.display = 'block';
     $('who').textContent = u.email;
     clearInterval(timer);
-    timer = setInterval(() => { if ($('live').checked) { load(); if (selected) openPlayer(selected, true); } }, 15000);
+    let tick = 0;
+    timer = setInterval(() => {
+      if (!$('live').checked) return;
+      tick++;
+      // 5 sn'de bir sadece değişenler, dakikada bir tam liste
+      (tick % 12 === 0 ? load() : loadChanges()).catch(() => {});
+      if (selected && tick % 2 === 0) openPlayer(selected, true);
+    }, 5000);
   } catch (e) {
     $('loginErr').textContent = (e.message || 'Yetki yok') + ' (' + u.email + ')';
     await signOut(auth);
   }
 });
 
+let total = 0;
+async function loadChanges() {
+  const since = rows.reduce((a, r) => Math.max(a, r.updatedAt || 0), 0);
+  if (!since) return load();
+  const res = await call('adminList', { since, limit: 200 });
+  if (!res.rows.length) { $('lastUp').textContent = 'güncellendi ' + new Date().toLocaleTimeString('tr-TR'); return; }
+  const byId = new Map(rows.map(r => [r.uid, r]));
+  for (const r of res.rows) { if (!byId.has(r.uid)) total++; byId.set(r.uid, r); }
+  rows = [...byId.values()];
+  const key = $('order').value;
+  rows.sort((a, b) => (b[key] ?? 0) - (a[key] ?? 0));
+  summarize();
+}
+
 async function load() {
   const res = await call('adminList', { order: $('order').value, limit: 500 });
   rows = res.rows;
+  total = res.total;
+  summarize();
+}
+
+function summarize() {
   const day = Date.now() - 86400e3, hour = Date.now() - 3600e3;
   const active24 = rows.filter(r => r.updatedAt > day).length;
   const active1 = rows.filter(r => r.updatedAt > hour).length;
   const totalCash = rows.reduce((a, r) => a + (r.cash || 0), 0);
   $('stats').innerHTML = [
-    ['Toplam oyuncu', nf.format(res.total)], ['Son 1 saatte', nf.format(active1)], ['Son 24 saatte', nf.format(active24)],
+    ['Toplam oyuncu', nf.format(total)], ['Son 1 saatte', nf.format(active1)], ['Son 24 saatte', nf.format(active24)],
     ['Sıralama dışı', nf.format(rows.filter(r => !r.verified).length)], ['Listede toplam kasa', money(totalCash)],
   ].map(([k, v]) => `<div class="stat"><b>${v}</b><span>${k}</span></div>`).join('');
   $('lastUp').textContent = 'güncellendi ' + new Date().toLocaleTimeString('tr-TR');

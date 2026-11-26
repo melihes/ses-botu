@@ -219,7 +219,7 @@ export const deleteAccount = onCall(async (req) => {
 });
 
 /** İlk 100 listesi: her 10 dakikada tek belgeye yazılır */
-export const top100 = onSchedule({ schedule: 'every 10 minutes', timeZone: 'Europe/Istanbul' }, async () => {
+export const top100 = onSchedule({ schedule: 'every 5 minutes', timeZone: 'Europe/Istanbul' }, async () => {
   const q = await db.collection('leaderboard').orderBy('worth', 'desc').limit(100).get();
   const rows = q.docs.map((d, i) => ({
     rank: i + 1,

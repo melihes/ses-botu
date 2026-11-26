@@ -256,7 +256,8 @@ class _ShowCard extends StatelessWidget {
           Text(
             'Bölüm ${s.episodesAired}/${s.seasonDays} · '
             '${fmtPct(game.currentRating(s), 2)} · '
-            'Sezon geliri ${fmtShort(s.seasonRevenue)}',
+            'Sezon geliri ${fmtShort(s.seasonRevenue)}'
+            '${game.castShockMult(s) < 0.995 ? ' · 🎭 yeni kadroya alışıyor -%${((1 - game.castShockMult(s)) * 100).round()}' : ''}',
             style: const TextStyle(fontSize: 12),
           ),
         ];
@@ -274,7 +275,7 @@ class _ShowCard extends StatelessWidget {
                 'Yeni sezon',
                 compact: true,
                 icon: Icons.replay_rounded,
-                onTap: () => report(context, game.renewShow(s)),
+                onTap: () => showRenewDialog(context, s),
               ),
               const SizedBox(width: 8),
               GhostButton(
@@ -1198,5 +1199,165 @@ Future<Staff?> showQuickHire(BuildContext context, Role role) {
         ],
       );
     },
+  );
+}
+
+
+/// Yeni sezon: ekibi gözden geçir, gelemeyenlerin yerine yeni isim seç.
+/// Başrol ya da sunucu değişirse izleyici küser: reyting düşük başlar.
+Future<void> showRenewDialog(BuildContext context, Show s) {
+  final replace = <String, String>{};
+  return showDialog(
+    context: context,
+    builder: (c) => StatefulBuilder(builder: (c, setD) {
+      final game = GameScope.of(c);
+      final blockers = {for (final b in game.renewBlockers(s)) b.$1: b.$2};
+      // ayrılan kişinin rolü: programın ihtiyacından eksik kalan rol
+      Role roleOf(String id) {
+        final p = game.staffById(id);
+        if (p != null) return p.role;
+        final have = <Role, int>{};
+        for (final x in s.staffIds) {
+          final r = game.staffById(x)?.role ?? game.staffById(replace[x] ?? '')?.role;
+          if (r != null && x != id) have[r] = (have[r] ?? 0) + 1;
+        }
+        for (final e in s.def.needs.entries) {
+          if ((have[e.key] ?? 0) < e.value) return e.key;
+        }
+        return s.def.needs.keys.first;
+      }
+      final chosen = replace.values.toSet();
+      final unresolved = blockers.keys.where((id) => !replace.containsKey(id)).length;
+      final shock = game.castShockFor(s, replace);
+      final returning = replace.values.where((id) => s.pastCrew.contains(id)).length;
+      return AlertDialog(
+        title: Text('"${s.name}" · ${s.season + 1}. sezon'),
+        content: SizedBox(
+          width: 520,
+          child: SingleChildScrollView(
+            child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+              const Text(
+                'Ekip aynı kalırsa izleyici kaldığı yerden devam eder. Başka programdaki ya da ayrılan '
+                'birinin yerine yeni isim seçebilirsin; ama yüzler değişince reyting bir süre düşük başlar.',
+                style: TextStyle(color: AppColors.textDim, fontSize: 12),
+              ),
+              const SizedBox(height: 8),
+              for (final (i, id) in s.staffIds.indexed)
+                Builder(builder: (_) {
+                  final old = game.staffById(id);
+                  final role = roleOf(id);
+                  final rep = replace[id] == null ? null : game.staffById(replace[id]!);
+                  final cands = game.staff
+                      .where((p) => p.role == role && p.showId == null && !chosen.contains(p.id) && p.id != id)
+                      .toList()
+                    ..sort((a, b) => b.skill.compareTo(a.skill));
+                  final weight = game.castWeight(s, i, role, replace);
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 6),
+                    child: Panel(
+                      padding: const EdgeInsets.all(8),
+                      color: AppColors.panelHi,
+                      borderColor: blockers.containsKey(id) && rep == null ? AppColors.red : null,
+                      child: Row(children: [
+                        SizedBox(
+                          width: 86,
+                          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                            Text(role.label,
+                                style: TextStyle(color: role.color, fontWeight: FontWeight.w800, fontSize: 12)),
+                            if (weight >= 0.25)
+                              Text(role == Role.oyuncu ? 'başrol' : 'programın yüzü',
+                                  style: const TextStyle(color: AppColors.yellow, fontSize: 10)),
+                          ]),
+                        ),
+                        Expanded(
+                          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                            Text(
+                              rep != null
+                                  ? '${old?.name ?? 'Ayrılan kişi'} → ${rep.name}'
+                                  : (old?.name ?? 'Ayrılan kişi'),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(fontWeight: FontWeight.w800),
+                            ),
+                            Text(
+                              rep != null
+                                  ? (s.pastCrew.contains(rep.id)
+                                      ? '🎉 Eski kadrodan, izleyici sevinir · yetenek ${rep.skill}'
+                                      : '🎭 Yeni yüz · reyting -%${(weight * 100).round()} başlar · yetenek ${rep.skill}')
+                                  : (blockers[id] != null ? '⛔ ${blockers[id]}' : '✅ Hazır · yetenek ${old?.skill ?? 0}'),
+                              style: TextStyle(
+                                  fontSize: 11,
+                                  color: rep != null
+                                      ? AppColors.cyan
+                                      : (blockers[id] != null ? AppColors.red : AppColors.green)),
+                            ),
+                          ]),
+                        ),
+                        PopupMenuButton<String>(
+                          tooltip: 'Değiştir',
+                          onSelected: (v) => setD(() {
+                            if (v == '__keep') {
+                              replace.remove(id);
+                            } else {
+                              replace[id] = v;
+                            }
+                          }),
+                          itemBuilder: (_) => [
+                            if (rep != null && old != null && blockers[id] == null)
+                              PopupMenuItem(value: '__keep', child: Text('${old.name} kalsın')),
+                            if (cands.isEmpty)
+                              const PopupMenuItem(enabled: false, child: Text('Boşta uygun kimse yok · Kadro\'dan işe al')),
+                            for (final p in cands.take(12))
+                              PopupMenuItem(
+                                value: p.id,
+                                child: Text(
+                                    '${p.name} · ${p.skill}${s.pastCrew.contains(p.id) ? ' · eski kadro' : ''}'),
+                              ),
+                          ],
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(10),
+                              border: Border.all(color: AppColors.cyan.withValues(alpha: 0.6)),
+                            ),
+                            child: const Text('Değiştir',
+                                style: TextStyle(color: AppColors.cyan, fontWeight: FontWeight.w800, fontSize: 12)),
+                          ),
+                        ),
+                      ]),
+                    ),
+                  );
+                }),
+              const SizedBox(height: 4),
+              if (shock > 0)
+                Text(
+                  '🎭 Kadro değişti: yeni sezon reytingi -%${(shock * 100).round()} ile başlar, 20 günde normale döner.'
+                  '${shock >= 0.2 ? ' İzleyici sadakatinin yarısı gider.' : ''}',
+                  style: const TextStyle(color: AppColors.orange, fontSize: 12, fontWeight: FontWeight.w700),
+                ),
+              if (returning > 0)
+                const Text('🎉 Eski kadro geri dönüyor: ilk 3 gün +%10.',
+                    style: TextStyle(color: AppColors.green, fontSize: 12, fontWeight: FontWeight.w700)),
+              const SizedBox(height: 4),
+              Text('Maliyet: ${fmtShort(game.showCostOf(s))}',
+                  style: const TextStyle(fontWeight: FontWeight.w800)),
+            ]),
+          ),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(c), child: const Text('Vazgeç')),
+          FilledButton(
+            onPressed: unresolved > 0
+                ? null
+                : () {
+                    final err = game.renewShow(s, replace: replace);
+                    report(c, err);
+                    if (err == null) Navigator.pop(c);
+                  },
+            child: Text(unresolved > 0 ? '$unresolved kişi eksik' : 'Sezonu başlat'),
+          ),
+        ],
+      );
+    }),
   );
 }

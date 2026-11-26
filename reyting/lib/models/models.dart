@@ -129,8 +129,14 @@ class Show {
   String? guestName;
   String? location; // çekim lokasyonu id
   double loyalty; // izleyici sadakati (az reklamla büyür, 0..0.25)
+  double castShock; // kadro değişince izleyici küser: başlangıç cezası (0.3 = %30)
+  int castShockDay; // cezanın başladığı gün (20 günde biter)
+  List<String> pastCrew; // bu programda daha önce çalışmış herkes (geri dönüş sevinci)
 
   Show({
+    this.castShock = 0,
+    this.castShockDay = 0,
+    List<String>? pastCrew,
     this.loyalty = 0,
     this.budget = 1,
     this.guest = 0,
@@ -158,7 +164,8 @@ class Show {
     List<double>? ratingHistory,
     this.totalRevenue = 0,
     this.seasonRevenue = 0,
-  }) : ratingHistory = ratingHistory ?? [];
+  }) : ratingHistory = ratingHistory ?? [],
+       pastCrew = pastCrew ?? [];
 
   GenreDef get def => genreDefs[genre]!;
   int get seasonDays => def.seasonDays;
@@ -192,9 +199,15 @@ class Show {
     'guestName': guestName,
     'loc': location,
     'loy': loyalty,
+    'shock': castShock,
+    'shockDay': castShockDay,
+    'past': pastCrew,
   };
 
   factory Show.fromJson(Map<String, dynamic> j) => Show(
+    castShock: (j['shock'] as num? ?? 0).toDouble(),
+    castShockDay: j['shockDay'] ?? 0,
+    pastCrew: List<String>.from((j['past'] as List?) ?? j['staffIds'] ?? const []),
     id: j['id'],
     name: j['name'],
     genre: Genre.values[j['genre']],

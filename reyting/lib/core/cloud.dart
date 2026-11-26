@@ -102,7 +102,13 @@ class Cloud extends ChangeNotifier {
   void attach(Game game) {
     _game = game;
     _timer?.cancel();
-    _timer = Timer.periodic(const Duration(minutes: 5), (_) => sync());
+    // 2 dakikada bir buluta kaydet (panel güncel görsün), 5 dakikada bir sıralamayı yenile
+    var ticks = 0;
+    _timer = Timer.periodic(const Duration(minutes: 1), (_) {
+      ticks++;
+      if (ticks % 2 == 0) sync();
+      if (ticks % 5 == 0) refreshTop();
+    });
     if (signedIn) {
       _listenGrants();
       sync();

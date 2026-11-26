@@ -115,6 +115,13 @@ export const adminList = onCall(async (req) => {
     ? String(req.data.order)
     : 'updatedAt';
   const limit = num(req.data?.limit ?? 200, 1, 500);
+  // sadece son değişenler (panel 5 saniyede bir sorar; az okuma yapılsın)
+  const since = Number(req.data?.since ?? 0);
+  if (since > 0) {
+    const q = await db().collection('players').where('updatedAt', '>', Timestamp.fromMillis(since))
+      .orderBy('updatedAt', 'desc').limit(limit).select(...SUMMARY_FIELDS).get();
+    return { partial: true, rows: q.docs.map((d) => rowOf(d.id, d.data())) };
+  }
   const q = await db().collection('players').orderBy(order, 'desc').limit(limit).select(...SUMMARY_FIELDS).get();
   const total = (await db().collection('players').count().get()).data().count;
   return { total, rows: q.docs.map((d) => rowOf(d.id, d.data())) };

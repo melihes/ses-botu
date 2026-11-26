@@ -330,7 +330,8 @@ extension GameV12 on Game {
         (1 + fameBonus) *
         (1 + execBonus(ExecRole.yayin)) *
         calendarMult(s) *
-        dramaMult(s);
+        dramaMult(s) *
+        castShockMult(s);
   }
 
   /// Yayındaki ya da çekimdeki programın bütçesini yükseltme maliyeti

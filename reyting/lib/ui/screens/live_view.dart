@@ -223,8 +223,8 @@ class _LiveViewState extends State<LiveView> {
                         opacity: max(0.35, 1 - i * 0.08),
                         child: Padding(
                           padding: const EdgeInsets.only(bottom: 6),
-                          child: RichText(
-                            text: TextSpan(children: [
+                          child: Text.rich(
+                            TextSpan(children: [
                               TextSpan(
                                   text: '${b.who}: ',
                                   style: TextStyle(

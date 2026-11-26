@@ -4,7 +4,9 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:reyting/core/format.dart';
 import 'package:reyting/data/calendar.dart';
 import 'package:reyting/data/crisis_text.dart';
+import 'package:reyting/data/content.dart';
 import 'package:reyting/engine/game.dart';
+import 'package:reyting/models/models.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'game_test.dart' show gameWithShowOnAir;
@@ -123,6 +125,32 @@ void main() {
           expect(t.replaceAll(ok, '').contains('{'), isFalse, reason: t);
         }
       }
+    });
+  });
+
+  group('Kadro değişimi', () {
+    test('başrol başka programdaysa yerine yenisi: reyting cezalı başlar, geri dönüş sevindirir', () async {
+      final g = await gameWithShowOnAir();
+      final s = g.shows.first;
+      final host = g.staffById(s.staffIds.first)!;
+      // sezonu bitir
+      g.debugAdvanceDays(s.seasonDays + 2.0);
+      expect(s.status, ShowStatus.ended);
+      // sunucu başka programa geçti
+      expect(g.createShow('Okul', Genre.magazin, 0, [host]), isNull);
+      expect(g.renewBlockers(s), isNotEmpty);
+      expect(g.renewShow(s), isNotNull, reason: 'yerine biri seçilmeli');
+      g.cash = 1e12;
+      final elif = g.market.firstWhere((p) => p.role == Role.sunucu);
+      expect(g.hire(elif), isNull);
+      expect(g.castShockFor(s, {host.id: elif.id}), closeTo(0.25, 1e-9));
+      expect(g.renewShow(s, replace: {host.id: elif.id}), isNull);
+      expect(s.staffIds, [elif.id]);
+      g.debugAdvanceDays(s.def.prodDays.toDouble());
+      expect(g.castShockMult(s), lessThan(0.8));
+      g.debugAdvanceDays(25);
+      expect(g.castShockMult(s), 1.0);
+      expect(s.pastCrew, containsAll([host.id, elif.id]));
     });
   });
 

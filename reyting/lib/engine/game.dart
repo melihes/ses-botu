@@ -1502,6 +1502,7 @@ class Game extends ChangeNotifier {
       genre: genre,
       tier: tier,
       staffIds: crew.map((c) => c.id).toList(),
+      pastCrew: crew.map((c) => c.id).toList(),
       prodLeft: def.prodDays * prodSpeedMult(),
       quality: fullShowQuality(crew, genre, tier, budget, location),
     );
@@ -1517,13 +1518,69 @@ class Game extends ChangeNotifier {
   }
 
   /// Biten programın yeni sezonu: aynı ekip, hafif yorgunluk.
-  String? renewShow(Show s) {
+  /// Yeni sezon için gelemeyecek ekip: (eski kişi id'si, sebep)
+  List<(String, String)> renewBlockers(Show s) => [
+    for (final id in s.staffIds)
+      if (staffById(id) == null)
+        (id, 'kadrodan ayrıldı')
+      else if (staffById(id)!.showId != null && staffById(id)!.showId != s.id)
+        (id, '"${showById(staffById(id)!.showId)?.name ?? 'başka bir proje'}" programında'),
+  ];
+
+  /// Ekipteki kişinin programdaki önemi: başrol/sunucu değişirse izleyici çok küser
+  double castWeight(Show s, int index, Role role, [Map<String, String> replace = const {}]) {
+    if (role == Role.oyuncu) {
+      final firstActor = s.staffIds
+          .indexWhere((id) => (staffById(id)?.role ?? staffById(replace[id] ?? '')?.role) == Role.oyuncu);
+      return index == firstActor || firstActor < 0 ? 0.30 : 0.12;
+    }
+    if (role == Role.sunucu) return 0.25;
+    if (role == Role.yonetmen) return 0.08;
+    return 0.06;
+  }
+
+  /// Yeni sezonda kadro değişikliğinin reyting cezası (önizleme)
+  double castShockFor(Show s, Map<String, String> replace) {
+    var shock = 0.0;
+    for (final e in replace.entries) {
+      final i = s.staffIds.indexOf(e.key);
+      final n = staffById(e.value);
+      if (i < 0 || n == null) continue;
+      // daha önce bu programda oynamış biri dönerse izleyici küsmez
+      if (s.pastCrew.contains(n.id)) continue;
+      shock += castWeight(s, i, n.role, replace);
+    }
+    return min(0.45, shock);
+  }
+
+  /// Kadro değişikliğinden gelen ceza, 20 günde sıfırlanır
+  double castShockMult(Show s) {
+    if (s.castShock <= 0) return 1;
+    final left = 1 - (day - s.castShockDay) / 20;
+    return left <= 0 ? 1 : 1 - s.castShock * left;
+  }
+
+  /// [replace]: eski kişi id → yerine gelecek kişi id (aynı rolden, boşta)
+  String? renewShow(Show s, {Map<String, String> replace = const {}}) {
     if (s.status != ShowStatus.ended) return null;
     final crew = <Staff>[];
+    final used = <String>{};
     for (final id in s.staffIds) {
+      final newId = replace[id];
+      if (newId != null) {
+        final n = staffById(newId);
+        final old = staffById(id);
+        if (n == null) return 'Seçilen kişi kadroda değil.';
+        if (old != null && old.role != n.role) return '${n.name} bu rol için uygun değil.';
+        if (n.showId != null) return '${n.name} başka bir programda.';
+        if (!used.add(n.id)) return '${n.name} iki kez seçilmiş.';
+        crew.add(n);
+        continue;
+      }
       final st = staffById(id);
-      if (st == null) return 'Ekipten biri artık kadroda değil.';
-      if (st.showId != null) return '${st.name} başka bir programda.';
+      if (st == null) return 'Ekipten biri artık kadroda değil: yerine birini seç.';
+      if (st.showId != null) return '${st.name} başka bir programda: yerine birini seç ya da bekle.';
+      if (!used.add(st.id)) return '${st.name} iki kez seçilmiş.';
       crew.add(st);
     }
     final cost = showCostOf(s);
@@ -1531,6 +1588,27 @@ class Game extends ChangeNotifier {
     cash -= cost;
     for (final c in crew) {
       c.showId = s.id;
+    }
+    // kadro değişikliği: izleyici yeni yüzlere alışana kadar reyting düşük başlar
+    final shock = castShockFor(s, replace);
+    final returning = [
+      for (final c in crew)
+        if (!s.staffIds.contains(c.id) && s.pastCrew.contains(c.id)) c,
+    ];
+    s.castShock = shock;
+    s.castShockDay = day + max(1, s.def.prodDays - 1); // yayına girince başlar
+    if (shock >= 0.2) s.loyalty *= 0.5;
+    s.staffIds = [for (final c in crew) c.id];
+    for (final c in crew) {
+      if (!s.pastCrew.contains(c.id)) s.pastCrew.add(c.id);
+    }
+    if (shock > 0) {
+      _post(SocialTopic.drama, show: s, extra: '"${s.name}" kadrosu değişti, izleyici tepkili');
+    }
+    if (returning.isNotEmpty) {
+      _buffCombine(s, 1.10, 3);
+      _post(SocialTopic.hit, show: s);
+      _notify('🎉 ${returning.first.name} "${s.name}" kadrosuna geri döndü! İzleyici sevinçli.');
     }
     final fatigue = max(0.75, pow(0.97, s.season).toDouble());
     s
