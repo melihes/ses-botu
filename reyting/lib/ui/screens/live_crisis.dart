@@ -289,7 +289,6 @@ class _CrisisLayerState extends State<CrisisLayer> with SingleTickerProviderStat
     final ch = c.chances[i];
     final appear = Curves.easeOutBack.transform(((_p - 150 - i * 140) / 450).clamp(0.0, 1.0));
     final color = ch >= 0.7 ? AppColors.green : (ch >= 0.45 ? AppColors.yellow : AppColors.red);
-    String stars(double v) => '★' * (v * 3).clamp(1, 4).round();
     return Opacity(
       opacity: appear.clamp(0.0, 1.0),
       child: Transform.translate(
@@ -329,7 +328,7 @@ class _CrisisLayerState extends State<CrisisLayer> with SingleTickerProviderStat
                 const SizedBox(height: 3),
                 Text('Şans %${(ch * 100).round()}',
                     style: TextStyle(color: color, fontWeight: FontWeight.w900, fontSize: small ? 10 : 11)),
-                Text('Ödül ${stars(o.reward)} · Risk ${stars(o.risk)}',
+                Text('Ödül +%${(22 * o.reward).round()} · Risk -%${(8 * o.risk).round()}',
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(color: Colors.white60, fontSize: small ? 9 : 10)),

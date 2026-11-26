@@ -5,6 +5,7 @@ import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:reyting/core/theme.dart';
 import 'package:reyting/models/models.dart';
@@ -16,7 +17,15 @@ import 'ui_monkey_test.dart' show loadFonts, richGame;
 const out = '/tmp/claude-0/-home-user-ses-botu/d1614294-b2e5-5584-9d98-eb928e63445d/scratchpad/crisis';
 
 void main() {
-  setUpAll(loadFonts);
+  setUpAll(() async {
+    await loadFonts();
+    final emoji = File('/usr/share/fonts/truetype/noto/NotoColorEmoji.ttf');
+    if (emoji.existsSync()) {
+      final l = FontLoader('NotoColorEmoji')
+        ..addFont(Future.value(ByteData.sublistView(emoji.readAsBytesSync())));
+      await l.load();
+    }
+  });
   for (final size in const [Size(800, 360), Size(640, 360)]) {
     testWidgets('kriz ${size.width.round()}', (t) async {
       if (Platform.environment['CRISIS'] != '1') return;
@@ -30,8 +39,16 @@ void main() {
       await t.pumpWidget(GameScope(
         game: g,
         child: MaterialApp(
-          theme: buildTheme(),
-          home: RepaintBoundary(key: key, child: Scaffold(body: LiveView(show: s))),
+          theme: buildTheme().copyWith(
+            textTheme: buildTheme().textTheme.apply(fontFamilyFallback: const ['NotoColorEmoji']),
+          ),
+          home: RepaintBoundary(
+            key: key,
+            child: DefaultTextStyle.merge(
+              style: const TextStyle(fontFamilyFallback: ['NotoColorEmoji']),
+              child: Scaffold(body: LiveView(show: s)),
+            ),
+          ),
         ),
       ));
       Future<void> shot(String name) async {
