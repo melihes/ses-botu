@@ -78,7 +78,7 @@ async function pushGrant(uid: string, op: Record<string, unknown>, by: string): 
     ops.push({ ...op, seq, by, at: Date.now() });
     tx.set(ref, { seq, ops, updatedAt: Timestamp.now() });
     // bir sonraki kayıtta hile denetimi bu değişiklik için atlanır
-    tx.set(db().collection('players').doc(uid), { adminRebase: true }, { merge: true });
+    tx.set(db().collection('players').doc(uid), { adminRebase: true, rebaseSeq: seq }, { merge: true });
     return seq;
   });
 }
@@ -144,15 +144,16 @@ export const adminPlayer = onCall(async (req) => {
   let save: any = null;
   try {
     const s = JSON.parse(String(d.save ?? '{}'));
+    const n = (v: unknown) => (typeof v === 'number' && Number.isFinite(v) ? v : 0);
     save = {
-      day: s.day,
-      cash: s.cash,
-      diamonds: s.diamonds,
-      studioLevel: s.studioLevel,
-      channelName: s.channelName,
-      companyName: s.companyName,
-      vip: s.vip,
-      noAds: s.noAds,
+      day: n(s.day),
+      cash: n(s.cash),
+      diamonds: n(s.diamonds),
+      studioLevel: n(s.studioLevel),
+      channelName: String(s.channelName ?? '').slice(0, 60),
+      companyName: String(s.companyName ?? '').slice(0, 60),
+      vip: s.vip === true,
+      noAds: s.noAds === true,
       staff: Array.isArray(s.staff) ? s.staff.length : 0,
       shows: Array.isArray(s.shows) ? s.shows.length : 0,
       films: Array.isArray(s.films) ? s.films.length : 0,
@@ -227,7 +228,7 @@ export const adminAction = onCall(async (req) => {
     }
     case 'transfer': {
       const from = cleanUid(req.data?.from);
-      await copySave(from, uid);
+      await copySave(from, uid, true);
       const seq = await pushGrant(uid, { type: 'load' }, by);
       return { ok: true, seq };
     }
@@ -284,6 +285,7 @@ export const adminDeleteAll = onCall(async (req) => {
   const by = await requireAdmin(req);
   if (req.data?.confirm !== 'HERKESI SIL') throw new HttpsError('invalid-argument', 'Onay metni yanlış.');
   const keep = new Set<string>((req.data?.keep as string[] | undefined) ?? []);
+  await db().collection('meta').doc('wipe').set({ at: Date.now(), keep: [...keep], deleted: [] });
   let n = 0;
   for (const col of ['players', 'leaderboard', 'grants']) {
     const snap = await db().collection(col).select().get();
@@ -309,14 +311,13 @@ export const adminDeleteAll = onCall(async (req) => {
     if (ids.length) users += (await getAuth().deleteUsers(ids)).successCount;
     page = res.pageToken;
   } while (page);
-  await db().collection('meta').doc('wipe').set({ at: Date.now(), keep: [...keep], deleted: [] });
   await db().collection('meta').doc('top100').set({ rows: [], total: 0, updatedAt: Timestamp.now() });
   logger.info('Herkes silindi', { by, players: n, users });
   return { ok: true, count: n, users };
 });
 
 /** Bir hesabın kaydını başka hesaba kopyalar (eski hesap sıralamadan çıkar) */
-async function copySave(from: string, to: string): Promise<string> {
+async function copySave(from: string, to: string, rebase: boolean): Promise<string> {
   if (from === to) throw new HttpsError('invalid-argument', 'Aynı hesap.');
   const src = await db().collection('players').doc(from).get();
   const save = src.get('save');
@@ -330,9 +331,11 @@ async function copySave(from: string, to: string): Promise<string> {
     name: src.get('name') ?? 'Kanal',
     verified: src.get('verified') !== false,
     unverifiedReason: src.get('unverifiedReason') ?? FieldValue.delete(),
-    adminRebase: true,
+    banned: src.get('banned') === true,
+    ...(rebase ? { adminRebase: true } : {}),
     movedFrom: from,
-    updatedAt: Timestamp.fromMillis(0), // bir sonraki kayıt bekletilmesin
+    // oyuncu taşımasında denetim eski hesabın son kaydından devam eder
+    updatedAt: rebase ? Timestamp.fromMillis(0) : (src.get('updatedAt') ?? Timestamp.now()),
   }, { merge: true });
   batch.set(db().collection('players').doc(from), { movedTo: to, verified: false, unverifiedReason: 'Hesap taşındı.' },
     { merge: true });
@@ -367,17 +370,20 @@ export const redeemTransferCode = onCall(async (req) => {
   const code = String(req.data?.code ?? '').toUpperCase().replace(/[^A-Z0-9]/g, '');
   if (code.length !== 8) throw new HttpsError('invalid-argument', 'Kod 8 karakter olmalı.');
   const ref = db().collection('transfers').doc(code);
-  const snap = await ref.get();
+  // kod bir işlem içinde okunup silinir: aynı kod iki kez kullanılamaz
+  const snap = await db().runTransaction(async (tx) => {
+    const s = await tx.get(ref);
+    if (s.exists && String(s.get('uid')) !== uid) tx.delete(ref);
+    return s;
+  });
   if (!snap.exists) throw new HttpsError('not-found', 'Kod bulunamadı.');
   const exp = snap.get('expires');
   if (exp instanceof Timestamp && exp.toMillis() < Date.now()) {
-    await ref.delete();
     throw new HttpsError('deadline-exceeded', 'Kodun süresi dolmuş, yenisini al.');
   }
   const from = String(snap.get('uid'));
   if (from === uid) throw new HttpsError('failed-precondition', 'Bu kod zaten bu hesaba ait.');
-  const save = await copySave(from, uid);
-  await ref.delete();
+  const save = await copySave(from, uid, false);
   return { ok: true, save };
 });
 

@@ -256,6 +256,7 @@ class Cloud extends ChangeNotifier {
   // ------------------------------------------------------------------
   StreamSubscription<DocumentSnapshot<Map<String, dynamic>>>? _grantSub;
   String? _grantUid;
+  Future<void> _grantChain = Future.value();
 
   void _listenGrants() {
     final u = user;
@@ -266,7 +267,12 @@ class Cloud extends ChangeNotifier {
         .collection('grants')
         .doc(u.uid)
         .snapshots()
-        .listen(_onGrants, onError: (e) => debugPrint('Hediye dinlenemedi: $e'));
+        .listen(
+          (s) => _grantChain = _grantChain.then((_) => _onGrants(s)).catchError((e) {
+            debugPrint('Hediye uygulanamadı: $e');
+          }),
+          onError: (e) => debugPrint('Hediye dinlenemedi: $e'),
+        );
   }
 
   Future<void> _onGrants(DocumentSnapshot<Map<String, dynamic>> snap) async {
@@ -286,6 +292,7 @@ class Cloud extends ChangeNotifier {
         await g.applyAdminOp(op);
       }
       maxSeq = max(maxSeq, seq);
+      g.lastGrantSeq = maxSeq; // aynı işlem iki kez uygulanmasın
       applied = true;
     }
     if (!applied) return;
@@ -342,7 +349,10 @@ class Cloud extends ChangeNotifier {
       final res = await _fn.httpsCallable('redeemTransferCode').call({'code': code});
       final raw = (res.data as Map)['save'];
       if (raw is! String) return 'Kayıt gelmedi.';
+      final seq = g.lastGrantSeq; // hediye numaraları hesaba özel
       await g.importSave(raw);
+      g.lastGrantSeq = seq;
+      await g.save();
       cloudSaveRaw = null;
       await sync(force: true);
       await refreshTop();
@@ -372,18 +382,27 @@ class Cloud extends ChangeNotifier {
   String? cloudSaveRaw;
   int? cloudDay;
 
-  Future<void> _offerCloudSave() async {
+  String? _offerUid;
+
+  Future<bool> _offerCloudSave() async {
     final u = user;
-    if (u == null) return;
+    final g = _game;
+    if (u == null) return false;
+    if (_offerUid == u.uid) return true;
     try {
       final doc = await FirebaseFirestore.instance.collection('players').doc(u.uid).get();
       final raw = doc.data()?['save'];
-      if (raw is String) {
+      final day = (doc.data()?['day'] as num?)?.toInt();
+      // bulutta bu telefondan daha ileri bir kariyer varsa sor
+      if (raw is String && (g == null || g.cloudUid != u.uid || (day ?? 0) > g.day)) {
         cloudSaveRaw = raw;
-        cloudDay = (doc.data()?['day'] as num?)?.toInt();
+        cloudDay = day;
       }
+      _offerUid = u.uid;
+      return true;
     } catch (e) {
       debugPrint('Bulut kaydı okunamadı: $e');
+      return false;
     }
   }
 
@@ -423,11 +442,10 @@ class Cloud extends ChangeNotifier {
         await g.wipeAll();
         cloudSaveRaw = null;
       }
-      final next = deleted.contains(u.uid) ? null : u.uid;
-      if (g.cloudUid != next) {
-        g.cloudUid = next;
-        await g.save();
-      }
+      // bu silme bir kez değerlendirildi: hesap değişse de tekrar sorulmaz
+      if (at > g.careerStart) g.careerStart = at;
+      g.cloudUid = deleted.contains(u.uid) ? null : u.uid;
+      await g.save();
       _wipeCheckedUid = u.uid;
       return true;
     } catch (e) {
@@ -447,7 +465,11 @@ class Cloud extends ChangeNotifier {
   Future<void> sync({bool force = false}) async {
     final g = _game;
     if (!signedIn || g == null || busy && !force) return;
+    final uid = user!.uid;
     if (!await _checkWipe()) return;
+    // bu hesapta bulut kaydı kontrol edilmeden telefondaki kayıt gönderilmez
+    if (_offerUid != uid && !await _offerCloudSave()) return;
+    if (user?.uid != uid) return; // bu arada hesap değişti
     if (cloudSaveRaw != null) return; // önce bulut/telefon seçimi yapılmalı
     _listenGrants();
     try {
@@ -472,7 +494,7 @@ class Cloud extends ChangeNotifier {
           ? (data['skipped'] == true ? 'Az önce kaydedildi.' : 'Buluta kaydedildi.')
           : 'Kayıt reddedildi: ${data['reason']}';
     } on FirebaseFunctionsException catch (e) {
-      if (e.code == 'unauthenticated') {
+      if (e.code == 'unauthenticated' && (e.message ?? '').contains('silinmiş')) {
         // hesap yönetici tarafından silinmiş: yeni misafir hesapla devam et
         await FirebaseAuth.instance.signOut();
         user = null;

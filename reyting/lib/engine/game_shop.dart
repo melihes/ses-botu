@@ -21,6 +21,7 @@ extension GameShop on Game {
     'profileFrame': profileFrame,
     'careerStart': careerStart,
     'cloudUid': cloudUid,
+    'grantedPurchases': grantedPurchases,
   };
 
   void _shopLoad(Map<String, dynamic> j) {
@@ -35,6 +36,9 @@ extension GameShop on Game {
     profileFrame = j['profileFrame'] as int? ?? 0;
     careerStart = (j['careerStart'] as num? ?? 0).toInt();
     cloudUid = j['cloudUid'] as String?;
+    grantedPurchases
+      ..clear()
+      ..addAll(List<String>.from((j['grantedPurchases'] as List?) ?? const []));
   }
 
   /// Yönetici hesabı tamamen sildi: telefondaki kariyer de sıfırdan başlar

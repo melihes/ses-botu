@@ -87,7 +87,8 @@ export const submitSave = onCall({ enforceAppCheck: false }, async (req) => {
       accountAgeMs = Number.POSITIVE_INFINITY;
     }
     // Yeni kariyer: oyuncu oyunu sıfırladı (gün başa döndü) → temiz sayfa
-    if (prev && next.day < prev.day && next.day <= 1440) {
+    // (sıralamadan atılan hesap yeni kariyerle geri giremez)
+    if (prev && next.day < prev.day && next.day <= 1440 && prevData?.banned !== true) {
       prev = null;
       verified = true;
       accountAgeMs = Number.POSITIVE_INFINITY; // yeni kariyer şimdi başlıyor
@@ -125,7 +126,9 @@ export const submitSave = onCall({ enforceAppCheck: false }, async (req) => {
     tx.set(
       ref,
       { save: raw, day: next.day, worth: verdict.worth, level: next.studioLevel, name, ...info,
-        verified: true, updatedAt: stamp, bonusAllowance: 0, adminRebase: false,
+        verified: true, updatedAt: stamp, bonusAllowance: 0,
+        // yönetici işlemi daha oyuna ulaşmadıysa bir sonraki kayıtta da denetim atlanır
+        adminRebase: rebase && next.lastGrantSeq >= 0 && next.lastGrantSeq < Number(prevData?.rebaseSeq ?? 0),
         ...(prevData ? {} : { createdAt: stamp }) },
       { merge: true },
     );
@@ -205,6 +208,7 @@ export const deleteAccount = onCall(async (req) => {
   const batch = db.batch();
   batch.delete(db.collection('players').doc(uid));
   batch.delete(db.collection('leaderboard').doc(uid));
+  batch.delete(db.collection('grants').doc(uid));
   await batch.commit();
   try {
     await getAuth().deleteUser(uid);

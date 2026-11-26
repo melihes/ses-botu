@@ -43,6 +43,7 @@ class Game extends ChangeNotifier {
   int profileFrame = 0; // online listede görünen profil çerçevesi
   int careerStart = 0; // bu kariyerin başladığı an (yönetici toplu silmesi için)
   String? cloudUid; // bu kaydın en son bağlı olduğu online hesap
+  final List<String> grantedPurchases = []; // verilmiş satın almalar (tekrar verilmesin)
   double timeScale = 1; // test modu için hızlandırma
 
   /// Test modu bu kariyerde hiç kullanıldı mı (kullanıldıysa online sıralamaya giremez)
@@ -364,7 +365,14 @@ class Game extends ChangeNotifier {
 
   /// Buluttan gelen kaydı yükle (yerel kaydın yerine geçer)
   Future<void> importSave(String raw) async {
+    // bu cihaza ait bilgiler korunur (başka hesaptan gelen kayıt bunları bozmasın)
+    final start = careerStart, uid = cloudUid, bought = [...grantedPurchases];
     _load(jsonDecode(raw) as Map<String, dynamic>);
+    careerStart = max(careerStart, start);
+    cloudUid = uid;
+    grantedPurchases
+      ..clear()
+      ..addAll({...bought, ...grantedPurchases});
     await save();
     _changed();
   }

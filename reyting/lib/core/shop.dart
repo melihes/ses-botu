@@ -96,7 +96,11 @@ class Shop extends ChangeNotifier {
             notifyListeners();
             continue;
           }
-          if (ok) {
+          // aynı satın alma tekrar gelirse (uygulama yarıda kapandıysa) iki kez verilmesin
+          final pid = p.purchaseID ?? p.verificationData.serverVerificationData;
+          if (ok && g.grantedPurchases.contains(pid)) {
+            message = null;
+          } else if (ok) {
             if (p.status == PurchaseStatus.restored) {
               // geri yüklemede sadece kalıcı haklar (elmas tekrar verilmez)
               if (p.productID == productNoAds) g.noAds = true;
@@ -107,6 +111,9 @@ class Shop extends ChangeNotifier {
             } else {
               g.grantPurchase(p.productID, cashAmount: cash);
             }
+            g.grantedPurchases.add(pid);
+            if (g.grantedPurchases.length > 40) g.grantedPurchases.removeAt(0);
+            await g.save();
             Ads.instance.noInterstitials = g.noAds;
             message = null;
           } else {

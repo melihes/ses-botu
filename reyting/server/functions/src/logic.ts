@@ -18,6 +18,8 @@ export interface SaveSummary {
   holdings: Record<string, number>;
   stockPrices: Record<string, number>;
   timeScale: number;
+  /** Oyunun uyguladığı son yönetici işlemi (eski sürümlerde -1) */
+  lastGrantSeq: number;
   /** Test modu (hızlı zaman) bu kayıtta hiç kullanıldı mı */
   tainted: boolean;
   diamonds: number;
@@ -30,6 +32,7 @@ export function summarize(save: any): SaveSummary {
   const loans: any[] = Array.isArray(save.loans) ? save.loans : [];
   return {
     day: Math.floor(num(save.day, 1)),
+    lastGrantSeq: Math.floor(num(save.lastGrantSeq, -1)),
     cash: num(save.cash),
     studioLevel: Math.max(0, Math.min(studioCosts.length - 1, Math.floor(num(save.studioLevel)))),
     channelName: cleanName(String(save.channelName ?? 'Kanal')),
