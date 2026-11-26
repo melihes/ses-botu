@@ -258,18 +258,19 @@ class DecisionCard extends StatefulWidget {
 }
 
 class _DecisionCardState extends State<DecisionCard> {
-  bool _min = false;
+  Object? _minFor; // küçültülen karar (yeni karar gelince yine büyük açılır)
 
   @override
   Widget build(BuildContext context) {
     final game = GameScope.of(context);
     final d = game.pendingDecision;
     if (d == null) return const SizedBox.shrink();
+    final minimized = identical(_minFor, d);
     final left = game.decisionTimeLeft;
-    if (_min) {
+    if (minimized) {
       return GestureDetector(
         behavior: HitTestBehavior.opaque,
-        onTap: () => setState(() => _min = false),
+        onTap: () => setState(() => _minFor = null),
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
           decoration: BoxDecoration(
@@ -318,7 +319,7 @@ class _DecisionCardState extends State<DecisionCard> {
               IconButton(
                 visualDensity: VisualDensity.compact,
                 tooltip: 'Küçült',
-                onPressed: () => setState(() => _min = true),
+                onPressed: () => setState(() => _minFor = d),
                 icon: const Icon(
                   Icons.expand_less_rounded,
                   size: 18,

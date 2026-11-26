@@ -171,7 +171,13 @@ class _FilmCard extends StatelessWidget {
                   compact: true,
                   color: AppColors.green,
                   onTap: () async {
-                    if (await watchAd(context)) report(context, game.adSpeedUpFilm(f));
+                    if (!await watchAd(context)) return;
+                    final err = game.adSpeedUpFilm(f);
+                    if (context.mounted) {
+                      report(context, err);
+                    } else if (err != null) {
+                      game.showToast('⚠️ $err');
+                    }
                   },
                 ),
               GhostButton(

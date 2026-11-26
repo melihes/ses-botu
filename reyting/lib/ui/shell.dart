@@ -375,8 +375,7 @@ class _ShellState extends State<Shell> {
                             child: Align(
                               alignment: Alignment.centerRight,
                               child: CoachBubble(
-                                onGo: (i) =>
-                                    setState(() => _page = goalPages[i]),
+                                onGo: (i) => _go(goalPages[i]),
                               ),
                             ),
                           ),
@@ -749,14 +748,14 @@ class _DayChip extends StatelessWidget {
             ),
             const SizedBox(width: 5),
             Text(
-              'Gün $day · ${weekdayOf(day)}',
+              MediaQuery.sizeOf(context).width < 700 ? 'Gün $day' : 'Gün $day · ${weekdayOf(day)}',
               style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13),
             ),
           ],
         ),
         const SizedBox(height: 4),
         SizedBox(
-          width: 110,
+          width: MediaQuery.sizeOf(context).width < 700 ? 70 : 110,
           child: Bar(progress, color: AppColors.accent, height: 3),
         ),
       ],

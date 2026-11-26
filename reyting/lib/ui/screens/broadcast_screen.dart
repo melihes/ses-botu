@@ -25,7 +25,10 @@ class _BroadcastScreenState extends State<BroadcastScreen> {
     return ListView(
       padding: const EdgeInsets.all(14),
       children: [
-        Row(
+        Wrap(
+          spacing: 6,
+          runSpacing: 6,
+          crossAxisAlignment: WrapCrossAlignment.center,
           children: [
             PillTabs(
               labels: [
@@ -37,7 +40,6 @@ class _BroadcastScreenState extends State<BroadcastScreen> {
               selected: _tab,
               onChanged: (i) => setState(() => _tab = i),
             ),
-            const Spacer(),
             Tooltip(
               message: 'Rakip kanallar zamanla güçlenir ve seyirci çalar.',
               child: Tag(
@@ -45,7 +47,6 @@ class _BroadcastScreenState extends State<BroadcastScreen> {
                 color: AppColors.orange,
               ),
             ),
-            const SizedBox(width: 6),
             Tag(
               '🏆 Prime time birinciliği: ${game.primeWins}',
               color: AppColors.yellow,
@@ -558,7 +559,7 @@ class _OnAir extends StatelessWidget {
                   '"${s.name}" sezonu erken bitecek. Ekip serbest kalır.',
                   ok: 'Kaldır',
                 );
-                if (ok) game.takeOffAir(id);
+                if (ok && game.slots[id]!.showId == s.id) game.takeOffAir(id);
               },
             ),
           ],
@@ -573,6 +574,13 @@ Future<void> showMoveDialog(BuildContext context, Show s) => showDialog(
   context: context,
   builder: (c) {
     final game = GameScope.of(c);
+    if (s.slot == null) {
+      // pencere açıkken sezon bitti: kapat
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (Navigator.of(c).canPop()) Navigator.pop(c);
+      });
+      return const SizedBox.shrink();
+    }
     return AlertDialog(
       title: Text('"${s.name}" hangi kuşağa geçsin?'),
       content: SizedBox(

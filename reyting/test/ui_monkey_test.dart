@@ -330,7 +330,7 @@ String _labelOf(Element e) {
       : texts.join(' ').replaceAll('\n', ' ');
 }
 
-/// MONKEY_SMALL=1: küçük telefon (780x360) ile dene
+/// MONKEY_SMALL=1: küçük telefon (640x360) ile dene
 final Size _screen = Platform.environment['MONKEY_SMALL'] == '1'
-    ? const Size(780, 360)
+    ? const Size(640, 360)
     : const Size(915, 412);

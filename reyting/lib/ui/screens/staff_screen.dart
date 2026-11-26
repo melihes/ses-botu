@@ -57,7 +57,10 @@ class _StaffScreenState extends State<StaffScreen> {
         ),
         const SizedBox(height: 8),
         // rol filtresi: sadece istediğin mesleği gör
-        Row(
+        Wrap(
+          spacing: 0,
+          runSpacing: 6,
+          crossAxisAlignment: WrapCrossAlignment.center,
           children: [
             for (final r in <Role?>[null, ...Role.values])
               Padding(
@@ -82,7 +85,6 @@ class _StaffScreenState extends State<StaffScreen> {
                   ),
                 ),
               ),
-            const Spacer(),
             if (_tab == 1)
               Tag('Yeni adaylar ${game.marketRefreshSeconds} sn sonra',
                   color: AppColors.textDim, icon: Icons.schedule_rounded),

@@ -390,14 +390,14 @@ class _BidState extends State<_Bid> {
                           _step('−1%', () => setState(() => _pct = (_pct - 0.01).clamp(0.5, 1.2))),
                           const SizedBox(width: 6),
                           _step('+1%', () => setState(() => _pct = (_pct + 0.01).clamp(0.5, 1.2))),
-                          const Spacer(),
-                          Builder(builder: (_) {
+                          const SizedBox(width: 8),
+                          Flexible(child: Builder(builder: (_) {
                             final ch = game.tenderWinChance(t, bid, q);
                             return Tag('Kazanma şansı %${(ch * 100).round()}',
                                 color: ch >= 0.6
                                     ? AppColors.green
                                     : (ch >= 0.3 ? AppColors.yellow : AppColors.red));
-                          }),
+                          })),
                         ],
                       ),
                       const SizedBox(height: 6),

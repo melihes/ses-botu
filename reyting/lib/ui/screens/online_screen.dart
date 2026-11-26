@@ -249,19 +249,19 @@ class _OnlinePanel extends StatelessWidget {
                       '${c.lastSyncNote ?? 'Henüz buluta kaydedilmedi.'}'
                       '${c.myRank != null ? ' · Gerçek sıran: #${c.myRank} / ${c.totalPlayers}' : ''}',
                       style: const TextStyle(color: AppColors.textDim, fontSize: 12)),
+                  const SizedBox(height: 6),
+                  // düğmeler alta, sığmazsa alt satıra geçer
+                  Wrap(spacing: 6, runSpacing: 6, children: [
+                    GhostButton('Şimdi kaydet', compact: true, icon: Icons.cloud_upload_rounded,
+                        onTap: () => c.sync(force: true)),
+                    GhostButton('Yenile', compact: true, icon: Icons.refresh_rounded, onTap: c.refreshTop),
+                    GhostButton('Telefon değiştir', compact: true, icon: Icons.phonelink_setup_rounded,
+                        onTap: () => showTransferDialog(context)),
+                    if (!c.isGuest)
+                      GhostButton('Çıkış', compact: true, color: AppColors.textDim, onTap: c.signOut),
+                  ]),
                 ]),
               ),
-              GhostButton('Şimdi kaydet', compact: true, icon: Icons.cloud_upload_rounded,
-                  onTap: () => c.sync(force: true)),
-              const SizedBox(width: 6),
-              GhostButton('Yenile', compact: true, icon: Icons.refresh_rounded, onTap: c.refreshTop),
-              const SizedBox(width: 6),
-              GhostButton('Telefon değiştir', compact: true, icon: Icons.phonelink_setup_rounded,
-                  onTap: () => showTransferDialog(context)),
-              if (!c.isGuest) ...[
-                const SizedBox(width: 6),
-                GhostButton('Çıkış', compact: true, color: AppColors.textDim, onTap: c.signOut),
-              ],
             ]),
           ),
           const SizedBox(height: 10),

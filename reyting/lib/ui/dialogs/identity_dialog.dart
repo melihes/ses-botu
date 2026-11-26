@@ -162,17 +162,22 @@ class _IdentityEditorState extends State<_IdentityEditor> {
           ],
         ),
         const SizedBox(height: 6),
-        Wrap(
-          spacing: 5,
-          runSpacing: 5,
-          children: [
-            for (int i = 0; i < companySuffixes.length; i++)
-              _chip(
-                companySuffixes[i],
-                i == _suffix,
-                () => setState(() => _suffix = i),
-              ),
-          ],
+        // tek satır, kaydırılabilir (dar ekranda logo seçimine yer kalsın)
+        SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: Row(
+            children: [
+              for (int i = 0; i < companySuffixes.length; i++)
+                Padding(
+                  padding: const EdgeInsets.only(right: 5),
+                  child: _chip(
+                    companySuffixes[i],
+                    i == _suffix,
+                    () => setState(() => _suffix = i),
+                  ),
+                ),
+            ],
+          ),
         ),
         const SizedBox(height: 8),
         Row(
