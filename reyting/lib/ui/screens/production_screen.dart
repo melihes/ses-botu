@@ -513,10 +513,15 @@ class _NewShowWizardState extends State<NewShowWizard> {
         Row(
           children: [
             SectionLabel('2 · ${def.label} formatı', color: def.color),
-            const Spacer(),
-            Text(
-              'Seviye arttıkça maliyet ve reyting artar',
-              style: const TextStyle(color: AppColors.textFaint, fontSize: 11),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                'Seviye arttıkça maliyet ve reyting artar',
+                textAlign: TextAlign.right,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(color: AppColors.textFaint, fontSize: 11),
+              ),
             ),
           ],
         ),

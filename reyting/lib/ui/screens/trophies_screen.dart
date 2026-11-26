@@ -23,7 +23,10 @@ class _TrophiesScreenState extends State<TrophiesScreen> {
     return ListView(
       padding: const EdgeInsets.all(12),
       children: [
-        Row(
+        Wrap(
+          spacing: 6,
+          runSpacing: 6,
+          crossAxisAlignment: WrapCrossAlignment.center,
           children: [
             PillTabs(
               labels: [
@@ -35,12 +38,10 @@ class _TrophiesScreenState extends State<TrophiesScreen> {
               selected: _tab,
               onChanged: (i) => setState(() => _tab = i),
             ),
-            const Spacer(),
             Tag(
               'Şirket değeri ${fmtShort(game.netWorth)}',
               color: AppColors.cyan,
             ),
-            const SizedBox(width: 6),
             Tag('★ ${fmtInt(game.prestige)} prestij', color: AppColors.yellow),
           ],
         ),

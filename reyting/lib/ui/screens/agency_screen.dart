@@ -111,7 +111,10 @@ class _AgencyScreenState extends State<AgencyScreen> {
         ),
         const SizedBox(height: 10),
         if (game.agencyOpen) ...[
-          Row(
+          Wrap(
+            spacing: 8,
+            runSpacing: 6,
+            crossAxisAlignment: WrapCrossAlignment.center,
             children: [
               PillTabs(
                 labels: [
@@ -123,7 +126,6 @@ class _AgencyScreenState extends State<AgencyScreen> {
                 selected: _tab,
                 onChanged: (i) => setState(() => _tab = i),
               ),
-              const Spacer(),
               if (_tab == 0)
                 GhostButton(
                   'Gözlemci gönder · 2 💎',
