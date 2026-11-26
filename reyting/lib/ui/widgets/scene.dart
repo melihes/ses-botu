@@ -638,8 +638,14 @@ class _StageSceneState extends State<StageScene>
           size: size,
         ),
         CustomPaint(
-          size: Size(size, size * 0.52),
-          painter: _LegsPainter(seed: _castSeed + i * 13, walk: walk, female: _cast[i].female),
+          size: Size(size, size * 0.72),
+          painter: LegsPainter(
+            seed: _castSeed + i * 13,
+            walk: walk,
+            female: _cast[i].female,
+            cloth: _cast[i].cloth,
+            skin: _cast[i].skin,
+          ),
         ),
       ]);
       return Transform.translate(
@@ -659,7 +665,7 @@ class _StageSceneState extends State<StageScene>
     ];
     if (!_noPeople) {
       final sSit = (furn ? 190.0 : 250.0) * k;
-      final sStand = h * 0.50;
+      final sStand = h * 0.45;
       final floor = h * 0.015;
       double ease(double x) => Curves.easeInOut.transform(x.clamp(0.0, 1.0));
       switch (act) {
@@ -713,12 +719,21 @@ class _StageSceneState extends State<StageScene>
   }
 }
 
-/// Ayakta duran kişinin bacakları: pantolon ya da etek, ayakkabı; yürürken adım atar
-class _LegsPainter extends CustomPainter {
+/// Ayakta duran kişinin alt yarısı: gövdenin devamı (tişört, kollar, eller),
+/// kemer, pantolon ya da etek, ayakkabı. Yürürken bacaklar ve kollar sallanır.
+class LegsPainter extends CustomPainter {
   final int seed;
   final double walk; // <0 duruyor, değilse adım fazı
   final bool female;
-  _LegsPainter({required this.seed, required this.walk, required this.female});
+  final Color cloth;
+  final Color skin;
+  LegsPainter({
+    required this.seed,
+    required this.walk,
+    required this.female,
+    this.cloth = const Color(0xFF4DABF7),
+    this.skin = const Color(0xFFE8B48F),
+  });
 
   static const pants = [
     Color(0xFF2B3A55), Color(0xFF1F1F24), Color(0xFF3B5B8C), Color(0xFF5B4636),
@@ -731,46 +746,101 @@ class _LegsPainter extends CustomPainter {
     final col = pants[r.nextInt(pants.length)];
     final skirt = female && r.nextDouble() < 0.45;
     final w = size.width, h = size.height;
-    final line = Paint()
+    final ink = Paint()
       ..color = const Color(0xFF141014)
       ..style = PaintingStyle.stroke
-      ..strokeWidth = w * 0.012;
-    final fill = Paint()..color = col;
-    final shoe = Paint()..color = const Color(0xFF1A1414);
-    final swing = walk < 0 ? 0.0 : sin(walk * pi * 2) * 0.32;
-    // gövdenin altı tam ortada: bacaklar kalça hizasından iner
-    void leg(double hipX, double ang, double width) {
+      ..strokeWidth = w * 0.014
+      ..strokeJoin = StrokeJoin.round;
+    final swing = walk < 0 ? 0.0 : sin(walk * pi * 2) * 0.28;
+    void shape(Path p, Color c) {
+      canvas.drawPath(p, Paint()..color = c);
+      canvas.drawPath(p, ink);
+    }
+
+    final waistY = h * 0.30, hipL = w * 0.25, hipR = w * 0.75;
+
+    // ---- bacaklar (gövdenin arkasında kalsın diye önce)
+    void leg(double hipX, double ang, double width, Color c) {
       canvas.save();
-      canvas.translate(hipX, 0);
+      canvas.translate(hipX, waistY);
       canvas.rotate(ang);
-      final rect = RRect.fromRectAndRadius(Rect.fromLTWH(-width / 2, -h * 0.02, width, h * 0.86), Radius.circular(width * 0.3));
-      canvas.drawRRect(rect, skirt ? (Paint()..color = const Color(0xFFE8B48F)) : fill);
-      canvas.drawRRect(rect, line);
-      final s = Rect.fromLTWH(-width * 0.55, h * 0.8, width * 1.35, h * 0.14);
-      canvas.drawRRect(RRect.fromRectAndRadius(s, Radius.circular(width * 0.3)), shoe);
+      final len = h * 0.62;
+      final p = Path()
+        ..moveTo(-width / 2, 0)
+        ..lineTo(width / 2, 0)
+        ..lineTo(width * 0.42, len)
+        ..lineTo(-width * 0.42, len)
+        ..close();
+      shape(p, c);
+      // ayakkabı (öne doğru)
+      final shoe = RRect.fromRectAndRadius(
+          Rect.fromLTWH(-width * 0.5, len - h * 0.02, width * 1.15, h * 0.08), Radius.circular(h * 0.04));
+      canvas.drawRRect(shoe, Paint()..color = const Color(0xFF1A1414));
       canvas.restore();
     }
 
-    final lw = w * 0.13;
-    leg(w * 0.43, swing, skirt ? lw * 0.6 : lw);
-    leg(w * 0.57, -swing, skirt ? lw * 0.6 : lw);
+    final lw = w * 0.22;
+    if (skirt) {
+      leg(w * 0.42, swing, lw * 0.55, skin);
+      leg(w * 0.58, -swing, lw * 0.55, skin);
+    } else {
+      leg(w * 0.385, swing, lw, col);
+      leg(w * 0.615, -swing, lw, col);
+    }
+
+    // ---- kollar (gövdenin yanlarından sarkar)
+    void arm(double x, double ang, bool left) {
+      canvas.save();
+      canvas.translate(x, -h * 0.02);
+      canvas.rotate(ang);
+      final aw = w * 0.13;
+      final p = Path()
+        ..moveTo(-aw / 2, 0)
+        ..lineTo(aw / 2, 0)
+        ..lineTo(aw * 0.45, h * 0.30)
+        ..lineTo(-aw * 0.45, h * 0.30)
+        ..close();
+      shape(p, cloth);
+      canvas.drawCircle(Offset(0, h * 0.33), aw * 0.42, Paint()..color = skin);
+      canvas.drawCircle(Offset(0, h * 0.33), aw * 0.42, ink);
+      canvas.restore();
+    }
+
+    arm(w * 0.165, 0.06 - swing * 0.8, true);
+    arm(w * 0.835, -0.06 + swing * 0.8, false);
+
+    // ---- gövdenin devamı (göğüsten bele doğru daralır)
+    final torso = Path()
+      ..moveTo(w * 0.12, -h * 0.03)
+      ..lineTo(w * 0.86, -h * 0.03)
+      ..lineTo(hipR + w * 0.02, waistY)
+      ..lineTo(hipL - w * 0.02, waistY)
+      ..close();
+    canvas.drawPath(torso, Paint()..color = cloth);
+    // yalnız yan çizgiler (üstte göğüsle birleşsin)
+    canvas.drawLine(Offset(w * 0.12, -h * 0.03), Offset(hipL - w * 0.02, waistY), ink);
+    canvas.drawLine(Offset(w * 0.86, -h * 0.03), Offset(hipR + w * 0.02, waistY), ink);
+
     if (skirt) {
       final p = Path()
-        ..moveTo(w * 0.32, -h * 0.02)
-        ..lineTo(w * 0.68, -h * 0.02)
-        ..lineTo(w * 0.73, h * 0.42)
-        ..lineTo(w * 0.27, h * 0.42)
+        ..moveTo(hipL - w * 0.02, waistY)
+        ..lineTo(hipR + w * 0.02, waistY)
+        ..lineTo(w * 0.77, h * 0.62)
+        ..lineTo(w * 0.23, h * 0.62)
         ..close();
-      canvas.drawPath(p, fill);
-      canvas.drawPath(p, line);
+      shape(p, col);
     } else {
-      // kemer / kalça
-      canvas.drawRect(Rect.fromLTWH(w * 0.34, -h * 0.03, w * 0.32, h * 0.1), fill);
+      // kemer
+      final belt = Rect.fromLTRB(hipL - w * 0.02, waistY - h * 0.035, hipR + w * 0.02, waistY + h * 0.04);
+      canvas.drawRect(belt, Paint()..color = Color.lerp(col, Colors.black, 0.4)!);
+      canvas.drawRect(belt, ink);
+      canvas.drawRect(Rect.fromCenter(center: Offset(w / 2, waistY), width: w * 0.06, height: h * 0.05),
+          Paint()..color = const Color(0xFFD4B26A));
     }
   }
 
   @override
-  bool shouldRepaint(covariant _LegsPainter old) => old.walk != walk || old.seed != seed;
+  bool shouldRepaint(covariant LegsPainter old) => old.walk != walk || old.seed != seed;
 }
 
 const skinTones = [
