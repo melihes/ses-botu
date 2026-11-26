@@ -625,32 +625,25 @@ class _StageSceneState extends State<StageScene>
         );
     // ayakta duran / yürüyen kişi; flip: sola baksın
     Widget standing(int i, double size, {double walk = -1, bool flip = false}) {
-      final bob = walk >= 0 ? sin(walk * pi * 2).abs() * size * 0.025 : 0.0;
-      final body = Column(mainAxisSize: MainAxisSize.min, children: [
-        FaceView(
-          spec: _cast[i],
-          cacheKey: key(i),
-          mood: mood(i),
-          alt: (t * 7).floor().isEven,
-          blink: ((t + i * 1.3) % 2.9) < 0.12,
-          crop: false,
-          gesture: walk >= 0 ? null : gest(i),
-          size: size,
-        ),
-        CustomPaint(
-          size: Size(size, size * 0.72),
-          painter: LegsPainter(
-            seed: _castSeed + i * 13,
-            walk: walk,
-            female: _cast[i].female,
-            cloth: _cast[i].cloth,
-            skin: _cast[i].skin,
-          ),
-        ),
-      ]);
+      // yürürken hafif iniş-çıkış (gerçek kamera çekimi gibi, belden yukarısı görünür)
+      final bob = walk >= 0 ? sin(walk * pi * 2).abs() * size * 0.02 : 0.0;
+      final tilt = walk >= 0 ? sin(walk * pi * 2) * 0.015 : 0.0;
+      final body = FaceView(
+        spec: _cast[i],
+        cacheKey: key(i),
+        mood: mood(i),
+        alt: (t * 7).floor().isEven,
+        blink: ((t + i * 1.3) % 2.9) < 0.12,
+        crop: false,
+        gesture: walk >= 0 ? null : gest(i),
+        size: size,
+      );
       return Transform.translate(
         offset: Offset(0, -bob),
-        child: flip ? Transform.flip(flipX: true, child: body) : body,
+        child: Transform.rotate(
+          angle: tilt,
+          child: flip ? Transform.flip(flipX: true, child: body) : body,
+        ),
       );
     }
 
@@ -665,29 +658,32 @@ class _StageSceneState extends State<StageScene>
     ];
     if (!_noPeople) {
       final sSit = (furn ? 190.0 : 250.0) * k;
-      final sStand = h * 0.45;
-      final floor = h * 0.015;
+      // orta plan: kişiler kadrajın altından kesilir (bacak görünmez)
+      final sStand = h * 0.86;
+      final floor = -h * 0.06;
+      // kişiyi merkezine göre yerleştir (cx: 0 sol kenar … 1 sağ kenar)
+      double at(double cx) => cx * w - sStand / 2;
       double ease(double x) => Curves.easeInOut.transform(x.clamp(0.0, 1.0));
       switch (act) {
-        case 1: // biri kalkar, sahnenin ortasına yürür, konuşur
+        case 1: // biri kalkıp ortaya yürür, konuşur
           final walkT = ((a - 0.08) / 0.4).clamp(0.0, 1.0);
-          final x = w * 0.06 + (w * 0.36 - w * 0.06) * ease(walkT);
+          final cx = -0.15 + (0.40 + 0.15) * ease(walkT);
           if (furn) {
             kids.add(Positioned(right: w * 0.07 + pan * 0.6, bottom: h * 0.2, child: seated(1, sSit)));
           } else {
-            kids.add(Positioned(right: w * 0.06 + pan * 0.4, bottom: floor, child: standing(1, sStand, flip: true)));
+            kids.add(Positioned(left: at(0.76) + pan * 0.4, bottom: floor, child: standing(1, sStand, flip: true)));
           }
           kids.add(Positioned(
-            left: x - pan * 0.4,
+            left: at(cx) - pan * 0.4,
             bottom: floor,
             child: standing(0, sStand, walk: walkT > 0 && walkT < 1 ? secs * 1.6 : -1),
           ));
         case 2: // konuk içeri girer, ev sahibi karşılar
           final inT = (a / 0.45).clamp(0.0, 1.0);
-          final gx = w + sStand * 0.2 - (w + sStand * 0.2 - w * 0.56) * ease(inT);
-          kids.add(Positioned(left: w * 0.12 - pan * 0.4, bottom: floor, child: standing(0, sStand)));
+          final gcx = 1.25 - (1.25 - 0.72) * ease(inT);
+          kids.add(Positioned(left: at(0.27) - pan * 0.4, bottom: floor, child: standing(0, sStand)));
           kids.add(Positioned(
-            left: gx + pan * 0.4,
+            left: at(gcx) + pan * 0.4,
             bottom: floor,
             child: standing(2, sStand, walk: inT < 1 ? secs * 1.6 : -1, flip: true),
           ));
@@ -704,8 +700,8 @@ class _StageSceneState extends State<StageScene>
             kids.add(Positioned(left: w * 0.08 - pan * 0.6, bottom: h * 0.2, child: seated(0, sSit)));
             kids.add(Positioned(right: w * 0.07 + pan * 0.6, bottom: h * 0.2, child: seated(1, sSit)));
           } else {
-            kids.add(Positioned(left: w * 0.14 - pan * 0.5, bottom: floor, child: standing(0, sStand)));
-            kids.add(Positioned(right: w * 0.14 + pan * 0.5, bottom: floor, child: standing(1, sStand, flip: true)));
+            kids.add(Positioned(left: at(0.27) - pan * 0.5, bottom: floor, child: standing(0, sStand)));
+            kids.add(Positioned(left: at(0.73) + pan * 0.5, bottom: floor, child: standing(1, sStand, flip: true)));
           }
       }
     }
@@ -717,130 +713,6 @@ class _StageSceneState extends State<StageScene>
     }
     return Stack(children: kids);
   }
-}
-
-/// Ayakta duran kişinin alt yarısı: gövdenin devamı (tişört, kollar, eller),
-/// kemer, pantolon ya da etek, ayakkabı. Yürürken bacaklar ve kollar sallanır.
-class LegsPainter extends CustomPainter {
-  final int seed;
-  final double walk; // <0 duruyor, değilse adım fazı
-  final bool female;
-  final Color cloth;
-  final Color skin;
-  LegsPainter({
-    required this.seed,
-    required this.walk,
-    required this.female,
-    this.cloth = const Color(0xFF4DABF7),
-    this.skin = const Color(0xFFE8B48F),
-  });
-
-  static const pants = [
-    Color(0xFF2B3A55), Color(0xFF1F1F24), Color(0xFF3B5B8C), Color(0xFF5B4636),
-    Color(0xFF55595F), Color(0xFF8A7A5A), Color(0xFF2E4A3A), Color(0xFF6B2E3A),
-  ];
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final r = Random(seed);
-    final col = pants[r.nextInt(pants.length)];
-    final skirt = female && r.nextDouble() < 0.45;
-    final w = size.width, h = size.height;
-    final ink = Paint()
-      ..color = const Color(0xFF141014)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = w * 0.014
-      ..strokeJoin = StrokeJoin.round;
-    final swing = walk < 0 ? 0.0 : sin(walk * pi * 2) * 0.28;
-    void shape(Path p, Color c) {
-      canvas.drawPath(p, Paint()..color = c);
-      canvas.drawPath(p, ink);
-    }
-
-    final waistY = h * 0.30, hipL = w * 0.25, hipR = w * 0.75;
-
-    // ---- bacaklar (gövdenin arkasında kalsın diye önce)
-    void leg(double hipX, double ang, double width, Color c) {
-      canvas.save();
-      canvas.translate(hipX, waistY);
-      canvas.rotate(ang);
-      final len = h * 0.62;
-      final p = Path()
-        ..moveTo(-width / 2, 0)
-        ..lineTo(width / 2, 0)
-        ..lineTo(width * 0.42, len)
-        ..lineTo(-width * 0.42, len)
-        ..close();
-      shape(p, c);
-      // ayakkabı (öne doğru)
-      final shoe = RRect.fromRectAndRadius(
-          Rect.fromLTWH(-width * 0.5, len - h * 0.02, width * 1.15, h * 0.08), Radius.circular(h * 0.04));
-      canvas.drawRRect(shoe, Paint()..color = const Color(0xFF1A1414));
-      canvas.restore();
-    }
-
-    final lw = w * 0.22;
-    if (skirt) {
-      leg(w * 0.42, swing, lw * 0.55, skin);
-      leg(w * 0.58, -swing, lw * 0.55, skin);
-    } else {
-      leg(w * 0.385, swing, lw, col);
-      leg(w * 0.615, -swing, lw, col);
-    }
-
-    // ---- kollar (gövdenin yanlarından sarkar)
-    void arm(double x, double ang, bool left) {
-      canvas.save();
-      canvas.translate(x, -h * 0.02);
-      canvas.rotate(ang);
-      final aw = w * 0.13;
-      final p = Path()
-        ..moveTo(-aw / 2, 0)
-        ..lineTo(aw / 2, 0)
-        ..lineTo(aw * 0.45, h * 0.30)
-        ..lineTo(-aw * 0.45, h * 0.30)
-        ..close();
-      shape(p, cloth);
-      canvas.drawCircle(Offset(0, h * 0.33), aw * 0.42, Paint()..color = skin);
-      canvas.drawCircle(Offset(0, h * 0.33), aw * 0.42, ink);
-      canvas.restore();
-    }
-
-    arm(w * 0.165, 0.06 - swing * 0.8, true);
-    arm(w * 0.835, -0.06 + swing * 0.8, false);
-
-    // ---- gövdenin devamı (göğüsten bele doğru daralır)
-    final torso = Path()
-      ..moveTo(w * 0.12, -h * 0.03)
-      ..lineTo(w * 0.86, -h * 0.03)
-      ..lineTo(hipR + w * 0.02, waistY)
-      ..lineTo(hipL - w * 0.02, waistY)
-      ..close();
-    canvas.drawPath(torso, Paint()..color = cloth);
-    // yalnız yan çizgiler (üstte göğüsle birleşsin)
-    canvas.drawLine(Offset(w * 0.12, -h * 0.03), Offset(hipL - w * 0.02, waistY), ink);
-    canvas.drawLine(Offset(w * 0.86, -h * 0.03), Offset(hipR + w * 0.02, waistY), ink);
-
-    if (skirt) {
-      final p = Path()
-        ..moveTo(hipL - w * 0.02, waistY)
-        ..lineTo(hipR + w * 0.02, waistY)
-        ..lineTo(w * 0.77, h * 0.62)
-        ..lineTo(w * 0.23, h * 0.62)
-        ..close();
-      shape(p, col);
-    } else {
-      // kemer
-      final belt = Rect.fromLTRB(hipL - w * 0.02, waistY - h * 0.035, hipR + w * 0.02, waistY + h * 0.04);
-      canvas.drawRect(belt, Paint()..color = Color.lerp(col, Colors.black, 0.4)!);
-      canvas.drawRect(belt, ink);
-      canvas.drawRect(Rect.fromCenter(center: Offset(w / 2, waistY), width: w * 0.06, height: h * 0.05),
-          Paint()..color = const Color(0xFFD4B26A));
-    }
-  }
-
-  @override
-  bool shouldRepaint(covariant LegsPainter old) => old.walk != walk || old.seed != seed;
 }
 
 const skinTones = [
