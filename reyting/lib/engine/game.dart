@@ -55,6 +55,7 @@ class Game extends ChangeNotifier {
   // ---- 1.1: takvim, sosyal medya, canlı kriz, kulis ----
   /// Özel bölüm hazırlanan programlar: program id → "özelGün@başlangıçGünü"
   final Map<String, String> specials = {};
+  final Set<String> paidSpecials = {}; // "programId|özelGün@başlangıç": parası verildi
   final List<SocialPost> socialFeed = []; // sosyal medya akışı (en yeni başta)
   final Map<String, double> trends = {}; // gündem: etiket → puan
   final List<int> _socialRecent = []; // son kullanılan metinler (tekrar etmesin)
@@ -712,6 +713,7 @@ class Game extends ChangeNotifier {
             slots[auto]!.showId = s.id;
             s.slot = auto;
             s.status = ShowStatus.onAir;
+            if (s.castShock > 0 && s.castShockDay < 0) s.castShockDay = day;
           }
           s.autoSlot = null;
           _notify('🎬 "${s.name}" hazır! Yayın akışına koyabilirsin.');
@@ -1527,6 +1529,19 @@ class Game extends ChangeNotifier {
         (id, '"${showById(staffById(id)!.showId)?.name ?? 'başka bir proje'}" programında'),
   ];
 
+  /// Programın ihtiyacından eksik kalan roller (sezon içinde ayrılanlar yüzünden)
+  List<Role> missingRoles(Show s) {
+    final have = <Role, int>{};
+    for (final id in s.staffIds) {
+      final r = staffById(id)?.role;
+      if (r != null) have[r] = (have[r] ?? 0) + 1;
+    }
+    return [
+      for (final e in s.def.needs.entries)
+        for (int i = have[e.key] ?? 0; i < e.value; i++) e.key,
+    ];
+  }
+
   /// Ekipteki kişinin programdaki önemi: başrol/sunucu değişirse izleyici çok küser
   double castWeight(Show s, int index, Role role, [Map<String, String> replace = const {}]) {
     if (role == Role.oyuncu) {
@@ -1543,11 +1558,20 @@ class Game extends ChangeNotifier {
   double castShockFor(Show s, Map<String, String> replace) {
     var shock = 0.0;
     for (final e in replace.entries) {
-      final i = s.staffIds.indexOf(e.key);
       final n = staffById(e.value);
-      if (i < 0 || n == null) continue;
+      if (n == null) continue;
       // daha önce bu programda oynamış biri dönerse izleyici küsmez
       if (s.pastCrew.contains(n.id)) continue;
+      if (e.key.startsWith('+')) {
+        // boş kalan rol (sezonda ayrılan biri): başrol yoksa başrol sayılır
+        final otherActor = s.staffIds.any((id) => staffById(id)?.role == Role.oyuncu);
+        shock += n.role == Role.oyuncu
+            ? (otherActor ? 0.12 : 0.30)
+            : (n.role == Role.sunucu ? 0.25 : (n.role == Role.yonetmen ? 0.08 : 0.06));
+        continue;
+      }
+      final i = s.staffIds.indexOf(e.key);
+      if (i < 0) continue;
       shock += castWeight(s, i, n.role, replace);
     }
     return min(0.45, shock);
@@ -1555,16 +1579,25 @@ class Game extends ChangeNotifier {
 
   /// Kadro değişikliğinden gelen ceza, 20 günde sıfırlanır
   double castShockMult(Show s) {
-    if (s.castShock <= 0) return 1;
-    final left = 1 - (day - s.castShockDay) / 20;
-    return left <= 0 ? 1 : 1 - s.castShock * left;
+    // yayına girmeden ceza işlemez (castShockDay < 0: henüz yayında değil)
+    if (s.castShock <= 0 || s.castShockDay < 0) return 1;
+    final left = (1 - (day - s.castShockDay) / 20).clamp(0.0, 1.0);
+    return 1 - s.castShock * left;
   }
 
   /// [replace]: eski kişi id → yerine gelecek kişi id (aynı rolden, boşta)
   String? renewShow(Show s, {Map<String, String> replace = const {}}) {
-    if (s.status != ShowStatus.ended) return null;
+    if (s.status != ShowStatus.ended) return 'Bu programın sezonu henüz bitmedi.';
     final crew = <Staff>[];
     final used = <String>{};
+    // sezonda ayrılanların boş kalan rollerine yeni isimler
+    for (final e in replace.entries.where((e) => e.key.startsWith('+'))) {
+      final n = staffById(e.value);
+      if (n == null) return 'Seçilen kişi kadroda değil.';
+      if (n.showId != null) return '${n.name} başka bir programda.';
+      if (!used.add(n.id)) return '${n.name} iki kez seçilmiş.';
+      crew.add(n);
+    }
     for (final id in s.staffIds) {
       final newId = replace[id];
       if (newId != null) {
@@ -1583,6 +1616,11 @@ class Game extends ChangeNotifier {
       if (!used.add(st.id)) return '${st.name} iki kez seçilmiş.';
       crew.add(st);
     }
+    // programın ihtiyacı tam mı (ör. dizinin oyuncusu ayrıldıysa yenisi şart)
+    for (final e in s.def.needs.entries) {
+      final n = crew.where((c) => c.role == e.key).length;
+      if (n < e.value) return 'Eksik ekip: ${e.value - n} ${e.key.label}. Boş role birini seç.';
+    }
     final cost = showCostOf(s);
     if (cash < cost) return 'Kasada yeterli para yok (${fmtShort(cost)}).';
     cash -= cost;
@@ -1596,9 +1634,15 @@ class Game extends ChangeNotifier {
         if (!s.staffIds.contains(c.id) && s.pastCrew.contains(c.id)) c,
     ];
     s.castShock = shock;
-    s.castShockDay = day + max(1, s.def.prodDays - 1); // yayına girince başlar
+    s.castShockDay = -1; // yayına girdiği gün başlar (putOnAir)
     if (shock >= 0.2) s.loyalty *= 0.5;
-    s.staffIds = [for (final c in crew) c.id];
+    // asıl ekip önce, boş rollere gelenler sonra (başrol sırası korunsun)
+    final added = [for (final e in replace.entries.where((e) => e.key.startsWith('+'))) e.value];
+    s.staffIds = [
+      for (final c in crew)
+        if (!added.contains(c.id)) c.id,
+      ...added,
+    ];
     for (final c in crew) {
       if (!s.pastCrew.contains(c.id)) s.pastCrew.add(c.id);
     }
@@ -1656,6 +1700,7 @@ class Game extends ChangeNotifier {
     slots[slot]!.showId = s.id;
     s.slot = slot;
     s.status = ShowStatus.onAir;
+    if (s.castShock > 0 && s.castShockDay < 0) s.castShockDay = day;
     _count('air');
     _post(SocialTopic.newShow, show: s);
     _notify('📡 "${s.name}" ${slotDefs[slot]!.label} kuşağında yayında!');
@@ -2536,6 +2581,10 @@ class Game extends ChangeNotifier {
   void _forgetPerson(Staff p) {
     transferOffers.removeWhere((o) => o.staffId == p.id);
     deals.removeWhere((d) => d.targetId == p.id);
+    // biten programların ekibinden de çıkar: yeni sezonda rolü "boş" görünür
+    for (final sh in shows) {
+      if (sh.status == ShowStatus.ended) sh.staffIds.remove(p.id);
+    }
   }
 
   /// Kişi ayrılır; bir programdaysa program kalitesi düşer.

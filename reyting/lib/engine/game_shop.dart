@@ -44,13 +44,11 @@ extension GameShop on Game {
   /// Yönetici hesabı tamamen sildi: telefondaki kariyer de sıfırdan başlar
   Future<void> wipeAll() async {
     _newGame();
-    noAds = false;
-    vip = false;
+    // parayla alınan reklamsız/VIP korunur
     adBoosts.clear();
     adsWatched = 0;
     purchasedCash = 0;
     profileFrame = 0;
-    lastGrantSeq = 0;
     cloudUid = null;
     await save();
     _notify('🗑️ Hesabın yönetici tarafından silindi. Yeni kariyer başladı.');

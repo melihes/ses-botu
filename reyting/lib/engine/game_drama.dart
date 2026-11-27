@@ -23,7 +23,7 @@ extension GameDrama on Game {
   };
 
   void _dramaLoad(Map<String, dynamic> j) {
-    dramaLevel = j['dramaLevel'] ?? 1;
+    dramaLevel = ((j['dramaLevel'] as num?) ?? 1).toInt().clamp(0, 3);
     dramaLastDay = j['dramaLast'] ?? 0;
     bonds
       ..clear()

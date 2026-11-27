@@ -1212,7 +1212,14 @@ Future<void> showRenewDialog(BuildContext context, Show s) {
     context: context,
     builder: (c) => StatefulBuilder(builder: (c, setD) {
       final game = GameScope.of(c);
+      // bu arada başka işe giren ya da ayrılan seçimleri at
+      replace.removeWhere((_, v) {
+        final p = game.staffById(v);
+        return p == null || p.showId != null;
+      });
       final blockers = {for (final b in game.renewBlockers(s)) b.$1: b.$2};
+      // sezonda ayrılanlardan boş kalan roller
+      final missing = game.missingRoles(s);
       // ayrılan kişinin rolü: programın ihtiyacından eksik kalan rol
       Role roleOf(String id) {
         final p = game.staffById(id);
@@ -1228,7 +1235,8 @@ Future<void> showRenewDialog(BuildContext context, Show s) {
         return s.def.needs.keys.first;
       }
       final chosen = replace.values.toSet();
-      final unresolved = blockers.keys.where((id) => !replace.containsKey(id)).length;
+      final unresolved = blockers.keys.where((id) => !replace.containsKey(id)).length +
+          [for (int k = 0; k < missing.length; k++) '+$k'].where((k) => !replace.containsKey(k)).length;
       final shock = game.castShockFor(s, replace);
       final returning = replace.values.where((id) => s.pastCrew.contains(id)).length;
       return AlertDialog(
@@ -1322,6 +1330,57 @@ Future<void> showRenewDialog(BuildContext context, Show s) {
                               border: Border.all(color: AppColors.cyan.withValues(alpha: 0.6)),
                             ),
                             child: const Text('Değiştir',
+                                style: TextStyle(color: AppColors.cyan, fontWeight: FontWeight.w800, fontSize: 12)),
+                          ),
+                        ),
+                      ]),
+                    ),
+                  );
+                }),
+              for (final (k, role) in missing.indexed)
+                Builder(builder: (_) {
+                  final key = '+$k';
+                  final rep = replace[key] == null ? null : game.staffById(replace[key]!);
+                  final cands = game.staff
+                      .where((p) => p.role == role && p.showId == null && !chosen.contains(p.id))
+                      .toList()
+                    ..sort((a, b) => b.skill.compareTo(a.skill));
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 6),
+                    child: Panel(
+                      padding: const EdgeInsets.all(8),
+                      color: AppColors.panelHi,
+                      borderColor: rep == null ? AppColors.red : null,
+                      child: Row(children: [
+                        SizedBox(
+                          width: 86,
+                          child: Text(role.label,
+                              style: TextStyle(color: role.color, fontWeight: FontWeight.w800, fontSize: 12)),
+                        ),
+                        Expanded(
+                          child: Text(
+                            rep == null
+                                ? '⛔ Sezonda ayrıldı, yerine biri lazım'
+                                : '${rep.name} · ${s.pastCrew.contains(rep.id) ? '🎉 eski kadro' : '🎭 yeni yüz'} · yetenek ${rep.skill}',
+                            style: TextStyle(fontSize: 12, color: rep == null ? AppColors.red : AppColors.cyan),
+                          ),
+                        ),
+                        PopupMenuButton<String>(
+                          tooltip: 'Seç',
+                          onSelected: (v) => setD(() => replace[key] = v),
+                          itemBuilder: (_) => [
+                            if (cands.isEmpty)
+                              const PopupMenuItem(enabled: false, child: Text('Boşta uygun kimse yok · Kadro\'dan işe al')),
+                            for (final p in cands.take(12))
+                              PopupMenuItem(value: p.id, child: Text('${p.name} · ${p.skill}')),
+                          ],
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(10),
+                              border: Border.all(color: AppColors.cyan.withValues(alpha: 0.6)),
+                            ),
+                            child: const Text('Seç',
                                 style: TextStyle(color: AppColors.cyan, fontWeight: FontWeight.w800, fontSize: 12)),
                           ),
                         ),

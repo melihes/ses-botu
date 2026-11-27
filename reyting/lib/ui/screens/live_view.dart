@@ -16,11 +16,13 @@ import 'live_crisis.dart';
 import 'live_stage.dart';
 
 /// Programı tam ekran canlı izle: konuşmalar, skor, seyirci tepkileri.
-Future<void> openLiveView(BuildContext context, Show s) => showDialog(
-      context: context,
-      builder: (_) => Dialog.fullscreen(
-        backgroundColor: Colors.black,
-        child: LiveView(show: s),
+/// Tam ekran (opak) sayfa: arkadaki ekranların animasyonları bu sırada durur.
+Future<void> openLiveView(BuildContext context, Show s) => Navigator.of(context).push(
+      PageRouteBuilder(
+        opaque: true,
+        transitionDuration: const Duration(milliseconds: 220),
+        pageBuilder: (_, _, _) => Scaffold(backgroundColor: Colors.black, body: LiveView(show: s)),
+        transitionsBuilder: (_, a, _, child) => FadeTransition(opacity: a, child: child),
       ),
     );
 

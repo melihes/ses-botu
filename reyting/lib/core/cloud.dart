@@ -106,11 +106,15 @@ class Cloud extends ChangeNotifier {
     var ticks = 0;
     _timer = Timer.periodic(const Duration(minutes: 1), (_) {
       ticks++;
+      // internetsiz açıldıysa: bağlantı gelince otomatik online ol
+      if (!signedIn) {
+        autoSignIn();
+        return;
+      }
       if (ticks % 2 == 0) sync();
       if (ticks % 5 == 0) refreshTop();
     });
     if (signedIn) {
-      _listenGrants();
       sync();
       refreshTop();
       // misafirse: telefondaki Google hesabıyla sessizce bağlanmayı dene
@@ -122,8 +126,19 @@ class Cloud extends ChangeNotifier {
 
   /// Açılışta otomatik giriş: önce sessiz/tek dokunuş Google, olmazsa misafir.
   /// Oyuncu hiçbir düğmeye basmadan online olur.
+  bool _autoBusy = false;
+
   Future<void> autoSignIn() async {
-    if (!ready || signedIn) return;
+    if (!ready || signedIn || _autoBusy) return;
+    _autoBusy = true;
+    try {
+      await _autoSignIn();
+    } finally {
+      _autoBusy = false;
+    }
+  }
+
+  Future<void> _autoSignIn() async {
     try {
       final acc = await GoogleSignIn.instance.attemptLightweightAuthentication();
       if (acc != null) {
@@ -142,7 +157,6 @@ class Cloud extends ChangeNotifier {
       }
     }
     if (signedIn) {
-      _listenGrants();
       await _offerCloudSave();
       await sync(force: true);
       await refreshTop();
@@ -157,7 +171,6 @@ class Cloud extends ChangeNotifier {
       final acc = await GoogleSignIn.instance.attemptLightweightAuthentication();
       if (acc == null) return;
       await _firebaseWithGoogle(acc);
-      _listenGrants();
       await _offerCloudSave();
       await sync(force: true);
       await refreshTop();
@@ -216,7 +229,6 @@ class Cloud extends ChangeNotifier {
         error = 'Giriş tamamlanmadı, misafir olarak devam ediyorsun.';
         return error;
       }
-      _listenGrants();
       await _offerCloudSave();
       await sync(force: true);
       await refreshTop();
@@ -389,6 +401,7 @@ class Cloud extends ChangeNotifier {
   int? cloudDay;
 
   String? _offerUid;
+  bool _linked = false;
 
   Future<bool> _offerCloudSave() async {
     final u = user;
@@ -400,7 +413,7 @@ class Cloud extends ChangeNotifier {
       final raw = doc.data()?['save'];
       final day = (doc.data()?['day'] as num?)?.toInt();
       // bulutta bu telefondan daha ileri bir kariyer varsa sor
-      if (raw is String && (g == null || g.cloudUid != u.uid || (day ?? 0) > g.day)) {
+      if (raw is String && g != null && !_linked && (day ?? 0) > g.day) {
         cloudSaveRaw = raw;
         cloudDay = day;
       }
@@ -442,6 +455,10 @@ class Cloud extends ChangeNotifier {
       final keep = List<String>.from((d['keep'] as List?) ?? const []);
       final deleted = List<String>.from((d['deleted'] as List?) ?? const []);
       final old = g.cloudUid;
+      // bu telefon daha önce bu hesapla kayıtlıysa telefondaki oyun esastır
+      _linked = old == u.uid;
+      // başka bir hesaba geçildi: hediye numaraları hesaba özel, baştan say
+      if (old != null && old != u.uid) g.lastGrantSeq = 0;
       final kept = keep.contains(u.uid) || (old != null && keep.contains(old));
       final wiped = (at > g.careerStart && !kept) || (old != null && deleted.contains(old));
       if (wiped) {

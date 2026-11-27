@@ -161,10 +161,11 @@ onAuthStateChanged(auth, async (u) => {
     clearInterval(timer);
     let tick = 0;
     timer = setInterval(() => {
-      if (!$('live').checked) return;
+      // sekme görünmüyorsa sorma (gereksiz okuma olmasın)
+      if (!$('live').checked || document.hidden) return;
       tick++;
-      // 5 sn'de bir sadece değişenler, dakikada bir tam liste
-      (tick % 12 === 0 ? load() : loadChanges()).catch(() => {});
+      // 5 sn'de bir sadece değişenler, 10 dakikada bir tam liste
+      (tick % 120 === 0 ? load() : loadChanges()).catch(() => {});
       if (selected && tick % 2 === 0) openPlayer(selected, true);
     }, 5000);
   } catch (e) {
@@ -180,7 +181,7 @@ async function loadChanges() {
   const res = await call('adminList', { since, limit: 200 });
   if (!res.rows.length) { $('lastUp').textContent = 'güncellendi ' + new Date().toLocaleTimeString('tr-TR'); return; }
   const byId = new Map(rows.map(r => [r.uid, r]));
-  for (const r of res.rows) { if (!byId.has(r.uid)) total++; byId.set(r.uid, r); }
+  for (const r of res.rows) byId.set(r.uid, r);
   rows = [...byId.values()];
   const key = $('order').value;
   rows.sort((a, b) => (b[key] ?? 0) - (a[key] ?? 0));
@@ -249,11 +250,13 @@ $('btnDeleteAll').onclick = async () => {
 };
 
 async function openPlayer(uid, quiet) {
-  selected = uid; render();
+  if (!quiet) { selected = uid; render(); }
+  if (uid !== selected) return;
   if (!quiet) $('detail').innerHTML = '<div class="empty">Yükleniyor…</div>';
   let p;
   try { p = await call('adminPlayer', { uid }); } catch (e) { $('detail').innerHTML = `<div class="empty">${esc(e.message)}</div>`; return; }
   if (quiet && document.activeElement && document.activeElement.closest('#detail')) return; // yazarken bozma
+  if (uid !== selected) return; // bu arada başka oyuncu seçildi
   const r = p.row, a = p.auth, s = p.save || {};
   $('detail').innerHTML = `
     <h2>${esc(r.name)}</h2>

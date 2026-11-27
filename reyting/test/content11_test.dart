@@ -34,7 +34,14 @@ void main() {
     });
     test('Ramazan her yıl 11 gün öne kayar', () {
       final r = specialDayById('ramazan')!;
-      expect(r.doyIn(2), (r.doyIn(1) - 11 + 360) % 360);
+      expect(r.startDay(2) - r.startDay(1), 349);
+      // 20 yıl boyunca her yıl bir Ramazan, bayram hep Ramazan'dan sonra
+      final b = specialDayById('ramazanBayrami')!;
+      for (int y = 1; y < 20; y++) {
+        expect(b.startDay(y), r.startDay(y) + r.length);
+        expect(r.activeStart(r.startDay(y) + 5), r.startDay(y));
+        expect(b.activeStart(r.startDay(y) + 5), isNull);
+      }
     });
     test('özel bölüm: hazırlık penceresi, ödeme ve reyting', () async {
       final g = await gameWithShowOnAir(); // magazin programı
@@ -43,11 +50,14 @@ void main() {
       final start = d.nextStart(g.day);
       expect(g.prepareSpecial(s, d), isNotNull, reason: 'çok erken');
       g.debugAdvanceDays((start - 5 - g.day).toDouble());
+      keepOnAir(g, s);
       g.cash = 1e12;
       final before = g.calendarMult(s);
       expect(g.prepareSpecial(s, d), isNull);
       expect(g.prepareSpecial(s, d), isNotNull, reason: 'iki kez olmaz');
+      keepOnAir(g, s);
       g.debugAdvanceDays((start - g.day).toDouble());
+      keepOnAir(g, s);
       expect(g.day, start);
       expect(g.calendarMult(s), greaterThan(before * 1.3));
       g.debugAdvanceDays(2);
@@ -147,10 +157,53 @@ void main() {
       expect(g.renewShow(s, replace: {host.id: elif.id}), isNull);
       expect(s.staffIds, [elif.id]);
       g.debugAdvanceDays(s.def.prodDays.toDouble());
+      expect(g.castShockMult(s), 1.0, reason: 'yayına girmeden ceza yok');
+      expect(g.putOnAir(s, SlotId.prime1), isNull);
       expect(g.castShockMult(s), lessThan(0.8));
       g.debugAdvanceDays(25);
       expect(g.castShockMult(s), 1.0);
       expect(s.pastCrew, containsAll([host.id, elif.id]));
+    });
+  });
+
+  group('Hata düzeltmeleri', () {
+    test('özel bölüm parası bir kez verilir, başka günle üstüne yazılamaz', () async {
+      final g = await gameWithShowOnAir(); // magazin
+      final s = g.shows.first;
+      final d = specialDayById('sevgililer')!;
+      g.cash = 1e13;
+      g.debugAdvanceDays((d.nextStart(g.day) - g.day).toDouble());
+      keepOnAir(g, s);
+      final p0 = g.bonusPrestige;
+      expect(g.prepareSpecial(s, d), isNull);
+      final p1 = g.bonusPrestige;
+      expect(p1, greaterThan(p0));
+      expect(g.prepareSpecial(s, d), isNotNull);
+      g.specials.remove(s.id);
+      expect(g.prepareSpecial(s, d), isNotNull, reason: 'ödenmiş kayıt tekrar ödenmez');
+      expect(g.bonusPrestige, p1);
+    });
+    test('kriz çıktığı an sayılır (ekranı kapatıp yeniden denenemez)', () async {
+      final g = await gameWithShowOnAir();
+      final s = g.shows.first;
+      expect(g.rollCrisis(s), isNotNull);
+      expect(g.rollCrisis(s), isNull);
+    });
+    test('sezonda ayrılanın rolü boş kalırsa yenisi seçilmeden yenilenmez', () async {
+      final g = await gameWithShowOnAir();
+      final s = g.shows.first;
+      final host = g.staffById(s.staffIds.first)!;
+      g.debugAdvanceDays(s.seasonDays + 2.0);
+      g.fire(host);
+      expect(s.staffIds, isEmpty);
+      expect(g.missingRoles(s), [Role.sunucu]);
+      g.cash = 1e12;
+      expect(g.renewShow(s), contains('Eksik'));
+      final n = g.market.firstWhere((p) => p.role == Role.sunucu);
+      expect(g.hire(n), isNull);
+      expect(g.castShockFor(s, {'+0': n.id}), closeTo(0.25, 1e-9));
+      expect(g.renewShow(s, replace: {'+0': n.id}), isNull);
+      expect(s.staffIds, [n.id]);
     });
   });
 
@@ -183,3 +236,9 @@ void main() {
 }
 
 int min(int a, int b) => a < b ? a : b;
+
+/// Testte programın sezonu uzun günlerde bitmesin
+void keepOnAir(Game g, Show s) {
+  s.status = ShowStatus.onAir;
+  s.episodesAired = 0;
+}

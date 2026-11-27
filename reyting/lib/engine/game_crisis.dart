@@ -70,6 +70,14 @@ extension GameCrisis on Game {
 
   LiveCrisis? rollCrisis(Show s) {
     if (!crisisAllowed(s)) return null;
+    // kriz çıktığı an sayılır: ekranı kapatıp yeniden açarak yeni kriz denenemez
+    if (crisisDay != day) {
+      crisisDay = day;
+      crisisCount = 0;
+    }
+    crisisCount++;
+    crisisShowDay[s.id] = day;
+    crisisShowDay.removeWhere((k, v) => v < day - 2);
     final own = crisisDefs.where((c) => c.genres.contains(s.genre)).toList();
     final any = crisisDefs.where((c) => c.genres.isEmpty).toList();
     final pool = own.isNotEmpty && _rng.nextDouble() < 0.6 ? own : any;
@@ -100,13 +108,7 @@ extension GameCrisis on Game {
 
   /// Kriz kararı: [option] -1 ise süre doldu (en kötü sonuç)
   CrisisOutcome resolveCrisis(Show s, LiveCrisis c, int option) {
-    if (crisisDay != day) {
-      crisisDay = day;
-      crisisCount = 0;
-    }
-    crisisCount++;
-    crisisShowDay[s.id] = day;
-    crisisShowDay.removeWhere((k, v) => v < day - 2);
+    final onAir = s.status == ShowStatus.onAir;
 
     final timeout = option < 0;
     final o = timeout ? null : c.options[option];
@@ -114,14 +116,14 @@ extension GameCrisis on Game {
     final CrisisOutcome out;
     if (win) {
       final up = 0.22 * o!.reward;
-      _buffCombine(s, 1 + up, 2);
+      if (onAir) _buffCombine(s, 1 + up, 2);
       bonusPrestige += (o.reward * 3).round();
       out = CrisisOutcome(true, c.fill(o.win), up, option);
       _post(SocialTopic.crisisWin, show: s, extra: c.def.title.replaceAll('!', '').toLowerCase());
       _log('${c.def.emoji} Canlı yayın anı', '"${s.name}": ${out.text} (2 gün +%${(up * 100).round()})', true);
     } else {
       final down = 0.08 * (o?.risk ?? 1.3);
-      _buffCombine(s, 1 - down, 1);
+      if (onAir) _buffCombine(s, 1 - down, 1);
       out = CrisisOutcome(
         false,
         timeout ? c.fill('{host} donup kaldı, kimse ne yapacağını bilemedi.') : c.fill(o!.fail),
@@ -139,7 +141,8 @@ extension GameCrisis on Game {
   void _buffCombine(Show s, double mult, int days) {
     if (s.buffDays > 0) {
       s.buff = (s.buff * mult).clamp(0.6, 1.7).toDouble();
-      s.buffDays = max(s.buffDays, days);
+      // birleşen etki yeni etkinin süresi kadar sürer (kısa etki uzamasın)
+      s.buffDays = days;
     } else {
       s.buff = mult;
       s.buffDays = days;

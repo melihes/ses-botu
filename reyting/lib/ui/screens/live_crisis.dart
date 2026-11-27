@@ -45,8 +45,24 @@ class _CrisisLayerState extends State<CrisisLayer> with SingleTickerProviderStat
 
   @override
   void dispose() {
+    // kriz açıkken ekran kapatılırsa: süre dolmuş sayılır (kaçarak yeni kriz denenemez)
+    final c = _crisis;
+    if (c != null && (_phase == _Phase.intro || _phase == _Phase.choose)) {
+      final g = _game, show = widget.show;
+      // ağaç kapanırken bildirim yapılmasın diye bir sonraki adımda
+      Future.microtask(() => g?.resolveCrisis(show, c, -1));
+    }
     _ticker.dispose();
     super.dispose();
+  }
+
+  Game? _game;
+  Duration _last = Duration.zero;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _game = GameScope.read(context);
   }
 
   double get _p => (_now - _phaseAt).inMilliseconds.toDouble();
@@ -57,7 +73,11 @@ class _CrisisLayerState extends State<CrisisLayer> with SingleTickerProviderStat
   }
 
   void _tick(Duration e) {
-    _now = e;
+    // kendi saatimiz: telefon kilitlenip açılınca süre bir anda dolmasın
+    final dt = e - _last;
+    _last = e;
+    _now += dt > const Duration(milliseconds: 100) ? const Duration(milliseconds: 100) : dt;
+    e = _now;
     final wasIdle = _phase == _Phase.idle;
     switch (_phase) {
       case _Phase.idle:
@@ -228,7 +248,9 @@ class _CrisisLayerState extends State<CrisisLayer> with SingleTickerProviderStat
     final left = ((_choose - _p) / 1000).clamp(0.0, 99.0);
     final frac = (left / (_choose / 1000)).clamp(0.0, 1.0);
     final urgent = left < 3;
-    final typed = (c.desc.length * (_p / 900)).clamp(0, c.desc.length).round();
+    // harf harf yazılır (emoji ortadan bölünmesin diye karakter karakter)
+    final chars = c.desc.characters;
+    final typed = (chars.length * (_p / 900)).clamp(0, chars.length).round();
     return Padding(
       padding: EdgeInsets.all(small ? 6 : 12),
       child: Column(children: [
@@ -241,7 +263,7 @@ class _CrisisLayerState extends State<CrisisLayer> with SingleTickerProviderStat
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(fontWeight: FontWeight.w900, fontSize: small ? 15 : 19, color: Colors.white)),
-              Text(c.desc.substring(0, typed),
+              Text(chars.take(typed).toString(),
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(fontSize: small ? 11 : 13, color: Colors.white70)),
@@ -522,6 +544,12 @@ class _HazardPainter extends CustomPainter {
 
 /// Konfeti patlaması
 class _ConfettiPainter extends CustomPainter {
+  // her karede yeniden ölçülmesin
+  static final _emojis = [
+    for (final e in ['❤️', '👏', '🔥', '😂'])
+      TextPainter(text: TextSpan(text: e, style: const TextStyle(fontSize: 18)), textDirection: TextDirection.ltr)
+        ..layout(),
+  ];
   final double t; // saniye
   final int seed;
   _ConfettiPainter({required this.t, required this.seed});
@@ -556,11 +584,7 @@ class _ConfettiPainter extends CustomPainter {
       final sp = 60 + r.nextDouble() * 80;
       final y = size.height + 20 - (t - i * 0.12).clamp(0.0, 9.0) * sp;
       if (y > size.height + 10) continue;
-      final tp = TextPainter(
-        text: TextSpan(text: ['❤️', '👏', '🔥', '😂'][i % 4], style: const TextStyle(fontSize: 18)),
-        textDirection: TextDirection.ltr,
-      )..layout();
-      tp.paint(canvas, Offset(x + sin(t * 3 + i) * 10, y));
+      _emojis[i % 4].paint(canvas, Offset(x + sin(t * 3 + i) * 10, y));
     }
   }
 

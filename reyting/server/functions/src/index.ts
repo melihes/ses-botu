@@ -81,7 +81,9 @@ export const submitSave = onCall({ enforceAppCheck: false }, async (req) => {
       ? { day: prevData.day ?? 0, worth: prevData.worth ?? 0, level: prevData.level ?? 0 }
       : null;
     let verified = prevData?.verified !== false;
-    const rebase = prevData?.adminRebase === true && prevData?.banned !== true;
+    // yönetici işleminden sonraki kısa süre (en fazla 15 dk) denetim atlanır
+    const until = prevData?.rebaseUntil instanceof Timestamp ? prevData.rebaseUntil.toMillis() : now + 1;
+    const rebase = prevData?.adminRebase === true && prevData?.banned !== true && now < until;
     if (rebase) {
       prev = null;
       accountAgeMs = Number.POSITIVE_INFINITY;
@@ -128,7 +130,8 @@ export const submitSave = onCall({ enforceAppCheck: false }, async (req) => {
       { save: raw, day: next.day, worth: verdict.worth, level: next.studioLevel, name, ...info,
         verified: true, updatedAt: stamp, bonusAllowance: 0,
         // yönetici işlemi daha oyuna ulaşmadıysa bir sonraki kayıtta da denetim atlanır
-        adminRebase: rebase && next.lastGrantSeq >= 0 && next.lastGrantSeq < Number(prevData?.rebaseSeq ?? 0),
+        adminRebase: rebase && next.lastGrantSeq >= 0 && next.lastGrantSeq < Number(prevData?.rebaseSeq ?? 0) &&
+          now < until,
         ...(prevData ? {} : { createdAt: stamp }) },
       { merge: true },
     );

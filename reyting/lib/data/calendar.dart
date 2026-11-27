@@ -91,18 +91,36 @@ class SpecialDay {
 
   bool get world => locations.isNotEmpty;
 
-  /// Bu özel günün o yıldaki başlangıcı (yılın günü)
+  /// Ay takvimi: her 349 günde bir (oyun yılından 11 gün kısa)
+  static const lunarPeriod = daysPerYear - 11;
+
+  /// İlk yıldaki başlangıç (oyun günü)
+  int get _firstStart => doyOf(month, dom) + 1;
+
+  /// Bu özel günün o yıldaki başlangıcı (yılın günü; ay takviminde yaklaşık)
   int doyIn(int year) {
     final base = doyOf(month, dom);
     if (!lunar) return base;
     return ((base - 11 * (year - 1)) % daysPerYear + daysPerYear) % daysPerYear;
   }
 
-  /// Bu yıl (ya da önceki yıl) başlayan dönem: oyun günü olarak başlangıç
-  int startDay(int year) => (year - 1) * daysPerYear + doyIn(year) + 1;
+  /// Bu yıl başlayan dönem: oyun günü olarak başlangıç
+  int startDay(int year) => lunar
+      ? _firstStart + (year - 1) * lunarPeriod
+      : (year - 1) * daysPerYear + doyIn(year) + 1;
 
   /// [day] gününü kapsayan dönemin başlangıcı (yoksa null)
   int? activeStart(int day) {
+    if (lunar) {
+      // mutlak gün çizgisinde: hiçbir yıl atlanmaz, bayram Ramazan'ın içine düşmez
+      final k = ((day - _firstStart) / lunarPeriod).floor();
+      for (final kk in [k - 1, k]) {
+        if (kk < 0) continue;
+        final s = _firstStart + kk * lunarPeriod;
+        if (day >= s && day < s + length) return s;
+      }
+      return null;
+    }
     final y = dateOfDay(day).year;
     for (final yy in [y - 1, y]) {
       if (yy < 1) continue;
@@ -116,6 +134,10 @@ class SpecialDay {
   int nextStart(int day) {
     final a = activeStart(day);
     if (a != null) return a;
+    if (lunar) {
+      final k = max0(((day - _firstStart) / lunarPeriod).ceil());
+      return _firstStart + k * lunarPeriod;
+    }
     final y = dateOfDay(day).year;
     for (final yy in [y, y + 1]) {
       final s = startDay(yy);

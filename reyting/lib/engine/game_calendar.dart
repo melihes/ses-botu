@@ -7,6 +7,7 @@ extension GameCalendar on Game {
   // =================================================================
   Map<String, dynamic> _v13ToJson() => {
     'specials': specials,
+    'paidSpecials': paidSpecials.toList(),
     ..._socialToJson(),
     ..._dramaToJson(),
     ..._crisisToJson(),
@@ -16,6 +17,9 @@ extension GameCalendar on Game {
     specials
       ..clear()
       ..addAll(Map<String, String>.from((j['specials'] as Map?) ?? const {}));
+    paidSpecials
+      ..clear()
+      ..addAll(List<String>.from((j['paidSpecials'] as List?) ?? const []));
     _socialLoad(j);
     _dramaLoad(j);
     _crisisLoad(j);
@@ -23,6 +27,7 @@ extension GameCalendar on Game {
 
   void _resetV13() {
     specials.clear();
+    paidSpecials.clear();
     _socialReset();
     _dramaReset();
     _crisisReset();
@@ -116,8 +121,19 @@ extension GameCalendar on Game {
     }
     if (!specialWindowOpen(d, start)) return 'Özel bölüm en erken 10 gün önce hazırlanabilir.';
     if (!d.genres.contains(s.genre)) return 'Bu tür bu özel güne uygun değil.';
+    if (s.status != ShowStatus.onAir && s.status != ShowStatus.producing) {
+      return 'Özel bölüm için program yayında ya da çekimde olmalı.';
+    }
     final key = specialKey(d, start);
-    if (specials[s.id] == key) return 'Bu program için özel bölüm zaten hazır.';
+    if (specials[s.id] == key || paidSpecials.contains('${s.id}|$key')) {
+      return 'Bu program için özel bölüm zaten hazır.';
+    }
+    // programın başka bir özel bölümü sürüyorsa üstüne yazılamaz
+    final cur = specials[s.id];
+    if (cur != null && cur != key) {
+      final other = specialDayById(cur.split('@').first);
+      return 'Bu program "${other?.special ?? 'başka bir özel bölüm'}" için hazırlanıyor.';
+    }
     final c = specialCost(s, d);
     if (cash < c) return 'Özel bölüm için ${fmtShort(c)} gerekli.';
     cash -= c;
@@ -131,6 +147,9 @@ extension GameCalendar on Game {
   }
 
   void _paySpecial(Show s, SpecialDay d) {
+    // her program her özel gün için bir kez kazanır
+    final paid = '${s.id}|${specialKey(d, d.nextStart(day))}';
+    if (!paidSpecials.add(paid)) return;
     final lump = specialCost(s, d) * (d.world ? 1.5 : 0.9);
     _gain(lump);
     bonusPrestige += d.world ? 8 : 4;
@@ -144,6 +163,8 @@ extension GameCalendar on Game {
   }
 
   void _calendarDaily() {
+    // eski ödeme kayıtlarını temizle (bir yıldan eski)
+    paidSpecials.removeWhere((k) => (int.tryParse(k.split('@').last) ?? 0) < day - 400);
     // biten özel bölüm kayıtlarını temizle
     specials.removeWhere((id, key) {
       final parts = key.split('@');

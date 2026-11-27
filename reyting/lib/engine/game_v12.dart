@@ -201,9 +201,9 @@ extension GameV12 on Game {
   }) {
     final c = company.trim();
     final ch = channel.trim();
-    if (c.isNotEmpty) companyName = c.length > 22 ? c.substring(0, 22) : c;
+    if (c.isNotEmpty) companyName = String.fromCharCodes(c.runes.take(22));
     companySuffix = suffix.clamp(0, companySuffixes.length - 1);
-    if (ch.isNotEmpty) channelName = ch.length > 18 ? ch.substring(0, 18) : ch;
+    if (ch.isNotEmpty) channelName = String.fromCharCodes(ch.runes.take(18));
     logo = newLogo;
     identitySet = true;
     _changed();

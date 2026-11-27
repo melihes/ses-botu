@@ -523,8 +523,10 @@ class _LiveStageState extends State<LiveStage> with SingleTickerProviderStateMix
     }
     // alt yazı (harf harf)
     if (b != null && (shot != _Shot.audience || b.side == 2)) {
-      final n = min(b.text.length, (_u * 28).floor());
-      final txt = (b.side == 2 ? '' : '${b.who}: ') + b.text.substring(0, n);
+      // karakter karakter (emoji ortadan bölünürse yazı çöker)
+      final chars = b.text.characters;
+      final n = min(chars.length, (_u * 28).floor());
+      final txt = (b.side == 2 ? '' : '${b.who}: ') + chars.take(n).toString();
       out.add(Positioned(
         left: 40,
         right: 40,

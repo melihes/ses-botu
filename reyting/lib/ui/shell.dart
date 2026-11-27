@@ -9,6 +9,7 @@ import 'dialogs/offline_dialog.dart';
 import 'dialogs/settings_dialog.dart';
 import 'dialogs/shop_dialog.dart';
 import '../core/ads.dart';
+import '../core/cloud.dart';
 import 'screens/calendar_screen.dart';
 import '../data/calendar.dart';
 import 'screens/social_screen.dart';
@@ -249,6 +250,51 @@ class Shell extends StatefulWidget {
 class _ShellState extends State<Shell> {
   // Oyun her açılışta ana ekranda başlar (bkz. docs/DERSLER.md #5)
   late PageId _page = widget.initial;
+
+  @override
+  void initState() {
+    super.initState();
+    Cloud.instance.addListener(_cloudPrompt);
+  }
+
+  @override
+  void dispose() {
+    Cloud.instance.removeListener(_cloudPrompt);
+    super.dispose();
+  }
+
+  /// Yeni telefonda bulutta daha ileri bir kariyer varsa bir kez sor
+  bool _cloudAsked = false;
+  void _cloudPrompt() {
+    final c = Cloud.instance;
+    if (_cloudAsked || c.cloudSaveRaw == null || !mounted) return;
+    _cloudAsked = true;
+    final game = GameScope.read(context);
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (!mounted || c.cloudSaveRaw == null) return;
+      final load = await showDialog<bool>(
+        context: context,
+        barrierDismissible: false,
+        builder: (d) => AlertDialog(
+          title: const Text('☁️ Bulutta kaydın var'),
+          content: Text(
+            'Bu hesapta daha ileri bir kariyer var (Gün ${c.cloudDay ?? '?'}). '
+            'Telefondaki oyun: Gün ${game.day}. Hangisiyle devam edelim?',
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(d, false), child: const Text('Telefondakiyle devam')),
+            FilledButton(onPressed: () => Navigator.pop(d, true), child: const Text('Buluttakini yükle')),
+          ],
+        ),
+      );
+      if (load == true) {
+        await c.restoreCloud();
+      } else {
+        c.dismissCloud();
+        c.sync(force: true);
+      }
+    });
+  }
 
   /// Sayfa değiştir; süresi geldiyse araya reklam girer (reklamsız pakette yok)
   void _go(PageId p) {
@@ -753,7 +799,7 @@ class _DayChip extends StatelessWidget {
   Widget build(BuildContext context) {
     final game = GameScope.of(context);
     final act = game.activeSpecialDays;
-    final narrow = MediaQuery.sizeOf(context).width < 700;
+    final narrow = MediaQuery.sizeOf(context).width < 840;
     return GestureDetector(
     behavior: HitTestBehavior.opaque,
     onTap: () => ShellNav.go(context, PageId.calendar),

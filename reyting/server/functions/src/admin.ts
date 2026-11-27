@@ -78,7 +78,8 @@ async function pushGrant(uid: string, op: Record<string, unknown>, by: string): 
     ops.push({ ...op, seq, by, at: Date.now() });
     tx.set(ref, { seq, ops, updatedAt: Timestamp.now() });
     // bir sonraki kayıtta hile denetimi bu değişiklik için atlanır
-    tx.set(db().collection('players').doc(uid), { adminRebase: true, rebaseSeq: seq }, { merge: true });
+    // en fazla 15 dakika geçerli (oyuncu kendi kaydını değiştirerek sonsuza uzatamasın)
+    tx.set(db().collection('players').doc(uid), { adminRebase: true, rebaseSeq: seq, rebaseUntil: Timestamp.fromMillis(Date.now() + 15 * 60e3) }, { merge: true });
     return seq;
   });
 }
@@ -217,7 +218,8 @@ export const adminAction = onCall(async (req) => {
       return { ok: true, seq };
     }
     case 'verify': {
-      await pRef.set({ verified: true, unverifiedReason: FieldValue.delete(), banned: false, adminRebase: true },
+      await pRef.set({ verified: true, unverifiedReason: FieldValue.delete(), banned: false, adminRebase: true,
+        rebaseUntil: Timestamp.fromMillis(Date.now() + 15 * 60e3) },
         { merge: true });
       return { ok: true };
     }
@@ -241,6 +243,12 @@ export const adminAction = onCall(async (req) => {
     }
     case 'delete': {
       // hesabı ve tüm sunucu verisini sil (oyuncu açınca yeni misafir hesapla başlar)
+      // önce giriş hesabı: oyundaysa silinen kaydı yeniden yazamasın
+      try {
+        await getAuth().deleteUser(uid);
+      } catch {
+        // zaten yoksa sorun değil
+      }
       const batch = db().batch();
       batch.delete(pRef);
       batch.delete(lbRef);
@@ -249,11 +257,6 @@ export const adminAction = onCall(async (req) => {
       batch.set(db().collection('meta').doc('wipe'), { deleted: FieldValue.arrayUnion(uid) }, { merge: true });
       await batch.commit();
       await db().recursiveDelete(pRef);
-      try {
-        await getAuth().deleteUser(uid);
-      } catch {
-        // zaten yoksa sorun değil
-      }
       return { ok: true };
     }
     default:
@@ -293,22 +296,7 @@ export const adminDeleteAll = onCall(async (req) => {
   if (req.data?.confirm !== 'HERKESI SIL') throw new HttpsError('invalid-argument', 'Onay metni yanlış.');
   const keep = new Set<string>((req.data?.keep as string[] | undefined) ?? []);
   await db().collection('meta').doc('wipe').set({ at: Date.now(), keep: [...keep], deleted: [] });
-  let n = 0;
-  for (const col of ['players', 'leaderboard', 'grants']) {
-    const snap = await db().collection(col).select().get();
-    for (const d of snap.docs) {
-      if (keep.has(d.id)) continue;
-      if (col === 'players') {
-        await db().recursiveDelete(d.ref);
-        n++;
-      } else {
-        await d.ref.delete();
-      }
-    }
-  }
-  const tr = await db().collection('transfers').get();
-  for (const d of tr.docs) if (!keep.has(String(d.get('uid')))) await d.ref.delete();
-  // giriş hesapları
+  // önce giriş hesapları: o an oyunda olanlar silinen kaydı yeniden yazamasın
   let users = 0;
   let page: string | undefined;
   do {
@@ -318,6 +306,24 @@ export const adminDeleteAll = onCall(async (req) => {
     if (ids.length) users += (await getAuth().deleteUsers(ids)).successCount;
     page = res.pageToken;
   } while (page);
+  // sonra veriler (toplu ve paralel: binlerce oyuncuda da süre yetsin)
+  let n = 0;
+  const writer = db().bulkWriter();
+  for (const col of ['players', 'leaderboard', 'grants']) {
+    const snap = await db().collection(col).select().get();
+    for (const d of snap.docs) {
+      if (keep.has(d.id)) continue;
+      if (col === 'players') {
+        n++;
+        void db().recursiveDelete(d.ref, writer);
+      } else {
+        void writer.delete(d.ref);
+      }
+    }
+  }
+  const tr = await db().collection('transfers').get();
+  for (const d of tr.docs) if (!keep.has(String(d.get('uid')))) void writer.delete(d.ref);
+  await writer.close();
   await db().collection('meta').doc('top100').set({ rows: [], total: 0, updatedAt: Timestamp.now() });
   logger.info('Herkes silindi', { by, players: n, users });
   return { ok: true, count: n, users };
@@ -339,7 +345,7 @@ async function copySave(from: string, to: string, rebase: boolean): Promise<stri
     verified: src.get('verified') !== false,
     unverifiedReason: src.get('unverifiedReason') ?? FieldValue.delete(),
     banned: src.get('banned') === true,
-    ...(rebase ? { adminRebase: true } : {}),
+    ...(rebase ? { adminRebase: true, rebaseUntil: Timestamp.fromMillis(Date.now() + 15 * 60e3) } : {}),
     movedFrom: from,
     // oyuncu taşımasında denetim eski hesabın son kaydından devam eder
     updatedAt: rebase ? Timestamp.fromMillis(0) : (src.get('updatedAt') ?? Timestamp.now()),
@@ -405,6 +411,10 @@ export const ackGrants = onCall(async (req) => {
     if (!snap.exists) return;
     const ops = ((snap.get('ops') as any[]) ?? []).filter((o) => Number(o.seq) > upTo);
     tx.set(ref, { ops }, { merge: true });
+    // oyun işlemleri uyguladı: bir sonraki kayıttan sonra denetim yeniden başlar
+    if (upTo >= Number(snap.get('seq') ?? 0)) {
+      tx.set(db().collection('players').doc(uid), { rebaseUntil: Timestamp.fromMillis(Date.now() + 2 * 60e3) }, { merge: true });
+    }
   });
   return { ok: true };
 });

@@ -388,6 +388,11 @@ class FilmSetPainter extends CustomPainter {
 
 /// Film setinin önündeki ekip: kamera, boom mikrofon, klaket
 class FilmCrewPainter extends CustomPainter {
+  static final _slate = TextPainter(
+    text: const TextSpan(
+        text: 'SAHNE 12 · ÇEKİM 3', style: TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.w800)),
+    textDirection: TextDirection.ltr,
+  )..layout();
   final double t;
   FilmCrewPainter(this.t);
   @override
@@ -426,11 +431,7 @@ class FilmCrewPainter extends CustomPainter {
         c.drawRect(Rect.fromLTWH(i * 15.0, -12, 15, 12), Paint()..color = i.isEven ? Colors.white : Colors.black);
       }
       c.restore();
-      final tp = TextPainter(
-        text: const TextSpan(text: 'SAHNE 12 · ÇEKİM 3', style: TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.w800)),
-        textDirection: TextDirection.ltr,
-      )..layout();
-      tp.paint(c, base - Offset(tp.width / 2, 4));
+      _slate.paint(c, base - Offset(_slate.width / 2, 4));
     }
   }
 

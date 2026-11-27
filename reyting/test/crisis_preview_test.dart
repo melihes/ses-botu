@@ -67,19 +67,22 @@ void main() {
         await t.pump(const Duration(milliseconds: 100));
         if (find.text('⚠ CANLI YAYIN KRİZİ').evaluate().isNotEmpty) break;
       }
-      await t.pump(const Duration(milliseconds: 500));
+      Future<void> wait(int ms) async {
+        for (int i = 0; i < ms ~/ 50; i++) {
+          await t.pump(const Duration(milliseconds: 50));
+        }
+      }
+      await wait(500);
       await shot('1_giris');
-      await t.pump(const Duration(milliseconds: 1500));
-      await t.pump(const Duration(milliseconds: 900));
+      await wait(2400);
       await shot('2_secim');
       final opt = find.textContaining('Şans %');
       await t.tap(opt.first, warnIfMissed: false);
-      await t.pump(const Duration(milliseconds: 700));
+      await wait(700);
       await shot('3_gerilim');
-      await t.pump(const Duration(milliseconds: 1300));
-      await t.pump(const Duration(milliseconds: 1200));
+      await wait(2500);
       await shot('4_sonuc');
-      await t.pump(const Duration(seconds: 5));
+      await wait(5000);
       g.dispose();
       await t.pumpWidget(const SizedBox());
     });

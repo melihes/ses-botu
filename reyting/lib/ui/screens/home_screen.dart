@@ -214,6 +214,7 @@ class _TileGrid extends StatelessWidget {
       _Tile(
         art: featured != null
             ? StageScene(
+                key: ValueKey(featured.id),
                 talk: true,
                 seed: featured.id.hashCode,
                 prop: propFor(featured.genre, featured.tier),
