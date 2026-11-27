@@ -123,6 +123,22 @@ class FaceSpec {
     );
   }
 
+  /// Aynı kişi, başka kıyafetle
+  FaceSpec copyWith({int? body, Color? cloth}) => FaceSpec(
+        hair: hair,
+        body: body ?? this.body,
+        brows: brows,
+        eyes: eyes,
+        nose: nose,
+        lips: lips,
+        beard: beard,
+        glasses: glasses,
+        skin: skin,
+        hairColor: hairColor,
+        cloth: cloth ?? this.cloth,
+        female: female,
+      );
+
   static String _v(int n) => 'variant${n.toString().padLeft(2, '0')}';
   static String _hex(Color c) =>
       '#${(c.toARGB32() & 0xFFFFFF).toRadixString(16).padLeft(6, '0')}';

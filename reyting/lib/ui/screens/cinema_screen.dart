@@ -102,7 +102,7 @@ class _FilmCard extends StatelessWidget {
             tier: f.tier,
             width: 120,
             height: 100,
-            badge: f.def.label.toUpperCase(),
+            badge: trUpper(f.def.label),
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -608,7 +608,7 @@ class _NewFilmWizardState extends State<NewFilmWizard> {
           tier: _tier,
           height: 100,
           width: double.infinity,
-          badge: def.label.toUpperCase(),
+          badge: trUpper(def.label),
         ),
         const SizedBox(height: 10),
         const SectionLabel('4 · Ekip'),

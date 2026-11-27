@@ -278,7 +278,7 @@ class _MapScreenState extends State<MapScreen>
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        l.city.toUpperCase(),
+                        trUpper(l.city),
                         style: const TextStyle(
                           color: AppColors.textDim,
                           fontSize: 11,

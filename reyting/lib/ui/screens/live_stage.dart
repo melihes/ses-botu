@@ -1,3 +1,4 @@
+import '../../core/format.dart';
 import 'dart:math';
 import 'dart:ui' as ui;
 
@@ -6,6 +7,7 @@ import 'package:flutter/scheduler.dart';
 
 import '../../data/content.dart';
 import '../../engine/live_script.dart';
+import '../widgets/ambience.dart';
 import '../widgets/face.dart';
 
 /// Canlı yayındaki bir kişi
@@ -40,8 +42,12 @@ class LiveStage extends StatefulWidget {
   final List<FaceSpec> crowd;
   final int seed;
 
+  /// Seyircinin keyfi 0..1 (reytinge göre)
+  final double audience;
+
   const LiveStage({
     super.key,
+    this.audience = 0.5,
     required this.genre,
     required this.prop,
     required this.title,
@@ -233,10 +239,16 @@ class _LiveStageState extends State<LiveStage> with SingleTickerProviderStateMix
   }
 
   Widget _set({double pan = 0, double blur = 0, double zoom = 1}) {
-    Widget s = CustomPaint(
-      painter: SetPainter(widget.prop, widget.genre, _t, widget.color, widget.title, pan, widget.seed),
-      size: Size.infinite,
-    );
+    final amb = Ambience.of(context);
+    Widget s = Stack(fit: StackFit.expand, children: [
+      CustomPaint(
+        painter: SetPainter(widget.prop, widget.genre, _t, widget.color, widget.title, pan, widget.seed),
+        size: Size.infinite,
+      ),
+      // saate göre ışık, mevsim ve bayram süsleri
+      CustomPaint(painter: LightPainter(amb), size: Size.infinite),
+      CustomPaint(painter: DecorPainter(amb, _t), size: Size.infinite),
+    ]);
     if (zoom != 1) s = Transform.scale(scale: zoom, child: s);
     if (blur > 0) {
       s = ImageFiltered(imageFilter: ui.ImageFilter.blur(sigmaX: blur, sigmaY: blur), child: s);
@@ -276,7 +288,9 @@ class _LiveStageState extends State<LiveStage> with SingleTickerProviderStateMix
                     const Color(0xFF4DABF7)),
               ),
           ],
-          Positioned.fill(child: CustomPaint(painter: FrontPainter(widget.prop, widget.genre, _t, pan, widget.title))),
+          Positioned.fill(
+              child: CustomPaint(
+                  painter: FrontPainter(widget.prop, widget.genre, _t, pan, widget.title, audience: widget.audience))),
         ]);
       case _Shot.two:
         return Stack(children: [
@@ -462,7 +476,7 @@ class _LiveStageState extends State<LiveStage> with SingleTickerProviderStateMix
         child: Row(mainAxisSize: MainAxisSize.min, children: [
           SizedBox(width: 22, height: 22, child: widget.channelLogo),
           const SizedBox(width: 6),
-          Text(widget.channel.toUpperCase(),
+          Text(trUpper(widget.channel),
               style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 12)),
         ]),
       ),
@@ -489,7 +503,7 @@ class _LiveStageState extends State<LiveStage> with SingleTickerProviderStateMix
           ? (widget.genre == Genre.haber ? 'Spiker' : (widget.genre == Genre.dizi ? 'Başrol' : 'Sunucu'))
           : (widget.genre == Genre.yarisma ? 'Yarışmacı' : (widget.genre == Genre.dizi ? 'Oyuncu' : 'Konuk'));
     } else if (shot == _Shot.wide && widget.genre != Genre.dizi) {
-      name = widget.title.toUpperCase();
+      name = trUpper(widget.title);
       role = '${widget.guest.who} · ${widget.host.who}';
     }
     if (name != null) {
@@ -646,7 +660,7 @@ class _OpeningView extends StatelessWidget {
                 shaderCallback: (r) => LinearGradient(
                   colors: [const Color(0xFFFFD43B), color, const Color(0xFFA64DFF)],
                 ).createShader(r),
-                child: Text(title.toUpperCase(),
+                child: Text(trUpper(title),
                     textAlign: TextAlign.center,
                     style: const TextStyle(
                         color: Colors.white,
@@ -657,7 +671,7 @@ class _OpeningView extends StatelessWidget {
               ),
               Opacity(
                 opacity: max(0.0, u * 2 - 1),
-                child: Text('${genreDefs[genre]!.label.toUpperCase()} · CANLI',
+                child: Text('${trUpper(genreDefs[genre]!.label)} · CANLI',
                     style: const TextStyle(color: Colors.white, letterSpacing: 8, fontSize: 14)),
               ),
             ]),
@@ -924,7 +938,7 @@ class SetPainter extends CustomPainter {
         _brick(c, w, h);
         c.drawCircle(Offset(w * 0.5, h * 0.42), h * 0.36,
             Paint()..color = const Color(0x55FFE8A3)..maskFilter = const MaskFilter.blur(BlurStyle.normal, 40));
-        _text(c, title.toUpperCase(), Offset(w * 0.5, h * 0.12), 28, const Color(0xFFFF4F8B),
+        _text(c, trUpper(title), Offset(w * 0.5, h * 0.12), 28, const Color(0xFFFF4F8B),
             spacing: 4, shadows: const [Shadow(color: Color(0xFFFF4F8B), blurRadius: 18)]);
         _floor(c, w, h, const Color(0xFF2B1A12), const Color(0xFFFFB347));
       case Prop.sketch:
@@ -962,7 +976,7 @@ class SetPainter extends CustomPainter {
       case Prop.talent:
         _grad(c, Rect.fromLTWH(-40, 0, W, h), [const Color(0xFF1A0505), const Color(0xFF050101)]);
         _beams(c, s, t, [const Color(0xFFFF3B3B), const Color(0xFFFFD43B), const Color(0xFFFF3B3B)]);
-        _text(c, title.toUpperCase(), Offset(w * 0.5, h * 0.14), 30, const Color(0xFFFF3B3B),
+        _text(c, trUpper(title), Offset(w * 0.5, h * 0.14), 30, const Color(0xFFFF3B3B),
             spacing: 6, shadows: const [Shadow(color: Color(0xFFFF3B3B), blurRadius: 20)]);
         _floor(c, w, h, const Color(0xFF200808), const Color(0xFFFF3B3B));
         for (int i = 0; i < 4; i++) {
@@ -1008,7 +1022,7 @@ class SetPainter extends CustomPainter {
         } else {
           _globe(c, Offset(w * 0.5, h * 0.27), h * 0.2, t);
         }
-        _text(c, '${title.toUpperCase()} · HABER', Offset(w * 0.5, h * 0.53), 14, const Color(0xFF9FD8FF), spacing: 4);
+        _text(c, '${trUpper(title)} · HABER', Offset(w * 0.5, h * 0.53), 14, const Color(0xFF9FD8FF), spacing: 4);
         _floor(c, w, h, const Color(0xFF0A1A36), const Color(0xFF29B6F6));
       case Prop.field:
         _skyline(c, w, h, t, night: false);
@@ -1130,7 +1144,7 @@ class SetPainter extends CustomPainter {
                 ? const [Color(0xFFFFB347), Color(0xFFFF6B6B), Color(0xFFFFD43B), Color(0xFFFFB347)]
                 : [color, const Color(0xFF7A3CFF), const Color(0xFF2EC5FF), color],
           ).createShader(r));
-    _text(c, title.toUpperCase(), r.center, min(34, r.width / max(4, title.length) * 1.5), Colors.white,
+    _text(c, trUpper(title), r.center, min(34, r.width / max(4, title.length) * 1.5), Colors.white,
         spacing: 3, shadows: const [Shadow(color: Colors.white, blurRadius: 14), Shadow(color: Colors.black45, offset: Offset(0, 3))]);
   }
 
@@ -1475,7 +1489,7 @@ class SetPainter extends CustomPainter {
   void _stepRepeat(Canvas c, double w, double h, String title) {
     for (int y = 0; y < 5; y++) {
       for (int x = 0; x < 7; x++) {
-        _text(c, title.toUpperCase(), Offset(x * 110.0 + (y.isEven ? 0 : 55), 30 + y * 42.0), 12,
+        _text(c, trUpper(title), Offset(x * 110.0 + (y.isEven ? 0 : 55), 30 + y * 42.0), 12,
             Colors.white.withValues(alpha: 0.18));
       }
     }
@@ -1742,7 +1756,10 @@ class FrontPainter extends CustomPainter {
   final double t;
   final double pan;
   final String title;
-  FrontPainter(this.prop, this.genre, this.t, this.pan, this.title);
+
+  /// Seyircinin keyfi 0..1 (0.5 normal): yüksekse ayakta alkış, düşükse boş koltuklar
+  final double audience;
+  FrontPainter(this.prop, this.genre, this.t, this.pan, this.title, {this.audience = 0.5});
 
   static const talkSets = {Prop.nightShow, Prop.morning, Prop.sketch, Prop.studio, Prop.newYear};
   static const podiumSets = {Prop.quiz, Prop.couples, Prop.talent, Prop.voice, Prop.wheel};
@@ -1760,7 +1777,7 @@ class FrontPainter extends CustomPainter {
       final d = Rect.fromLTWH(w * 0.04, h * 0.69, w * 0.36, h * 0.17);
       _grad(c, d, const [Color(0xFFFF6AA0), Color(0xFFA1255A)], radius: 14);
       c.drawRect(Rect.fromLTWH(d.left, d.top + 6, d.width, 4), Paint()..color = Colors.white54);
-      _text(c, title.toUpperCase(), d.center + const Offset(0, 6), min(16, d.width / max(4, title.length) * 1.6), Colors.white, spacing: 2);
+      _text(c, trUpper(title), d.center + const Offset(0, 6), min(16, d.width / max(4, title.length) * 1.6), Colors.white, spacing: 2);
       final so = Rect.fromLTWH(w * 0.56, h * 0.74, w * 0.4, h * 0.14);
       c.drawRRect(RRect.fromRectAndCorners(so, topLeft: const Radius.circular(30), topRight: const Radius.circular(30), bottomLeft: const Radius.circular(8), bottomRight: const Radius.circular(8)),
           Paint()..color = const Color(0xFF2FA99B));
@@ -1787,17 +1804,43 @@ class FrontPainter extends CustomPainter {
         prop != Prop.island;
     if (stage) {
       final p = Paint()..color = const Color(0xFF04020A);
+      final seat = Paint()..color = const Color(0xFF3A1B2A);
+      final hype = audience > 0.68; // coşku: ayağa kalkıp alkışlarlar
+      final bored = audience < 0.36; // sıkılmış: koltuklar boşalır
+      final emptyShare = bored ? ((0.36 - audience) / 0.36 * 0.7 + 0.25).clamp(0.0, 0.8) : 0.0;
       for (int i = 0; i < 11; i++) {
         final x = i * 78.0 - 60 - pan * 0.6;
+        // aynı koltuk hep aynı (titreşmesin): sıraya göre boş/dolu
+        final empty = ((i * 37 + 11) % 100) / 100 < emptyShare;
+        if (empty) {
+          c.drawRRect(RRect.fromRectAndRadius(Rect.fromLTWH(x + 6, h - 34, 60, 40), const Radius.circular(10)), seat);
+          continue;
+        }
+        final bob = hype ? (sin(t * 9 + i * 1.7)).abs() * 10 + 6 : sin(t * 3 + i) * 2;
+        final y = h - 46 - bob;
         c.drawRRect(
-            RRect.fromRectAndCorners(Rect.fromLTWH(x, h - 46 + sin(t * 3 + i) * 2, 72, 66),
+            RRect.fromRectAndCorners(Rect.fromLTWH(x, y, 72, 66 + bob),
                 topLeft: const Radius.circular(36), topRight: const Radius.circular(36)),
             p);
+        if (hype) {
+          // alkışlayan eller
+          final clap = sin(t * 14 + i) * 6;
+          c.drawCircle(Offset(x + 22 - clap, y - 8), 7, p);
+          c.drawCircle(Offset(x + 50 + clap, y - 8), 7, p);
+        }
+      }
+      if (bored) {
+        // esneyen seyirci: uçuşan "z"
+        for (int k = 0; k < 3; k++) {
+          final ph = (t * 0.6 + k / 3) % 1.0;
+          _text(c, 'z', Offset(w * (0.25 + k * 0.25) - pan * 0.6, h - 60 - ph * 40), 14 + ph * 8,
+              Colors.white.withValues(alpha: (1 - ph) * 0.6));
+        }
       }
     }
     c.restore();
   }
 
   @override
-  bool shouldRepaint(covariant FrontPainter o) => o.t != t || o.pan != pan;
+  bool shouldRepaint(covariant FrontPainter o) => o.t != t || o.pan != pan || o.audience != audience;
 }

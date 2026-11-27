@@ -207,6 +207,20 @@ extension GameSocial on Game {
     }
   }
 
+  /// Seyircinin programdan keyfi 0..1 (0.5 normal): diğer yayınlara göre reyting,
+  /// geçici etkiler (viral, kriz), sadakat, gündem ve kadro değişikliği
+  double audienceMood(Show s) {
+    if (s.status != ShowStatus.onAir) return 0.5;
+    final onAir = shows.where((x) => x.status == ShowStatus.onAir).toList();
+    final avg = onAir.fold(0.0, (a, x) => a + currentRating(x)) / max(1, onAir.length);
+    final rel = avg <= 0 ? 1.0 : currentRating(s) / avg;
+    var m = 0.5 + (rel - 1) * 0.6 + (s.buff - 1) * 1.6 + s.loyalty * 0.8 - (1 - castShockMult(s)) * 0.8;
+    if (trendRankOf(s) == 1) m += 0.15;
+    // sezon sonuna doğru hikâye eskir
+    m -= s.seasonProgress * 0.1;
+    return m.clamp(0.0, 1.0).toDouble();
+  }
+
   /// Gündem listesi (en çok konuşulan etiketler)
   List<MapEntry<String, double>> get trendList {
     final l = trends.entries.toList()..sort((a, b) => b.value.compareTo(a.value));

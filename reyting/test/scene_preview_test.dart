@@ -21,7 +21,10 @@ void main() {
     t.view.devicePixelRatio = 1;
     addTearDown(t.view.reset);
     final key = GlobalKey();
-    final props = [Prop.nightShow, Prop.livingRoom, Prop.quiz, Prop.sitcom];
+    final props = Platform.environment['OUTFIT'] == '1'
+        ? [Prop.newsDesk, Prop.redCarpet, Prop.sportsDesk, Prop.kidsStage, Prop.police, Prop.palace, Prop.nature, Prop.quiz]
+        : [Prop.nightShow, Prop.livingRoom, Prop.quiz, Prop.sitcom];
+    final perProp = Platform.environment['OUTFIT'] == '1' ? 2 : 4;
     await t.pumpWidget(MaterialApp(
       home: RepaintBoundary(
         key: key,
@@ -33,7 +36,7 @@ void main() {
                 StageScene(seed: g.index * 3, prop: Prop.filmSet, filmGenre: g, color: const Color(0xFFFF4F8B), width: 390, height: 180)
             else
               for (final p in props)
-                for (int s = 0; s < 4; s++)
+                for (int s = 0; s < perProp; s++)
                   StageScene(seed: s * 5 + 1, prop: p, color: const Color(0xFFFF4F8B), width: 290, height: 180),
           ]),
         ),
@@ -48,7 +51,7 @@ void main() {
       final img = await r.toImage();
       final data = await img.toByteData(format: ui.ImageByteFormat.png);
       Directory(out).createSync(recursive: true);
-      File('$out/${Platform.environment['FILMS'] == '1' ? 'filmler' : 'sahneler'}.png').writeAsBytesSync(data!.buffer.asUint8List());
+      File('$out/${Platform.environment['FILMS'] == '1' ? 'filmler' : (Platform.environment['OUTFIT'] == '1' ? 'kiyafet' : 'sahneler')}.png').writeAsBytesSync(data!.buffer.asUint8List());
     });
   });
 }

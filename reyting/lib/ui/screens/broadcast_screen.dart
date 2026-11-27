@@ -359,6 +359,7 @@ class _OnAir extends StatelessWidget {
           children: [
             WatchTap(show: s, child: StageScene(
               seed: s.id.hashCode,
+              audience: game.audienceMood(s),
               talk: true,
               prop: propFor(s.genre, s.tier),
               color: s.def.color,

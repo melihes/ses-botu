@@ -113,7 +113,7 @@ class _TenderCard extends StatelessWidget {
             tier: 3,
             width: 120,
             height: 104,
-            badge: d.agency.toUpperCase(),
+            badge: trUpper(d.agency),
           ),
           const SizedBox(width: 10),
           Expanded(

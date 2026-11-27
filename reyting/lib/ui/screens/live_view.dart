@@ -6,12 +6,14 @@ import 'package:flutter/material.dart';
 import '../../core/format.dart';
 import '../../core/theme.dart';
 import '../../data/content.dart';
+import '../../engine/game.dart';
 import '../../engine/live_script.dart';
 import '../../models/models.dart';
 import '../widgets/common.dart';
 import '../widgets/company_logo.dart';
 import '../widgets/item_art.dart';
 import '../widgets/face.dart';
+import '../widgets/outfits.dart';
 import 'live_crisis.dart';
 import 'live_stage.dart';
 
@@ -69,14 +71,22 @@ class _LiveViewState extends State<LiveView> {
       cast: actors.isNotEmpty ? actors : others,
       seed: s.id.hashCode ^ DateTime.now().millisecond,
     );
-    // canlı yayındaki kişiler: kadrodaki yüzlerle aynı
+    // canlı yayındaki kişiler: kadrodaki yüzlerle aynı, programa uygun kıyafetle
+    final prop = formatOf(s.genre, s.tier).prop;
+    final style = outfitForProp(prop);
+    final dk = (prop.index + 1) * 7919; // kıyafetli çizim ayrı önbellekte
     for (final p in crew) {
+      final isHost = p.role == Role.sunucu || (hosts.isEmpty && p.role == Role.oyuncu && first(p) == host);
       _people[first(p)] = LivePerson(
-          first(p), PersonAvatar.specFor(p.id.hashCode, p.name, age: p.age, star: p.isStar), p.id.hashCode);
+          first(p),
+          dress(PersonAvatar.specFor(p.id.hashCode, p.name, age: p.age, star: p.isStar),
+              isHost ? style.host : style.guest, p.id.hashCode),
+          p.id.hashCode ^ dk);
     }
     final g = s.guestName;
     if (g != null) {
-      _people[g] = LivePerson(g, PersonAvatar.specFor(g.hashCode, g, age: 40, star: true), g.hashCode);
+      _people[g] = LivePerson(
+          g, dress(PersonAvatar.specFor(g.hashCode, g, age: 40, star: true), style.guest, g.hashCode), g.hashCode ^ dk);
     }
     LivePerson person(String who) =>
         _people[who] ??= LivePerson(who, PersonAvatar.specFor(who.hashCode, who, age: 28), who.hashCode);
@@ -203,6 +213,7 @@ class _LiveViewState extends State<LiveView> {
                 people: _people,
                 crowd: _crowd,
                 seed: s.id.hashCode,
+                audience: game.audienceMood(s),
               ),
               ),
             ),

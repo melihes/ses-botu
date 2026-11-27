@@ -111,3 +111,6 @@ String trEk(String w, String kind) {
   };
   return "$t'$ek";
 }
+
+/// Türkçe büyük harf: "dizi" → "DİZİ" (Dart'ın toUpperCase'i "DIZI" yapar)
+String trUpper(String s) => s.replaceAll('i', 'İ').toUpperCase();

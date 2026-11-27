@@ -6,7 +6,9 @@ import 'package:flutter/material.dart';
 import '../../core/theme.dart';
 import '../../data/content.dart';
 import '../screens/live_stage.dart' show SetPainter, FrontPainter;
+import 'ambience.dart';
 import 'film_set.dart';
+import 'outfits.dart';
 import 'face.dart';
 
 export '../../data/content.dart' show Prop;
@@ -54,8 +56,12 @@ class StageScene extends StatefulWidget {
 
   /// Film seti ise türü: türe özel dekor, ekip ve konuşmalar
   final FilmGenre? filmGenre;
+
+  /// Seyircinin keyfi 0..1 (programın reytingine göre; 0.5 normal)
+  final double audience;
   const StageScene({
     super.key,
+    this.audience = 0.5,
     this.seed,
     this.filmGenre,
     this.talk = false,
@@ -464,15 +470,22 @@ class _StageSceneState extends State<StageScene>
 
   /// Sahnedeki kişiler (aynı program hep aynı kişileri gösterir)
   int get _castSeed =>
-      (widget.seed ?? 0) * 31 + widget.prop.index * 7919 + widget.color.toARGB32() % 10007 + widget.tier * 31;
+      (widget.seed ?? 0) * 31 +
+      widget.prop.index * 7919 +
+      widget.color.toARGB32() % 10007 +
+      widget.tier * 31 +
+      ((widget.filmGenre?.index ?? -1) + 1) * 104729;
   late List<FaceSpec> _cast = _makeCast();
   late int _castFor = _castSeed;
   List<FaceSpec> _makeCast() {
     final seed = _castSeed.abs();
+    // programın türüne göre kıyafet: haberde takım elbise, sporda forma, çocukta renkli…
+    final style = widget.filmGenre != null ? outfitForFilm(widget.filmGenre!) : outfitForProp(widget.prop);
     return [
-      FaceSpec.of(seed, female: seed.isEven, age: 24 + seed % 30),
-      FaceSpec.of(seed + 1, female: seed.isOdd, age: 22 + (seed ~/ 7) % 35),
-      FaceSpec.of(seed + 2, female: (seed ~/ 3).isEven, age: 20 + (seed ~/ 11) % 40, star: true),
+      dress(FaceSpec.of(seed, female: seed.isEven, age: 24 + seed % 30), style.host, seed),
+      dress(FaceSpec.of(seed + 1, female: seed.isOdd, age: 22 + (seed ~/ 7) % 35), style.guest, seed + 1),
+      dress(FaceSpec.of(seed + 2, female: (seed ~/ 3).isEven, age: 20 + (seed ~/ 11) % 40, star: true), style.guest,
+          seed + 2),
     ];
   }
 
@@ -526,7 +539,7 @@ class _StageSceneState extends State<StageScene>
                     height: dh,
                     child: AnimatedBuilder(
                       animation: _c,
-                      builder: (_, _) => _stage(dw, dh, _c.value * 8, genre),
+                      builder: (ctx, _) => _stage(dw, dh, _c.value * 8, genre, Ambience.of(ctx)),
                     ),
                   ),
                 ),
@@ -577,7 +590,7 @@ class _StageSceneState extends State<StageScene>
 
   /// Sahne: dekor + karakterler. Birkaç "an" sırayla oynar:
   /// 0 karşılıklı sohbet, 1 biri kalkıp yürür, 2 konuk içeri girer, 3 yakın plan.
-  Widget _stage(double w, double h, double t, Genre genre) {
+  Widget _stage(double w, double h, double t, Genre genre, Ambience amb) {
     final pan = sin(t * 0.8) * 14;
     final fg = widget.filmGenre;
     final furn = fg == null && FrontPainter.hasFurniture(widget.prop);
@@ -655,6 +668,9 @@ class _StageSceneState extends State<StageScene>
               : SetPainter(widget.prop, genre, t, widget.color, '', pan, widget.prop.index),
         ),
       ),
+      // saate göre ışık ve mevsim/bayram süsleri (karakterlerin arkasında)
+      Positioned.fill(child: CustomPaint(painter: LightPainter(amb))),
+      Positioned.fill(child: CustomPaint(painter: DecorPainter(amb, _clock.elapsedMilliseconds / 1000))),
     ];
     if (!_noPeople) {
       final sSit = (furn ? 190.0 : 250.0) * k;
@@ -709,7 +725,8 @@ class _StageSceneState extends State<StageScene>
     if (fg != null) {
       if (act != 3) kids.add(Positioned.fill(child: CustomPaint(painter: FilmCrewPainter(_clock.elapsedMilliseconds / 1000))));
     } else if (_noPeople || act == 0 || act == 1 || (!furn && act == 2)) {
-      kids.add(Positioned.fill(child: CustomPaint(painter: FrontPainter(widget.prop, genre, t, pan, ''))));
+      kids.add(Positioned.fill(
+          child: CustomPaint(painter: FrontPainter(widget.prop, genre, t, pan, '', audience: widget.audience))));
     }
     return Stack(children: kids);
   }

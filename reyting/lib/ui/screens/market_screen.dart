@@ -157,7 +157,7 @@ class _StockCard extends StatelessWidget {
                     const SizedBox(width: 6),
                     Flexible(
                       child: Text(
-                        d.sector.toUpperCase(),
+                        trUpper(d.sector),
                         overflow: TextOverflow.ellipsis,
                         style: const TextStyle(
                           color: AppColors.textFaint,

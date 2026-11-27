@@ -1,3 +1,4 @@
+import '../../core/format.dart';
 import 'dart:math';
 
 import 'package:flutter/material.dart';
@@ -801,7 +802,7 @@ class CompanyBadge extends StatelessWidget {
         SizedBox(width: size * 0.2),
         Flexible(
           child: Text(
-            name.toUpperCase(),
+            trUpper(name),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             style: TextStyle(

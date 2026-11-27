@@ -99,6 +99,7 @@ class _ShowCard extends StatelessWidget {
         children: [
           WatchTap(show: s, child: StageScene(
             seed: s.id.hashCode,
+            audience: game.audienceMood(s),
             talk:
                 s.status == ShowStatus.onAir ||
                 s.status == ShowStatus.producing,

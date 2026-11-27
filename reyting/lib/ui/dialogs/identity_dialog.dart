@@ -1,3 +1,4 @@
+import '../../core/format.dart';
 import 'dart:math';
 
 import 'package:flutter/material.dart';
@@ -95,7 +96,7 @@ class _IdentityEditorState extends State<_IdentityEditor> {
         ),
         const SizedBox(height: 10),
         Text(
-          full.toUpperCase(),
+          trUpper(full),
           textAlign: TextAlign.center,
           style: TextStyle(
             fontWeight: FontWeight.w900,
@@ -438,7 +439,7 @@ class _StingOverlayState extends State<StingOverlay>
                 Opacity(
                   opacity: textO,
                   child: Text(
-                    widget.company.toUpperCase(),
+                    trUpper(widget.company),
                     style: TextStyle(
                       fontWeight: FontWeight.w900,
                       fontSize: 22,

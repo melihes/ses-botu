@@ -23,6 +23,7 @@ import 'screens/channels_screen.dart';
 import 'screens/cinema_screen.dart';
 import 'screens/digital_screen.dart';
 import 'dialogs/tutorial.dart';
+import 'dialogs/award_ceremony.dart';
 import 'dialogs/events_dialogs.dart';
 import 'dialogs/missions_dialog.dart';
 import 'screens/trophies_screen.dart';
@@ -349,6 +350,9 @@ class _ShellState extends State<Shell> {
       }
       if (!mounted) return;
       if (game.pendingAwards != null) {
+        // önce tören gösterisi (geçilebilir), sonra sonuç özeti
+        await showAwardCeremony(context, game.channelName, game.pendingAwards!);
+        if (!mounted) return;
         await showAwardsDialog(context, game, game.pendingAwards!);
         game.dismissAwards();
       }
