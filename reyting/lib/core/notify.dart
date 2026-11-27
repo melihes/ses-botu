@@ -36,7 +36,7 @@ class Notify {
       final prefs = await SharedPreferences.getInstance();
       enabled = prefs.getBool(_key) ?? true;
       await _p.initialize(
-        settings: const InitializationSettings(android: AndroidInitializationSettings('@mipmap/launcher_icon')),
+        settings: const InitializationSettings(android: AndroidInitializationSettings('@drawable/ic_stat_reyting')),
       );
       _ready = true;
       await clear();
@@ -69,7 +69,11 @@ class Notify {
     } catch (_) {}
   }
 
+  /// Her çağrı bir "nesil": oyuna hızla dönülürse geç biten zamanlama iptal edilir
+  static int _gen = 0;
+
   static Future<void> clear() async {
+    _gen++;
     if (!_ready) return;
     try {
       await _p.cancelAll();
@@ -93,9 +97,12 @@ class Notify {
     if (!_ready || !enabled) return;
     try {
       await clear();
+      final gen = _gen;
       for (final n in planAway(g)) {
+        if (gen != _gen) return; // bu arada oyuna dönüldü
         await _at(n.$1, n.$2, n.$3, n.$4);
       }
+      if (gen != _gen) await _p.cancelAll();
     } catch (e) {
       debugPrint('Bildirim zamanlanamadı: $e');
     }

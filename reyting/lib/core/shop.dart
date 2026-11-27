@@ -44,6 +44,14 @@ class Shop extends ChangeNotifier {
     }
     loading = false;
     notifyListeners();
+    // yarım kalmış (internetsiz alınmış, henüz verilmemiş) satın almaları sessizce tamamla
+    if (available) {
+      Future.delayed(const Duration(seconds: 20), () async {
+        try {
+          await InAppPurchase.instance.restorePurchases();
+        } catch (_) {}
+      });
+    }
   }
 
   /// Telefon değişince "Reklamsız"/"VIP" geri yüklensin
@@ -101,14 +109,15 @@ class Shop extends ChangeNotifier {
           if (ok && g.grantedPurchases.contains(pid)) {
             message = null;
           } else if (ok) {
-            if (p.status == PurchaseStatus.restored) {
-              // geri yüklemede sadece kalıcı haklar (elmas tekrar verilmez)
+            if (p.status == PurchaseStatus.restored && !isConsumable(p.productID)) {
+              // kalıcı haklar geri yüklenir
               if (p.productID == productNoAds) g.noAds = true;
               if (p.productID == productVip) {
                 g.vip = true;
                 g.noAds = true;
               }
             } else {
+              // yeni alım ya da daha önce verilemeyen (internetsiz alınmış) paket
               g.grantPurchase(p.productID, cashAmount: cash);
             }
             g.grantedPurchases.add(pid);

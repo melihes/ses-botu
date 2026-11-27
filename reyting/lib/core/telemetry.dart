@@ -25,10 +25,18 @@ class Telemetry {
         prev?.call(d);
       };
       PlatformDispatcher.instance.onError = (e, st) {
-        c.recordError(e, st, fatal: true);
+        // yakalanmamış arka plan hataları (ağ vb.) çökme sayılmaz
+        c.recordError(e, st, fatal: false);
         return true;
       };
       _a = FirebaseAnalytics.instance;
+      // istatistik yalnız oyun içi kullanım içindir: reklam amaçlı veri izni verilmez
+      await _a!.setConsent(
+        analyticsStorageConsentGranted: true,
+        adStorageConsentGranted: false,
+        adUserDataConsentGranted: false,
+        adPersonalizationSignalsConsentGranted: false,
+      );
       // oyun motorundaki önemli anlar
       Game.onEvent = log;
       _ready = true;
@@ -39,13 +47,13 @@ class Telemetry {
 
   static void log(String name, [Map<String, Object>? p]) {
     try {
-      _a?.logEvent(name: name, parameters: p);
+      _a?.logEvent(name: name, parameters: p).catchError((_) {});
     } catch (_) {}
   }
 
   static void screen(String name) {
     try {
-      _a?.logScreenView(screenName: name);
+      _a?.logScreenView(screenName: name).catchError((_) {});
     } catch (_) {}
   }
 

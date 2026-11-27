@@ -91,8 +91,11 @@ class _ReytingAppState extends State<ReytingApp> with WidgetsBindingObserver {
     Shop.instance.init(game);
     checkStoreUpdate();
     Telemetry.context(game);
-    // bildirim izni: oyunu biraz tanıdıktan sonra (2. günden itibaren) bir kez
-    if (game.day >= 2) Notify.askPermission();
+    // bildirim izni: reklam izni ve güncelleme pencereleri bittikten sonra, oyunu biraz
+    // tanıyınca (2. günden itibaren) bir kez sorulur
+    Future.delayed(const Duration(seconds: 40), () {
+      if (game.day >= 2) Notify.askPermission();
+    });
   }
 
   @override
@@ -152,8 +155,9 @@ Future<void> checkStoreUpdate() async {
     if (info.immediateUpdateAllowed) {
       await InAppUpdate.performImmediateUpdate();
     } else if (info.flexibleUpdateAllowed) {
-      await InAppUpdate.startFlexibleUpdate();
-      await InAppUpdate.completeFlexibleUpdate();
+      final r = await InAppUpdate.startFlexibleUpdate();
+      // oyuncu "hayır" dediyse kurma
+      if (r == AppUpdateResult.success) await InAppUpdate.completeFlexibleUpdate();
     }
   } catch (_) {}
 }
