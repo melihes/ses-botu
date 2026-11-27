@@ -882,7 +882,9 @@ class Game extends ChangeNotifier {
     cashHistory.add(cash);
     if (cashHistory.length > 60) cashHistory.removeAt(0);
     final net = cash - cashAtDayStart;
-    history.add(DayStat(day - 1, cash, todayIncome, max(0.0, todayIncome + todayOther - net)));
+    // grafikte kasaya giren her şey görünür (ödüller ise yalnız işletme gelirinden hesaplanır)
+    final allIn = todayIncome + todayOther;
+    history.add(DayStat(day - 1, cash, allIn, allIn - net));
     todayOther = 0;
     if (history.length > 5000) history.removeAt(0);
     cashAtDayStart = cash;
