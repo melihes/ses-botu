@@ -139,6 +139,7 @@ extension GameCalendar on Game {
     cash -= c;
     specials[s.id] = key;
     _count('special');
+    _ev('ozel_bolum', {'gun': d.id, 'dunya': d.world ? 1 : 0});
     _notify('${d.emoji} "${s.name}" için "${d.special}" hazırlanıyor!');
     // gün zaten başladıysa ödeme hemen
     if (day >= start) _paySpecial(s, d);

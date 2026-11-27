@@ -111,6 +111,7 @@ extension GameCrisis on Game {
     final onAir = s.status == ShowStatus.onAir;
 
     final timeout = option < 0;
+    _ev('kriz', {'tur': c.def.id, 'secim': option});
     final o = timeout ? null : c.options[option];
     final win = !timeout && _rng.nextDouble() < c.chances[option];
     final CrisisOutcome out;

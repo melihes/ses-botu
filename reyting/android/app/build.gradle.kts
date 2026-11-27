@@ -3,6 +3,7 @@ import java.util.Properties
 plugins {
     id("com.android.application")
     id("com.google.gms.google-services")
+    id("com.google.firebase.crashlytics")
     // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
     id("dev.flutter.flutter-gradle-plugin")
 }
@@ -15,12 +16,15 @@ val keyProps = Properties().apply {
 
 android {
     namespace = "com.esmgames.reyting"
-    compileSdk = flutter.compileSdkVersion
+    // bildirim paketi 37 ister (hedef sürüm aynı kalır)
+    compileSdk = maxOf(flutter.compileSdkVersion, 37)
     ndkVersion = flutter.ndkVersion
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
+        // bildirim paketi (zamanlanmış bildirimler) için gerekli
+        isCoreLibraryDesugaringEnabled = true
     }
 
     defaultConfig {
@@ -76,4 +80,5 @@ dependencies {
     // Reklam SDK'sı eski WorkManager 2.7 getiriyor; küçültülmüş sürümde
     // açılışta çöküyordu. Güncel sürüm doğru koruma kurallarıyla gelir.
     implementation("androidx.work:work-runtime:2.10.5")
+    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")
 }

@@ -221,6 +221,57 @@ extension GameSocial on Game {
     return m.clamp(0.0, 1.0).toDouble();
   }
 
+  /// "Sen yokken" bülteni için ek başlıklar ve dönüşte sosyal medya
+  void _bulletin(PeriodSummary sum, int dayBefore) {
+    final h = sum.headlines;
+    final onAir = shows.where((s) => s.status == ShowStatus.onAir).toList()
+      ..sort((a, b) => currentRating(b).compareTo(currentRating(a)));
+    if (onAir.isNotEmpty) {
+      final top = onAir.first;
+      h.insert(0, (
+        '📊 Zirvede "${top.name}" var',
+        'Dün akşam ${fmtPct(currentRating(top), 2)} reytingle ${channelName} ekranlarının bir numarası oldu.',
+        true,
+      ));
+    } else {
+      h.insert(0, ('📺 Ekranlar boş kaldı', '$channelName yayın akışında program yok; izleyici rakiplere kaydı.', false));
+    }
+    final delta = sum.cashAfter - sum.cashBefore;
+    h.add((
+      delta >= 0 ? '💰 Kasa büyüdü' : '📉 Kasa eridi',
+      '${sum.days} günde ${fmtSigned(delta)}. Ayrıntılar raporda.',
+      delta >= 0,
+    ));
+    // geçen özel günler
+    for (final d in specialDays) {
+      if (!specialAvailable(d)) continue;
+      final a = d.activeStart(day) ?? d.activeStart(max(1, day - 1));
+      if (a != null && a > dayBefore) {
+        h.add(('${d.emoji} ${d.name} başladı', d.desc, true));
+        break;
+      }
+    }
+    final tr = trendList;
+    if (tr.isNotEmpty) h.add(('🔥 Gündem: ${tr.first.key}', 'Sosyal medyada en çok konuşulan konu buydu.', true));
+    // aynı başlık birden çok kez olduysa birleştir (en yenisinin ayrıntısıyla), en fazla 10 haber
+    final merged = <String, (String, String, bool)>{};
+    final count = <String, int>{};
+    for (final x in h) {
+      merged[x.$1] = x;
+      count[x.$1] = (count[x.$1] ?? 0) + 1;
+    }
+    h
+      ..clear()
+      ..addAll([
+        for (final e in merged.entries)
+          (count[e.key]! > 1 ? '${e.key} (${count[e.key]} kez)' : e.key, e.value.$2, e.value.$3),
+      ].take(10));
+    // dönüşte izleyiciler yazmaya devam eder
+    for (final s in onAir.take(2)) {
+      _post(_moodTopic(s, onAir), show: s);
+    }
+  }
+
   /// Gündem listesi (en çok konuşulan etiketler)
   List<MapEntry<String, double>> get trendList {
     final l = trends.entries.toList()..sort((a, b) => b.value.compareTo(a.value));

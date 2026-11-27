@@ -151,7 +151,7 @@ const specialDays = <SpecialDay>[
   // ---------------- Türkiye ----------------
   SpecialDay(
     id: 'okul',
-    name: 'Okullar açılıyor',
+    name: 'Okul açılışı',
     emoji: '🎒',
     desc: 'Çocuklar okula dönüyor; çocuk programları sabah kuşağında patlar.',
     month: 9,

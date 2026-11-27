@@ -1,3 +1,4 @@
+import '../../core/notify.dart';
 import 'package:flutter/material.dart';
 
 import '../../core/theme.dart';
@@ -106,6 +107,21 @@ class _SettingsState extends State<_Settings> {
               subtitle: const Text(
                 'Yeni yapım başlarken şirket logon ekrana gelsin',
                 style: TextStyle(fontSize: 12, color: AppColors.textDim),
+              ),
+            ),
+            StatefulBuilder(
+              builder: (c, setS) => SwitchListTile(
+                contentPadding: EdgeInsets.zero,
+                value: Notify.enabled,
+                onChanged: (v) async {
+                  await Notify.setEnabled(v);
+                  setS(() {});
+                },
+                title: const Text('🔔 Bildirimler', style: TextStyle(fontWeight: FontWeight.w800)),
+                subtitle: const Text(
+                  'Çekim bitince, özel gün yaklaşınca ve uzun süre girmezsen haber ver',
+                  style: TextStyle(fontSize: 12, color: AppColors.textDim),
+                ),
               ),
             ),
             const SizedBox(height: 4),
@@ -218,7 +234,7 @@ class _SettingsState extends State<_Settings> {
             ),
             const SizedBox(height: 12),
             const Text(
-              'Reyting · v1.1.4',
+              'Reyting · v1.2.0',
               style: TextStyle(color: AppColors.textFaint, fontSize: 11),
             ),
           ],

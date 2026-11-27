@@ -1,3 +1,4 @@
+import 'dart:math';
 import 'dart:async';
 
 import 'package:flutter/material.dart';
@@ -10,6 +11,7 @@ import 'dialogs/settings_dialog.dart';
 import 'dialogs/shop_dialog.dart';
 import '../core/ads.dart';
 import '../core/cloud.dart';
+import '../core/telemetry.dart';
 import 'screens/calendar_screen.dart';
 import '../data/calendar.dart';
 import 'screens/social_screen.dart';
@@ -24,6 +26,7 @@ import 'screens/cinema_screen.dart';
 import 'screens/digital_screen.dart';
 import 'dialogs/tutorial.dart';
 import 'dialogs/award_ceremony.dart';
+import 'dialogs/bulletin.dart';
 import 'dialogs/events_dialogs.dart';
 import 'dialogs/missions_dialog.dart';
 import 'screens/trophies_screen.dart';
@@ -299,6 +302,7 @@ class _ShellState extends State<Shell> {
 
   /// Sayfa değiştir; süresi geldiyse araya reklam girer (reklamsız pakette yok)
   void _go(PageId p) {
+    if (p != _page) Telemetry.screen(p.name);
     if (p != _page && !GameScope.read(context).noAds) Ads.instance.maybeInterstitial();
     setState(() {
       _page = p;
@@ -393,6 +397,14 @@ class _ShellState extends State<Shell> {
       if (sum == null || !mounted) {
         _offlineShowing = false;
         return;
+      }
+      // en az bir gün geçtiyse önce haber bülteni (geçilebilir)
+      if (sum.days >= 1 && sum.headlines.isNotEmpty) {
+        await showBulletin(context, game.channelName, max(1, game.day - sum.days), game.day, sum);
+        if (!mounted) {
+          _offlineShowing = false;
+          return;
+        }
       }
       await showOfflineDialog(context, sum, game);
       game.dismissOffline();

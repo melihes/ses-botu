@@ -5,6 +5,8 @@ import 'package:package_info_plus/package_info_plus.dart';
 
 import 'core/ads.dart';
 import 'core/cloud.dart';
+import 'core/notify.dart';
+import 'core/telemetry.dart';
 import 'core/shop.dart';
 import 'core/sfx.dart';
 import 'core/theme.dart';
@@ -64,6 +66,8 @@ class _ReytingAppState extends State<ReytingApp> with WidgetsBindingObserver {
     await Sfx.init();
     step(0.15, 'Online sistem hazırlanıyor…');
     await Cloud.instance.init();
+    await Telemetry.init();
+    await Notify.init();
     step(0.25, 'Kayıtların okunuyor…');
     final game = Game();
     await game.start();
@@ -86,6 +90,9 @@ class _ReytingAppState extends State<ReytingApp> with WidgetsBindingObserver {
     Ads.instance.init();
     Shop.instance.init(game);
     checkStoreUpdate();
+    Telemetry.context(game);
+    // bildirim izni: oyunu biraz tanıdıktan sonra (2. günden itibaren) bir kez
+    if (game.day >= 2) Notify.askPermission();
   }
 
   @override
@@ -103,11 +110,14 @@ class _ReytingAppState extends State<ReytingApp> with WidgetsBindingObserver {
     if (state == AppLifecycleState.paused) {
       g.onPause();
       Cloud.instance.onPause();
+      Notify.scheduleAway(g);
+      Telemetry.context(g);
     } else if (state == AppLifecycleState.inactive ||
         state == AppLifecycleState.hidden ||
         state == AppLifecycleState.detached) {
       g.save();
     } else if (state == AppLifecycleState.resumed) {
+      Notify.clear();
       g.onResume();
     }
   }

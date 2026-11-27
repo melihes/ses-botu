@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:reyting/core/format.dart';
+import 'package:reyting/core/notify.dart';
 import 'package:reyting/data/calendar.dart';
 import 'package:reyting/data/crisis_text.dart';
 import 'package:reyting/data/content.dart';
@@ -204,6 +205,31 @@ void main() {
       expect(g.castShockFor(s, {'+0': n.id}), closeTo(0.25, 1e-9));
       expect(g.renewShow(s, replace: {'+0': n.id}), isNull);
       expect(s.staffIds, [n.id]);
+    });
+  });
+
+  group('Bildirim ve bülten', () {
+    test('kapalıyken bildirim planı: çekim bitti, kazanç, hatırlatma', () async {
+      final g = Game();
+      await g.start();
+      final host = g.market.firstWhere((p) => p.role == Role.sunucu);
+      g.hire(host);
+      g.createShow('Deneme', Genre.magazin, 0, [host]);
+      final plan = Notify.planAway(g);
+      expect(plan.any((n) => n.$1 == 1 && n.$3.contains('Deneme')), isTrue);
+      expect(plan.any((n) => n.$1 == 10), isTrue);
+      expect(plan.any((n) => n.$1 == 11), isTrue);
+      for (final n in plan) {
+        expect(n.$2.inSeconds, greaterThan(0));
+      }
+    });
+    test('sen yokken bülteni: başlıklar birleşir, en fazla 10', () async {
+      final g = await gameWithShowOnAir();
+      g.debugAway(const Duration(hours: 6));
+      final s = g.pendingOffline!;
+      expect(s.headlines, isNotEmpty);
+      expect(s.headlines.length, lessThanOrEqualTo(10));
+      expect(s.headlines.map((h) => h.$1).toSet().length, s.headlines.length);
     });
   });
 

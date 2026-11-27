@@ -28,6 +28,15 @@ part 'game_crisis.dart';
 /// Ekranlar bunu dinler; her değişiklikte notifyListeners() çağrılır.
 class Game extends ChangeNotifier {
   static const _saveKey = 'reyting_save_v1';
+
+  /// Kullanım istatistiği için olay bildirimi (Analytics; testte boş)
+  static void Function(String name, [Map<String, Object>? params])? onEvent;
+  void _ev(String name, [Map<String, Object>? p]) {
+    if (_offlineMode) return;
+    try {
+      onEvent?.call(name, p);
+    } catch (_) {}
+  }
   static const _saveVersion = 2;
 
   final _rng = Random();
@@ -367,10 +376,12 @@ class Game extends ChangeNotifier {
       ..cashBefore = cash;
     _offlineMode = true;
     _acc = sum;
+    final dayBefore = day;
     _advance(counted * 60 / secondsPerDay * offlineSpeed);
     _offlineMode = false;
     _acc = null;
     sum.cashAfter = cash;
+    _bulletin(sum, dayBefore);
     pendingOffline = sum;
     save();
   }
@@ -1062,6 +1073,8 @@ class Game extends ChangeNotifier {
   }
 
   void _log(String title, String body, bool good) {
+    final acc = _acc;
+    if (acc != null && acc.headlines.length < 40) acc.headlines.add((title, body, good));
     eventLog.insert(0, GameEvent(day, title, body, good));
     if (eventLog.length > 30) eventLog.removeLast();
   }
@@ -1704,6 +1717,7 @@ class Game extends ChangeNotifier {
     s.status = ShowStatus.onAir;
     if (s.castShock > 0 && s.castShockDay < 0) s.castShockDay = day;
     _count('air');
+    _ev('yayina_koy', {'tur': s.genre.name, 'kusak': slot.name});
     _post(SocialTopic.newShow, show: s);
     _notify('📡 "${s.name}" ${slotDefs[slot]!.label} kuşağında yayında!');
     _changed();
@@ -1761,6 +1775,7 @@ class Game extends ChangeNotifier {
     _notify('🏗️ Tebrikler! Artık bir ${next.name}sın!');
     _ensureExecCandidates();
     _changed();
+    _ev('studyo_buyut', {'seviye': studioLevel + 1});
     return null;
   }
 

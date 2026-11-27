@@ -350,6 +350,9 @@ class PeriodSummary {
   double ratingSum = 0;
   int ratingCount = 0;
 
+  /// "Sen yokken" bülteni: (başlık, ayrıntı, iyi haber mi)
+  final List<(String, String, bool)> headlines = [];
+
   double get avgRating => ratingCount == 0 ? 0 : ratingSum / ratingCount;
 }
 
