@@ -136,7 +136,8 @@ class Notify {
     final up = g.upcomingSpecialDays(within: 30).where((e) => e.$2 > g.day).toList();
     if (up.isNotEmpty) {
       final (d, start) = up.first;
-      final days = (start - 1 - g.day) + (1 - g.dayProgress);
+      // özel günden bir gün önce
+      final days = (start - g.day) - g.dayProgress - 1;
       if (days > 0 && days * minPerDay <= cap) {
         out.add((3, real(days), '${d.emoji} ${d.name} yarın!', '"${d.special}" hazırlarsan reyting ve sponsor geliri katlanır.'));
       }

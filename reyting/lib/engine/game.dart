@@ -65,6 +65,7 @@ class Game extends ChangeNotifier {
   /// Özel bölüm hazırlanan programlar: program id → "özelGün@başlangıçGünü"
   final Map<String, String> specials = {};
   final Set<String> paidSpecials = {};
+  final Map<String, int> scouted = {}; // gözlemcinin bulduğu gençler (id → gün)
   int _activeDaysKey = -1; // takvim önbelleği (her karede yeniden hesaplanmasın)
   List<(SpecialDay, int)> _activeDays = const []; // "programId|özelGün@başlangıç": parası verildi
   final List<SocialPost> socialFeed = []; // sosyal medya akışı (en yeni başta)
@@ -264,6 +265,7 @@ class Game extends ChangeNotifier {
     eventLog.clear();
     bonusPrestige = 0;
     todayIncome = 0;
+    todayOther = 0;
     yesterdayIncome = 0;
     _resetV12();
     _resetV13();
@@ -367,8 +369,11 @@ class Game extends ChangeNotifier {
     if (minutes < 1) {
       // kısa ayrılık (ör. başka uygulamaya bakıp dönme): özet göstermeden işle
       _offlineMode = true;
-      _advance(minutes * 60 / secondsPerDay);
-      _offlineMode = false;
+      try {
+        _advance(minutes * 60 / secondsPerDay);
+      } finally {
+        _offlineMode = false;
+      }
       return;
     }
     final counted = min(minutes, offlineCapMinutes);
@@ -379,9 +384,13 @@ class Game extends ChangeNotifier {
     _offlineMode = true;
     _acc = sum;
     final dayBefore = day;
-    _advance(counted * 60 / secondsPerDay * offlineSpeed);
-    _offlineMode = false;
-    _acc = null;
+    try {
+      _advance(counted * 60 / secondsPerDay * offlineSpeed);
+    } finally {
+      // hata olsa bile çevrimdışı mod açık kalmasın (bildirimler, kararlar susmasın)
+      _offlineMode = false;
+      _acc = null;
+    }
     sum.cashAfter = cash;
     _bulletin(sum, dayBefore);
     pendingOffline = sum;
@@ -468,6 +477,8 @@ class Game extends ChangeNotifier {
     'missionDate': missionDate,
     'missions': missions.map((m) => m.toJson()).toList(),
     'loginDate': loginDate,
+    'lastLoginMs': lastLoginMs,
+    'todayOther': todayOther,
     'loginStreak': loginStreak,
     'adTouched': adTouched,
     'claimedGoals': claimedGoals.toList(),
@@ -582,6 +593,11 @@ class Game extends ChangeNotifier {
       ..clear()
       ..addAll((j['missions'] as List? ?? []).map((e) => Mission.fromJson(e)));
     loginDate = j['loginDate'] ?? '';
+    lastLoginMs = (j['lastLoginMs'] as num? ?? 0).toInt();
+    // saat ileri alınıp geri getirildiyse: gelecekteki kayıt zamanını bugüne çek
+    if (lastLoginMs > DateTime.now().millisecondsSinceEpoch) lastLoginMs = DateTime.now().millisecondsSinceEpoch;
+    todayOther = (j['todayOther'] as num? ?? 0).toDouble();
+    pendingDecision = null;
     loginStreak = j['loginStreak'] ?? 0;
     adTouched = j['adTouched'] ?? false;
     claimedGoals
@@ -1076,7 +1092,10 @@ class Game extends ChangeNotifier {
 
   void _log(String title, String body, bool good) {
     final acc = _acc;
-    if (acc != null && acc.headlines.length < 40) acc.headlines.add((title, body, good));
+    if (acc != null) {
+      acc.headlines.add((title, body, good));
+      if (acc.headlines.length > 40) acc.headlines.removeAt(0); // en yeniler kalsın
+    }
     eventLog.insert(0, GameEvent(day, title, body, good));
     if (eventLog.length > 30) eventLog.removeLast();
   }
@@ -1449,6 +1468,7 @@ class Game extends ChangeNotifier {
   }
 
   String? hire(Staff p) {
+    if (!market.contains(p)) return 'Bu aday artık ilanda değil.';
     if (staff.length >= studio.maxStaff) {
       return 'Kadro dolu (${studio.maxStaff}). Stüdyoyu büyüt.';
     }
@@ -1489,6 +1509,10 @@ class Game extends ChangeNotifier {
     String? location,
   }) {
     final def = genreDefs[genre]!;
+    // ekip gerçekten kadroda ve boşta mı (eski ekran / çift dokunuş)
+    if (crew.any((c) => !staff.contains(c) || c.showId != null) || crew.toSet().length != crew.length) {
+      return 'Ekipten biri artık müsait değil.';
+    }
     if (!genreUnlocked(genre)) {
       return '${def.label} için ${equipById(def.reqEquip!)!.name} gerekli.';
     }
@@ -1604,6 +1628,7 @@ class Game extends ChangeNotifier {
 
   /// [replace]: eski kişi id → yerine gelecek kişi id (aynı rolden, boşta)
   String? renewShow(Show s, {Map<String, String> replace = const {}}) {
+    if (!shows.contains(s)) return 'Bu program artık yok.';
     if (s.status != ShowStatus.ended) return 'Bu programın sezonu henüz bitmedi.';
     final crew = <Staff>[];
     final used = <String>{};
@@ -2080,8 +2105,7 @@ class Game extends ChangeNotifier {
       return '${p.name} en az ${fmtDec(minScoreFor(p), 0)} puanlı filmleri alır.';
     }
     final fee = licenseOfferFor(f, p);
-    cash += fee;
-    todayIncome += fee;
+    _cashIn(fee); // tek seferlik: günlük ödüller şişmesin
     f.licenseIncome += fee;
     f.licensesSold++;
     f.licenses.add(FilmLicense(p.id, licenseDays, fee));
@@ -2114,8 +2138,7 @@ class Game extends ChangeNotifier {
       return 'Vizyon bitmeden haklar satılamaz.';
     }
     final v = rightsValueFor(f);
-    cash += v;
-    todayIncome += v;
+    _cashIn(v); // tek seferlik: günlük ödüller şişmesin
     f.soldFor = v;
     f.status = FilmStatus.rightsSold;
     f.onOwnPlatform = false;
@@ -2220,6 +2243,7 @@ class Game extends ChangeNotifier {
   double get followerCap => 3e6 * reach * reach;
 
   String? signCreator(Creator c) {
+    if (!creatorMarket.contains(c)) return 'Bu yayıncı artık listede değil.';
     if (creators.length >= maxCreators) {
       return 'En fazla $maxCreators içerik üreticin olabilir. Stüdyoyu büyüt.';
     }
@@ -2553,7 +2577,7 @@ class Game extends ChangeNotifier {
           msg = '${p.name} sende kaldı, maaşı arttı.';
         } else {
           final fee = p.salary * 25;
-          _gain(fee);
+          _cashIn(fee); // tek seferlik
           _quit(p);
           msg = '${p.name}, ${d.extra}\'a transfer oldu: +${fmtShort(fee)}';
         }
@@ -3048,7 +3072,7 @@ class Game extends ChangeNotifier {
     // kaliteli iş için %0-15 başarı primi
     final bonus = t.myBid! * max(0.0, min(0.15, (t.qualityFactor - 1) * 0.6));
     t.paid = t.myBid! + bonus;
-    _gain(t.paid);
+    _cashIn(t.paid); // ihale teslimi tek seferlik
     bonusPrestige += t.def.prestige;
     tendersWon++;
     _freeCrew(t);
@@ -3098,6 +3122,7 @@ class Game extends ChangeNotifier {
   final List<Mission> missions = [];
   String loginDate = '';
   int loginStreak = 0;
+  int lastLoginMs = 0; // son giriş ödülünün gerçek zamanı
 
   /// Açılışta gösterilecek giriş ödülü (seri günü, elmas, para)
   (int, int, double)? pendingLogin;
@@ -3108,7 +3133,10 @@ class Game extends ChangeNotifier {
   void _dailyCheck() {
     final now = DateTime.now();
     final today = _dateKey(now);
-    if (loginDate != today) {
+    // saat geri alınarak ödül tekrar alınamasın: son girişten sonra en az 18 saat geçmeli
+    final realGap = now.millisecondsSinceEpoch - lastLoginMs;
+    if (loginDate != today && (lastLoginMs == 0 || realGap >= 18 * 3600 * 1000)) {
+      lastLoginMs = now.millisecondsSinceEpoch;
       final yesterday = _dateKey(now.subtract(const Duration(days: 1)));
       loginStreak = loginDate == yesterday ? loginStreak + 1 : 1;
       loginDate = today;

@@ -303,7 +303,7 @@ extension GameDrama on Game {
           p.fame = min(100, p.fame + 4);
           return '${p.name} mutlu, sete şarkı söyleyerek geldi.';
         }
-        if (option == 2) cash -= min(cash, d.amount / 2);
+        if (option == 2) cash -= min(max(cash, 0.0), d.amount / 2);
         final sh = showById(p.showId);
         if (_rng.nextBool() && sh != null) {
           _buffCombine(sh, 0.90, 3);

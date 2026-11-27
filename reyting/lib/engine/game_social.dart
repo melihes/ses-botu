@@ -242,15 +242,6 @@ extension GameSocial on Game {
       '${sum.days} günde ${fmtSigned(delta)}. Ayrıntılar raporda.',
       delta >= 0,
     ));
-    // geçen özel günler
-    for (final d in specialDays) {
-      if (!specialAvailable(d)) continue;
-      final a = d.activeStart(day) ?? d.activeStart(max(1, day - 1));
-      if (a != null && a > dayBefore) {
-        h.add(('${d.emoji} ${d.name} başladı', d.desc, true));
-        break;
-      }
-    }
     final tr = trendList;
     if (tr.isNotEmpty) h.add(('🔥 Gündem: ${tr.first.key}', 'Sosyal medyada en çok konuşulan konu buydu.', true));
     // aynı başlık birden çok kez olduysa birleştir (en yenisinin ayrıntısıyla), en fazla 10 haber
@@ -260,12 +251,17 @@ extension GameSocial on Game {
       merged[x.$1] = x;
       count[x.$1] = (count[x.$1] ?? 0) + 1;
     }
+    final all = [
+      for (final e in merged.entries)
+        (count[e.key]! > 1 ? '${e.key} (${count[e.key]} kez)' : e.key, e.value.$2, e.value.$3),
+    ];
+    // sıra: zirvedeki program, en yeni olaylar, sonra kasa ve gündem (en fazla 10)
+    final first = all.first;
+    final tail = all.where((x) => x.$1.startsWith('💰') || x.$1.startsWith('📉') || x.$1.startsWith('🔥 Gündem:')).toList();
+    final events = all.skip(1).where((x) => !tail.contains(x)).toList().reversed.take(10 - 1 - tail.length);
     h
       ..clear()
-      ..addAll([
-        for (final e in merged.entries)
-          (count[e.key]! > 1 ? '${e.key} (${count[e.key]} kez)' : e.key, e.value.$2, e.value.$3),
-      ].take(10));
+      ..addAll([first, ...events, ...tail]);
     // dönüşte izleyiciler yazmaya devam eder
     for (final s in onAir.take(2)) {
       _post(_moodTopic(s, onAir), show: s);

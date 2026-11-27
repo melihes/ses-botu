@@ -154,10 +154,12 @@ extension GameCalendar on Game {
 
   void _paySpecial(Show s, SpecialDay d) {
     // her program her özel gün için bir kez kazanır
+    // yayından kaldırılan programa ödeme yok
+    if (s.status == ShowStatus.ended) return;
     final paid = '${s.id}|${specialKey(d, d.nextStart(day))}';
     if (!paidSpecials.add(paid)) return;
     final lump = specialCost(s, d) * (d.world ? 1.5 : 0.9);
-    _gain(lump);
+    _cashIn(lump); // tek seferlik
     bonusPrestige += d.world ? 8 : 4;
     _event(
       '${d.emoji} ${d.special} yayında!',

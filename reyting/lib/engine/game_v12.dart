@@ -568,7 +568,7 @@ extension GameV12 on Game {
     if (cash < cost) return 'Etkinlik için ${fmtShort(cost)} gerekli.';
     cash -= cost;
     final reward = eventExpected(l) * (0.8 + _rng.nextDouble() * 0.4);
-    _gain(reward);
+    _cashIn(reward); // etkinlik geliri tek seferlik
     bonusPrestige += ev.prestige;
     eventReadyDay[l.id] = day + ev.cooldown;
     eventsHeld++;
@@ -674,7 +674,12 @@ extension GameV12 on Game {
       yagizUsed || [...staff, ...academy, ...transferMarket].any((p) => p.id == yagizId);
 
   void _refreshYouth() {
-    youthMarket.clear();
+    // elmasla gözlemciden gelenler 5 gün listede kalır
+    scouted.removeWhere((id, d) => day - d > 5);
+    final keep = youthMarket.where((p) => scouted.containsKey(p.id)).toList();
+    youthMarket
+      ..clear()
+      ..addAll(keep);
     if (!agencyOpen) return;
     if (!_yagizOwned) youthMarket.add(_yagizAda());
     // daha çok seçenek: gözlemci sayısının iki katı aday (en az 6)
@@ -692,7 +697,9 @@ extension GameV12 on Game {
     if (diamonds < scoutCost) return '$scoutCost 💎 gerekli.';
     diamonds -= scoutCost;
     for (int i = 0; i < 3; i++) {
-      youthMarket.insert(0, _youngPerson(bonus: 6));
+      final p = _youngPerson(bonus: 6);
+      scouted[p.id] = day;
+      youthMarket.insert(0, p);
     }
     _notify('🔭 Gözlemcin 3 yeni genç yetenek buldu!');
     _changed();
@@ -700,6 +707,7 @@ extension GameV12 on Game {
   }
 
   String? signYouth(Staff p) {
+    if (!youthMarket.contains(p)) return 'Bu genç artık listede değil.';
     if (!agencyOpen) return 'Önce ajansı aç.';
     if (academy.length >= agency.academySlots) {
       return 'Akademi dolu (${agency.academySlots}). Ajansı büyüt ya da birini kadroya al.';
@@ -719,6 +727,7 @@ extension GameV12 on Game {
 
   /// Akademiden kadroya (programlarda oynayabilir)
   String? promoteYouth(Staff p) {
+    if (!academy.contains(p)) return 'Bu kişi akademide değil.';
     if (staff.length >= studio.maxStaff) {
       return 'Kadro dolu (${studio.maxStaff}). Stüdyoyu büyüt.';
     }
@@ -735,6 +744,7 @@ extension GameV12 on Game {
     if (p.showId != null) return 'Bu kişi bir projede çalışıyor.';
     if (academy.length >= agency.academySlots) return 'Akademi dolu.';
     staff.remove(p);
+    _forgetPerson(p); // biten programların ekibinden çıkar
     p.salary = (salaryFor(p.skill) * 0.5 / 100).round() * 100.0;
     academy.add(p);
     _changed();
@@ -846,6 +856,7 @@ extension GameV12 on Game {
   }
 
   String? buyTransfer(Staff p) {
+    if (!transferMarket.contains(p)) return 'Bu oyuncu artık pazarda değil.';
     if (staff.length >= studio.maxStaff) {
       return 'Kadro dolu (${studio.maxStaff}). Stüdyoyu büyüt.';
     }

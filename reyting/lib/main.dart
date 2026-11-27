@@ -34,6 +34,7 @@ class ReytingApp extends StatefulWidget {
 
 class _ReytingAppState extends State<ReytingApp> with WidgetsBindingObserver {
   Game? _game;
+  bool _running = true; // oyun saati işliyor mu
   double _progress = 0;
   String _status = 'Stüdyo ışıkları yanıyor…';
   String _version = '';
@@ -110,18 +111,26 @@ class _ReytingAppState extends State<ReytingApp> with WidgetsBindingObserver {
     if (g == null) return;
     Sfx.pause(state != AppLifecycleState.resumed);
     Ads.instance.pause(state != AppLifecycleState.resumed);
-    if (state == AppLifecycleState.paused) {
+    if (state == AppLifecycleState.resumed) {
+      // yalnız gerçekten durmuşsa geçen süreyi işle (iki kez sayılmasın)
+      if (!_running) {
+        _running = true;
+        Notify.clear();
+        g.onResume();
+      }
+      return;
+    }
+    // aktiften çıkış (bildirim perdesi, başka uygulama, kilit): zaman durur ve kaydedilir.
+    // Geri dönüş yolundaki ara durumlar (gizli → pasif) kaydı yenilemez,
+    // yoksa uzakta geçen süre kaybolur.
+    if (_running) {
+      _running = false;
       g.onPause();
+    }
+    if (state == AppLifecycleState.paused) {
       Cloud.instance.onPause();
       Notify.scheduleAway(g);
       Telemetry.context(g);
-    } else if (state == AppLifecycleState.inactive ||
-        state == AppLifecycleState.hidden ||
-        state == AppLifecycleState.detached) {
-      g.save();
-    } else if (state == AppLifecycleState.resumed) {
-      Notify.clear();
-      g.onResume();
     }
   }
 
