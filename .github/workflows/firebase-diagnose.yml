@@ -1,0 +1,78 @@
+# Teşhis: Firebase/Google Cloud ayarlarını okur, yazdırır; yeni çağrılabilir
+# fonksiyonların herkese açık çağrılabilir olduğundan emin olur.
+# Gizli anahtar yazdırılmaz.
+name: Firebase teşhis
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [claude/reyting-mobile-game-6ffpgn]
+    paths:
+      - '.github/workflows/firebase-diagnose.yml'
+      - '.github/diagnose-trigger'
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+
+      - name: Anahtar dosyası
+        env:
+          SA: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+        run: |
+          printf '%s' "$SA" > "$RUNNER_TEMP/sa.json"
+          gcloud auth activate-service-account --key-file="$RUNNER_TEMP/sa.json" --quiet
+          gcloud config set project reyting-e7d32 --quiet
+
+      - name: Eksik parmak izlerini ekle (Play kuantum sonrası anahtar)
+        env:
+          GOOGLE_APPLICATION_CREDENTIALS: ${{ runner.temp }}/sa.json
+        run: |
+          APP=1:198787500188:android:6787b7e420844cdd178559
+          EXIST=$(npx --yes firebase-tools@14 apps:android:sha:list $APP --project reyting-e7d32 2>/dev/null | tr 'A-F' 'a-f')
+          for h in 4D:D4:53:63:C5:FD:64:66:F6:EB:B1:C9:3A:B8:5D:7E:23:82:B4:65 \
+                   32:09:5A:ED:06:D5:4B:69:81:BD:C2:C2:ED:2C:AD:BB:F4:E3:9C:55 \
+                   8A:09:89:54:EF:A1:64:7B:18:4C:C7:6F:D4:AA:5E:9C:99:21:84:90:A0:EE:AF:F3:B3:CF:A6:CE:EF:32:26:A2; do
+            low=$(echo "$h" | tr -d ':' | tr 'A-F' 'a-f')
+            if echo "$EXIST" | grep -q "$low"; then echo "zaten var: $h"; else
+              npx --yes firebase-tools@14 apps:android:sha:create $APP "$h" --project reyting-e7d32 && echo "eklendi: $h"; fi
+          done
+
+      - name: Android uygulamasının kayıtlı parmak izleri
+        env:
+          GOOGLE_APPLICATION_CREDENTIALS: ${{ runner.temp }}/sa.json
+        run: |
+          npx --yes firebase-tools@14 apps:android:sha:list 1:198787500188:android:6787b7e420844cdd178559 --project reyting-e7d32 || true
+          echo "---- Android yapılandırması (OAuth istemcileri) ----"
+          npx --yes firebase-tools@14 apps:sdkconfig android 1:198787500188:android:6787b7e420844cdd178559 --project reyting-e7d32 | grep -E 'client_id|certificate_hash|client_type|package_name' || true
+
+      - name: Fonksiyonlar ve çağırma izinleri
+        run: |
+          for f in submitsave adminlist adminplayer adminaction createtransfercode redeemtransfercode ackgrants; do
+            echo "==== $f"
+            gcloud run services get-iam-policy $f --region europe-west1 --format='value(bindings)' 2>&1 | head -5 || true
+          done
+
+      - name: Yeni fonksiyonları herkese çağrılabilir yap (yetki kontrolü kodun içinde)
+        run: |
+          for f in adminlist adminplayer adminaction createtransfercode redeemtransfercode ackgrants; do
+            gcloud run services add-iam-policy-binding $f --region europe-west1 \
+              --member=allUsers --role=roles/run.invoker --quiet >/dev/null 2>&1 && echo "$f: tamam" || echo "$f: izin verilemedi"
+          done
+
+      - name: Deneme çağrısı (girişsiz)
+        run: |
+          curl -s -X POST -H 'Content-Type: application/json' -d '{"data":{}}' \
+            https://europe-west1-reyting-e7d32.cloudfunctions.net/adminList -w '\nHTTP %{http_code}\n' | head -c 600
+
+      - name: Son hatalar (yönetici fonksiyonları)
+        run: |
+          gcloud logging read 'resource.type="cloud_run_revision" AND resource.labels.service_name=("adminlist" OR "adminplayer" OR "adminaction") AND severity>=WARNING' \
+            --limit 15 --freshness 1d --format='value(timestamp,severity,textPayload,jsonPayload.message)' 2>&1 | head -60 || true
+
+      - name: Anahtarı sil
+        if: always()
+        run: rm -f "$RUNNER_TEMP/sa.json"

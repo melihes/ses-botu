@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "198787500188",
+    "project_id": "reyting-e7d32",
+    "storage_bucket": "reyting-e7d32.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:198787500188:android:6787b7e420844cdd178559",
+        "android_client_info": {
+          "package_name": "com.esmgames.reyting"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "198787500188-ao82butiqjekbjb25eee562ipgg7jps0.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAt15wPjZU1w6p-JUGw8y6Q0-5q-daNoz4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "198787500188-ao82butiqjekbjb25eee562ipgg7jps0.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

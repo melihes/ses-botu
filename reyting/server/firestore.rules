@@ -1,0 +1,45 @@
+rules_version = '2';
+// Reyting güvenlik kuralları
+// İstemci (oyun) hiçbir belgeye doğrudan YAZAMAZ. Tüm yazmalar sunucu
+// fonksiyonlarından geçer; böylece para, ihale ve sıralama hilelenemez.
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() { return request.auth != null; }
+
+    // Kendi kaydını ve gelen kutusunu okuyabilir
+    match /players/{uid} {
+      allow read: if signedIn() && request.auth.uid == uid;
+      allow write: if false;
+      match /inbox/{msg} {
+        allow read: if signedIn() && request.auth.uid == uid;
+        allow write: if false;
+      }
+    }
+
+    // Yöneticinin gönderdiği hediye/düzeltmeler: oyuncu kendi belgesini okur
+    match /grants/{uid} {
+      allow read: if signedIn() && request.auth.uid == uid;
+      allow write: if false;
+    }
+
+    // Zenginler listesi ve açık ihaleler herkese (giriş yapmış) açık
+    match /leaderboard/{uid} {
+      allow read: if signedIn();
+      allow write: if false;
+    }
+    // İlk 100 listesi (sunucu her 10 dakikada yazar)
+    match /meta/{doc} {
+      allow read: if signedIn();
+      allow write: if false;
+    }
+    match /auctions/{id} {
+      allow read: if signedIn();
+      allow write: if false;
+    }
+
+    // Geri kalan her şey kapalı
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

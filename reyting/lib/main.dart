@@ -1,0 +1,172 @@
+import 'package:flutter/material.dart';
+import 'package:in_app_update/in_app_update.dart';
+import 'package:flutter/services.dart';
+import 'package:package_info_plus/package_info_plus.dart';
+
+import 'core/ads.dart';
+import 'core/cloud.dart';
+import 'core/notify.dart';
+import 'core/telemetry.dart';
+import 'core/shop.dart';
+import 'core/sfx.dart';
+import 'core/theme.dart';
+import 'engine/game.dart';
+import 'ui/shell.dart';
+import 'ui/splash.dart';
+import 'ui/widgets/common.dart';
+
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  // Oyun yatay (landscape) oynanır
+  await SystemChrome.setPreferredOrientations([
+    DeviceOrientation.landscapeLeft,
+    DeviceOrientation.landscapeRight,
+  ]);
+  await SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
+  runApp(const ReytingApp());
+}
+
+class ReytingApp extends StatefulWidget {
+  const ReytingApp({super.key});
+  @override
+  State<ReytingApp> createState() => _ReytingAppState();
+}
+
+class _ReytingAppState extends State<ReytingApp> with WidgetsBindingObserver {
+  Game? _game;
+  bool _running = true; // oyun saati işliyor mu
+  double _progress = 0;
+  String _status = 'Stüdyo ışıkları yanıyor…';
+  String _version = '';
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    _boot();
+  }
+
+  /// Açılış adımları: yükleme çubuğu gerçek adımlarla dolar.
+  Future<void> _boot() async {
+    final sw = Stopwatch()..start();
+    void step(double p, String s) {
+      if (mounted) {
+        setState(() {
+          _progress = p;
+          _status = s;
+        });
+      }
+    }
+
+    try {
+      final info = await PackageInfo.fromPlatform();
+      _version = '${info.version} (${info.buildNumber})';
+    } catch (_) {
+      _version = '0.8.0';
+    }
+    await Sfx.init();
+    step(0.15, 'Online sistem hazırlanıyor…');
+    await Cloud.instance.init();
+    await Telemetry.init();
+    await Notify.init();
+    step(0.25, 'Kayıtların okunuyor…');
+    final game = Game();
+    await game.start();
+    // Açılış ekranı okunabilsin: logo ve "ESM Games" ~4 sn görünür
+    Future<void> until(int ms) async {
+      final rest = ms - sw.elapsedMilliseconds;
+      if (rest > 0) await Future<void>.delayed(Duration(milliseconds: rest));
+    }
+
+    await until(1200);
+    step(0.55, 'Yayın akışı hazırlanıyor…');
+    await until(2300);
+    step(0.8, 'Reytingler hesaplanıyor…');
+    await until(3400);
+    step(1.0, 'Yayındasın!');
+    await until(4000);
+    Cloud.instance.attach(game);
+    if (mounted) setState(() => _game = game);
+    // reklam ve mağaza oyun açıldıktan sonra (açılışı yavaşlatmasın)
+    Ads.instance.init();
+    Shop.instance.init(game);
+    checkStoreUpdate();
+    Telemetry.context(game);
+    // bildirim izni: reklam izni ve güncelleme pencereleri bittikten sonra, oyunu biraz
+    // tanıyınca (2. günden itibaren) bir kez sorulur
+    Future.delayed(const Duration(seconds: 40), () {
+      if (game.day >= 2) Notify.askPermission();
+    });
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    final g = _game;
+    if (g == null) return;
+    Sfx.pause(state != AppLifecycleState.resumed);
+    Ads.instance.pause(state != AppLifecycleState.resumed);
+    if (state == AppLifecycleState.resumed) {
+      // yalnız gerçekten durmuşsa geçen süreyi işle (iki kez sayılmasın)
+      if (!_running) {
+        _running = true;
+        Notify.clear();
+        g.onResume();
+      }
+      return;
+    }
+    // aktiften çıkış (bildirim perdesi, başka uygulama, kilit): zaman durur ve kaydedilir.
+    // Geri dönüş yolundaki ara durumlar (gizli → pasif) kaydı yenilemez,
+    // yoksa uzakta geçen süre kaybolur.
+    if (_running) {
+      _running = false;
+      g.onPause();
+    }
+    if (state == AppLifecycleState.paused) {
+      Cloud.instance.onPause();
+      Notify.scheduleAway(g);
+      Telemetry.context(g);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final g = _game;
+    final app = MaterialApp(
+      title: 'Reyting',
+      debugShowCheckedModeBanner: false,
+      theme: buildTheme(),
+      home: g == null
+          ? SplashScreen(
+              progress: _progress,
+              status: _status,
+              version: _version,
+            )
+          : const Shell(),
+    );
+    if (g == null) return app;
+    return GameScope(game: g, child: app);
+  }
+}
+
+
+/// Play Store'da yeni sürüm varsa oyun açılırken güncelleme ister.
+/// (Sadece Play'den kurulan kopyalarda çalışır; diğerlerinde sessizce geçer.)
+Future<void> checkStoreUpdate() async {
+  try {
+    final info = await InAppUpdate.checkForUpdate();
+    if (info.updateAvailability != UpdateAvailability.updateAvailable) return;
+    if (info.immediateUpdateAllowed) {
+      await InAppUpdate.performImmediateUpdate();
+    } else if (info.flexibleUpdateAllowed) {
+      final r = await InAppUpdate.startFlexibleUpdate();
+      // oyuncu "hayır" dediyse kurma
+      if (r == AppUpdateResult.success) await InAppUpdate.completeFlexibleUpdate();
+    }
+  } catch (_) {}
+}
