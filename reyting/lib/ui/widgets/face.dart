@@ -205,7 +205,9 @@ final Map<String, String> _svgCache = {};
 
 String faceSvg(FaceSpec f, int key,
     {FaceMood mood = FaceMood.neutral, bool blink = false, bool alt = false, bool crop = true, String? gesture}) {
-  final k = '$key|${mood.index}|$blink|$alt|$crop|$gesture';
+  // kişinin görünüşü de anahtarda: aynı numaralı iki farklı kişi/kıyafet karışmasın
+  final k = '$key|${Object.hash(f.hair, f.body, f.cloth.toARGB32(), f.skin.toARGB32(), f.hairColor.toARGB32(), f.beard, f.glasses, f.eyes)}'
+      '|${mood.index}|$blink|$alt|$crop|$gesture';
   if (_svgCache.length > 600) _svgCache.clear();
   return _svgCache.putIfAbsent(
       k, () => f.svg(mood: mood, blink: blink, alt: alt, crop: crop, gesture: gesture));

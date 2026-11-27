@@ -83,7 +83,7 @@ class LightPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(covariant LightPainter o) => o.a.hour.floor() != a.hour.floor();
+  bool shouldRepaint(covariant LightPainter o) => (o.a.hour * 6).floor() != (a.hour * 6).floor();
 }
 
 /// Mevsim ve özel gün süsleri (arka planda, karakterlerin arkasında)
@@ -95,6 +95,7 @@ class DecorPainter extends CustomPainter {
   @override
   void paint(Canvas c, Size s) {
     final h = a.holidays;
+    if (h.isEmpty && a.season == TvSeason.yaz) return; // çizecek süs yok
     // ---- mevsim parçacıkları
     switch (a.season) {
       case TvSeason.kis:

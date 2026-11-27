@@ -124,10 +124,12 @@ class _PostCard extends StatefulWidget {
 class _PostCardState extends State<_PostCard> with SingleTickerProviderStateMixin {
   late final AnimationController _c =
       AnimationController(vsync: this, duration: const Duration(milliseconds: 450))..forward();
+  late final CurvedAnimation _curve = CurvedAnimation(parent: _c, curve: Curves.easeOutCubic);
   bool _liked = false;
 
   @override
   void dispose() {
+    _curve.dispose();
     _c.dispose();
     super.dispose();
   }
@@ -191,7 +193,7 @@ class _PostCardState extends State<_PostCard> with SingleTickerProviderStateMixi
     );
     if (!widget.fresh) return card;
     return SizeTransition(
-      sizeFactor: CurvedAnimation(parent: _c, curve: Curves.easeOutCubic),
+      sizeFactor: _curve,
       child: FadeTransition(opacity: _c, child: card),
     );
   }

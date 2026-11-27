@@ -272,7 +272,13 @@ class _ShellState extends State<Shell> {
   void _cloudPrompt() {
     final c = Cloud.instance;
     if (_cloudAsked || c.cloudSaveRaw == null || !mounted) return;
+    // başka bir pencere (tanıtım, ödül, sen yokken) açıksa bitince sor
+    if (_introShowing || _eventShowing || _offlineShowing) {
+      Future.delayed(const Duration(seconds: 2), _cloudPrompt);
+      return;
+    }
     _cloudAsked = true;
+    _eventShowing = true;
     final game = GameScope.read(context);
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       if (!mounted || c.cloudSaveRaw == null) return;
@@ -291,9 +297,10 @@ class _ShellState extends State<Shell> {
           ],
         ),
       );
+      _eventShowing = false;
       if (load == true) {
         await c.restoreCloud();
-      } else {
+      } else if (load == false) {
         c.dismissCloud();
         c.sync(force: true);
       }
@@ -390,7 +397,7 @@ class _ShellState extends State<Shell> {
 
   void _maybeShowOffline() {
     final game = GameScope.read(context);
-    if (game.pendingOffline == null || _offlineShowing) return;
+    if (game.pendingOffline == null || _offlineShowing || _eventShowing || _introShowing) return;
     _offlineShowing = true;
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       final sum = game.pendingOffline;

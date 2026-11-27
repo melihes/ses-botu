@@ -113,9 +113,10 @@ class _SettingsState extends State<_Settings> {
               builder: (c, setS) => SwitchListTile(
                 contentPadding: EdgeInsets.zero,
                 value: Notify.enabled,
-                onChanged: (v) async {
-                  await Notify.setEnabled(v);
+                onChanged: (v) {
+                  Notify.enabled = v;
                   setS(() {});
+                  Notify.setEnabled(v);
                 },
                 title: const Text('🔔 Bildirimler', style: TextStyle(fontWeight: FontWeight.w800)),
                 subtitle: const Text(

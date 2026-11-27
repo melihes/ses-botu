@@ -54,6 +54,8 @@ class _AwardCeremonyState extends State<AwardCeremony> with SingleTickerProvider
     _ticker = createTicker((e) {
       final dt = ((e - _last).inMicroseconds / 1e6).clamp(0.0, 0.1);
       _last = e;
+      // üstte başka pencere varken tören ilerlemesin
+      if (!(ModalRoute.of(context)?.isCurrent ?? true)) return;
       _t += dt;
       final len = _step == 0 ? _introLen : _catLen;
       if (_t - _stepAt >= len) _next();
@@ -78,10 +80,17 @@ class _AwardCeremonyState extends State<AwardCeremony> with SingleTickerProvider
 
   bool _done = false;
   void _finish() {
-    if (_done) return;
+    if (_done || !mounted) return;
+    // yalnız törenin kendisini kapat (üstte başka pencere varsa onu değil)
+    final r = ModalRoute.of(context);
+    if (r == null || !r.isActive) return;
     _done = true;
     _ticker.stop();
-    if (mounted) Navigator.of(context).pop();
+    if (r.isCurrent) {
+      Navigator.of(context).pop();
+    } else {
+      Navigator.of(context).removeRoute(r);
+    }
   }
 
   @override

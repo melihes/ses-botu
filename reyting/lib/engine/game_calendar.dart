@@ -58,11 +58,16 @@ extension GameCalendar on Game {
   bool specialAvailable(SpecialDay d) =>
       !d.world || d.locations.any(ownedLocations.contains);
 
-  /// Şu an süren özel günler (başlangıç günüyle)
-  List<(SpecialDay, int)> get activeSpecialDays => [
-    for (final d in specialDays)
-      if (specialAvailable(d) && d.activeStart(day) != null) (d, d.activeStart(day)!),
-  ];
+  /// Şu an süren özel günler (başlangıç günüyle). Gün ve lokasyonlar değişmedikçe önbellekten.
+  List<(SpecialDay, int)> get activeSpecialDays {
+    final key = day * 1000 + ownedLocations.length;
+    if (_activeDaysKey == key) return _activeDays;
+    _activeDaysKey = key;
+    return _activeDays = [
+      for (final d in specialDays)
+        if (specialAvailable(d) && d.activeStart(day) != null) (d, d.activeStart(day)!),
+    ];
+  }
 
   /// Yaklaşan (ve süren) özel günler, en yakından uzağa
   List<(SpecialDay, int)> upcomingSpecialDays({int within = 400, bool all = false}) {

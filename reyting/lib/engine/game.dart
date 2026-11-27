@@ -64,7 +64,9 @@ class Game extends ChangeNotifier {
   // ---- 1.1: takvim, sosyal medya, canlı kriz, kulis ----
   /// Özel bölüm hazırlanan programlar: program id → "özelGün@başlangıçGünü"
   final Map<String, String> specials = {};
-  final Set<String> paidSpecials = {}; // "programId|özelGün@başlangıç": parası verildi
+  final Set<String> paidSpecials = {};
+  int _activeDaysKey = -1; // takvim önbelleği (her karede yeniden hesaplanmasın)
+  List<(SpecialDay, int)> _activeDays = const []; // "programId|özelGün@başlangıç": parası verildi
   final List<SocialPost> socialFeed = []; // sosyal medya akışı (en yeni başta)
   final Map<String, double> trends = {}; // gündem: etiket → puan
   final List<int> _socialRecent = []; // son kullanılan metinler (tekrar etmesin)

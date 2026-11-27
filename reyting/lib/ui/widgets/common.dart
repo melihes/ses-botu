@@ -2,6 +2,7 @@ import 'dart:math';
 
 import 'package:flutter/material.dart';
 
+import '../../core/format.dart';
 import '../../core/theme.dart';
 import '../../engine/game.dart';
 
@@ -220,7 +221,7 @@ class SectionLabel extends StatelessWidget {
   const SectionLabel(this.text, {super.key, this.color = AppColors.cyan});
   @override
   Widget build(BuildContext context) => Text(
-    text.toUpperCase(),
+    trUpper(text),
     maxLines: 1,
     overflow: TextOverflow.ellipsis,
     style: TextStyle(
@@ -285,7 +286,7 @@ class StatBlock extends StatelessWidget {
     mainAxisSize: MainAxisSize.min,
     children: [
       Text(
-        label.toUpperCase(),
+        trUpper(label),
         style: const TextStyle(
           color: AppColors.textDim,
           fontSize: 10,
